@@ -55,14 +55,19 @@ async function decomposeThemes(client: LLMClient, dream: Dream): Promise<string[
     WAKING_RETRY_OPTS
   );
 
-  // Expect one theme per line, strip bullets/numbers
+  // Expect one theme per line; strip markdown list prefixes (bullets, numbers, dashes)
   const themes = text
     .trim()
     .split("\n")
-    .map((line) => line.replace(/^[\s\-*\d.)+]+/, "").trim())
+    .map((line) => line.replace(/^[\s\-*•>\d.)+]+/, "").trim())
     .filter((line) => line.length > 0);
 
-  logger.debug(`Dream decomposed into ${themes.length} themes: ${themes.join("; ")}`);
+  if (themes.length === 0) {
+    logger.warn("Dream decomposition produced no themes from LLM output");
+  } else {
+    logger.debug(`Dream decomposed into ${themes.length} themes: ${themes.join("; ")}`);
+  }
+
   return themes;
 }
 

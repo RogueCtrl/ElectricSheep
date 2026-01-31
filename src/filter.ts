@@ -131,9 +131,9 @@ export async function applyFilter(
 
     return result;
   } catch (e) {
-    // Filter failure should not block posting — log and pass through
-    logger.error(`Filter call failed, passing through unfiltered: ${e}`);
-    return content;
+    // Filter failure BLOCKS posting — never publish unreviewed content
+    logger.error(`Filter call failed, blocking ${contentType}: ${e}`);
+    return null;
   }
 }
 
