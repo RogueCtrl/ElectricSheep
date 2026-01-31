@@ -7,7 +7,7 @@ import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-config();
+config({ quiet: true });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -42,6 +42,11 @@ export const WORKING_MEMORY_MAX_ENTRIES = 50;
 export const DEEP_MEMORY_DB = resolve(MEMORY_DIR, "deep.db");
 export const WORKING_MEMORY_FILE = resolve(MEMORY_DIR, "working.json");
 export const STATE_FILE = resolve(MEMORY_DIR, "state.json");
+
+// Token budget — $20/day using Opus 4.5 output rate ($25/1M) ≈ 800,000 tokens
+// Input tokens are $5/1M but we count all tokens against the output rate for simplicity.
+// Set to 0 to disable the daily budget limit.
+export const MAX_DAILY_TOKENS = parseInt(process.env.MAX_DAILY_TOKENS ?? "800000", 10);
 
 // Dream
 export const DREAM_ENCRYPTION_KEY = process.env.DREAM_ENCRYPTION_KEY ?? "";

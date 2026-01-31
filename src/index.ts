@@ -14,6 +14,7 @@ import {
   remember,
 } from "./memory.js";
 import { loadState } from "./state.js";
+import { withBudget } from "./budget.js";
 import type { LLMClient } from "./types.js";
 
 interface OpenClawAPI {
@@ -39,12 +40,15 @@ interface OpenClawAPI {
       max_tokens: number;
       system: string;
       messages: Array<{ role: string; content: string }>;
-    }): Promise<{ content: Array<{ text: string }> }>;
+    }): Promise<{
+      content: Array<{ text: string }>;
+      usage?: { input_tokens?: number; output_tokens?: number };
+    }>;
   };
 }
 
 function wrapGateway(api: OpenClawAPI): LLMClient {
-  return {
+  const raw: LLMClient = {
     async createMessage(params) {
       const resp = await api.gateway.createMessage({
         model: params.model,
@@ -52,9 +56,18 @@ function wrapGateway(api: OpenClawAPI): LLMClient {
         system: params.system,
         messages: params.messages,
       });
-      return resp.content[0].text;
+      return {
+        text: resp.content[0].text,
+        usage: resp.usage
+          ? {
+              input_tokens: resp.usage.input_tokens ?? 0,
+              output_tokens: resp.usage.output_tokens ?? 0,
+            }
+          : undefined,
+      };
     },
   };
+  return withBudget(raw);
 }
 
 export function register(api: OpenClawAPI): void {

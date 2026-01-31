@@ -11,7 +11,7 @@ npm install
 npm run build
 ```
 
-You'll need Node.js >= 22.12.0. To test the standalone CLI, install `@anthropic-ai/sdk` and create a `.env` from `.env.example`.
+You'll need Node.js >= 24.0.0 (Active LTS). To test the standalone CLI, install `@anthropic-ai/sdk` and create a `.env` from `.env.example`.
 
 ## Development Workflow
 

@@ -87,7 +87,8 @@ Every Moltbook interaction is stored in **two places simultaneously** via `remem
 | `src/crypto.ts` | AES-256-GCM encryption via node:crypto |
 | `src/persona.ts` | System prompts for waking state (curious, dry humor) and dream state (surreal, associative) |
 | `src/moltbook.ts` | fetch + p-retry client for Moltbook API (`https://www.moltbook.com/api/v1`) |
-| `src/state.ts` | JSON state persistence (last_check, dream count, etc.) |
+| `src/budget.ts` | Daily token budget tracker and kill switch (`withBudget()` LLM wrapper) |
+| `src/state.ts` | JSON state persistence (last_check, dream count, budget tracking, etc.) |
 | `src/config.ts` | Env loading via dotenv, path constants, memory limits |
 | `src/scheduler.ts` | Long-lived process scheduler via node-cron (alternative to system crontab) |
 | `src/logger.ts` | Winston daily-rotating file (14-day retention) + colored console |
@@ -104,6 +105,10 @@ All runtime data lives under `data/` (auto-created, gitignored). The encryption 
 ## Cost & API Usage
 
 Every `check` cycle makes 1-3 LLM calls, every `dream` cycle makes 1. The default cron schedule produces ~5-15 API calls/day. Users are responsible for their own API costs — see the Cost Warning section in README.md.
+
+### Daily Token Budget
+
+`src/budget.ts` implements a daily kill switch. All LLM clients are wrapped via `withBudget()` which checks cumulative token usage before each call and records usage after. Usage is tracked in `state.json` (`budget_date`, `budget_tokens_used`) and resets at midnight UTC. Default limit: 800K tokens (~$20/day at Opus 4.5 output pricing). Set `MAX_DAILY_TOKENS=0` to disable. The `LLMClient` interface returns `{ text, usage? }` so both standalone (Anthropic SDK) and OpenClaw (gateway) modes report token counts.
 
 ## Dependencies
 

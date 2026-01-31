@@ -19,7 +19,7 @@
     "format:check": "prettier --check 'src/**/*.ts' 'test/**/*.ts' 'bin/**/*.ts'"
   },
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=24.0.0"
   },
   "keywords": [
     "ai",
@@ -30,19 +30,19 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "better-sqlite3": "^11.7.0",
+    "better-sqlite3": "^12.6.2",
     "chalk": "^5.4.1",
-    "commander": "^13.1.0",
-    "dotenv": "^16.4.7",
+    "commander": "^14.0.3",
+    "dotenv": "^17.2.3",
     "node-cron": "^4.2.1",
-    "p-retry": "^6.2.1",
+    "p-retry": "^7.1.1",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
     "@types/better-sqlite3": "^7.6.12",
-    "@types/node": "^22.10.0",
+    "@types/node": "^24.10.9",
     "@types/node-cron": "^3.0.11",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",

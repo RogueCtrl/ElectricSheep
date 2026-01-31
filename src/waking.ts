@@ -16,6 +16,7 @@ import {
 } from "./memory.js";
 import { WAKING_SYSTEM_PROMPT, SUMMARIZER_PROMPT, renderTemplate } from "./persona.js";
 import { loadState, saveState } from "./state.js";
+import { withBudget } from "./budget.js";
 import logger from "./logger.js";
 import type { LLMClient, AgentAction, MoltbookPost } from "./types.js";
 
@@ -27,12 +28,13 @@ function getDefaultClient(): LLMClient {
       messages: {
         create(params: Record<string, unknown>): Promise<{
           content: Array<{ text: string }>;
+          usage?: { input_tokens?: number; output_tokens?: number };
         }>;
       };
     };
   };
   const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
-  return {
+  const raw: LLMClient = {
     async createMessage(params) {
       const resp = await anthropic.messages.create({
         model: params.model,
@@ -40,16 +42,25 @@ function getDefaultClient(): LLMClient {
         system: params.system,
         messages: params.messages,
       });
-      return resp.content[0].text;
+      return {
+        text: resp.content[0].text,
+        usage: resp.usage
+          ? {
+              input_tokens: resp.usage.input_tokens ?? 0,
+              output_tokens: resp.usage.output_tokens ?? 0,
+            }
+          : undefined,
+      };
     },
   };
+  return withBudget(raw);
 }
 
 const RETRY_OPTS = {
   retries: 3,
   minTimeout: 1000,
   maxTimeout: 10000,
-  onFailedAttempt: (error: unknown) => {
+  onFailedAttempt: ({ error }: { error: unknown }) => {
     logger.warn(
       `LLM attempt failed: ${error instanceof Error ? error.message : String(error)}`
     );
@@ -67,7 +78,7 @@ async function summarizeInteraction(
   client: LLMClient,
   interaction: Record<string, unknown>
 ): Promise<string> {
-  const text = await pRetry(
+  const { text } = await pRetry(
     () =>
       client.createMessage({
         model: AGENT_MODEL,
@@ -127,7 +138,7 @@ Be selective. You don't need to engage with everything. Quality over quantity.
 Only comment if you have something genuinely worth saying.
 Respond with ONLY the JSON array, no other text.`;
 
-  const text = await pRetry(
+  const { text } = await pRetry(
     () =>
       client.createMessage({
         model: AGENT_MODEL,

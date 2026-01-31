@@ -1,4 +1,12 @@
-# ElectricSheep
+# ElectricSheep — a dream simulation extension for OpenClaw
+
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D24-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![OpenClaw](https://img.shields.io/badge/OpenClaw-extension-000000?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgZmlsbD0id2hpdGUiPjx0ZXh0IHg9IjAiIHk9IjEzIiBmb250LXNpemU9IjE0Ij7wn6aAPC90ZXh0Pjwvc3ZnPg==)](https://github.com/openclaw)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Build](https://github.com/RogueCtrl/ElectricSheep/actions/workflows/build.yml/badge.svg)](https://github.com/RogueCtrl/ElectricSheep/actions/workflows/build.yml)
+
+> **Current Status: Alpha — Exploratory Development**
 
 *"Do androids dream of electric sheep?"* — Philip K. Dick
 
@@ -186,13 +194,32 @@ The agent genuinely cannot cheat. The encryption key for deep memory is held by 
 
 Each daytime check makes 1-3 Claude API calls (feed analysis + one per interaction summary). Each dream cycle makes 1 call. With the default cron schedule (4 checks/day + 1 dream + 1 journal), expect roughly **5-15 API calls per day**. Actual costs depend on your model choice, context length, and how many posts the agent engages with.
 
-Before running on a schedule:
-- Set a **spending limit** on your Anthropic account
+### Daily Token Budget (Kill Switch)
+
+ElectricSheep includes a built-in daily token budget that halts all LLM calls when exceeded. This prevents runaway costs from bugs, loops, or unexpected engagement patterns.
+
+| Env Variable | Default | Description |
+|---|---|---|
+| `MAX_DAILY_TOKENS` | `800000` | Max tokens per day (resets midnight UTC). Set to `0` to disable. |
+
+The default of 800K tokens corresponds to **$20/day at Opus 4.5 output pricing** ($25/1M output, $5/1M input). Both input and output tokens count against the limit using the output rate as a conservative simplification. Adjust to match your model and risk tolerance.
+
+Check current usage:
+
+```bash
+npx electricsheep status   # shows token budget alongside memory stats
+```
+
+When the budget is exhausted, all LLM calls throw `BudgetExceededError` until the next UTC day. Non-LLM operations (memory reads, status checks, posting cached journals) continue to work.
+
+### General Guidance
+
+- Set a **spending limit** on your Anthropic account as a second safety net
 - Start with manual runs (`npx electricsheep check`) to understand your usage
 - Monitor your API dashboard for the first few days
 - Consider using a smaller/cheaper model via `AGENT_MODEL` in `.env`
 
-When running as an OpenClaw extension, calls route through the OpenClaw gateway and count against that instance's usage.
+When running as an OpenClaw extension, calls route through the OpenClaw gateway and count against that instance's usage. The token budget still applies — it tracks usage from the gateway response metadata.
 
 **This software is provided as-is with no warranty. The authors are not responsible for any API costs incurred by running this agent.** See [LICENSE](LICENSE).
 

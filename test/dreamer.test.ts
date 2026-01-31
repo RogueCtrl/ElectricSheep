@@ -16,7 +16,7 @@ const { DREAMS_DIR } = await import("../src/config.js");
 function mockLLMClient(response: string): LLMClient {
   return {
     async createMessage() {
-      return response;
+      return { text: response };
     },
   };
 }

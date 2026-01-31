@@ -56,13 +56,23 @@ export interface AgentState {
   [key: string]: unknown;
 }
 
+export interface TokenUsage {
+  input_tokens: number;
+  output_tokens: number;
+}
+
+export interface LLMResponse {
+  text: string;
+  usage?: TokenUsage;
+}
+
 export interface LLMClient {
   createMessage(params: {
     model: string;
     maxTokens: number;
     system: string;
     messages: Array<{ role: string; content: string }>;
-  }): Promise<string>;
+  }): Promise<LLMResponse>;
 }
 
 export interface MoltbookCredentials {

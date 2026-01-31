@@ -88,16 +88,33 @@ program
     const { deepMemoryStats, getWorkingMemory } = await import("./memory.js");
     const { loadState } = await import("./state.js");
     const { MoltbookClient } = await import("./moltbook.js");
+    const { getBudgetStatus } = await import("./budget.js");
 
     const state: AgentState = loadState();
     const memStats: DeepMemoryStats = deepMemoryStats();
     const working: WorkingMemoryEntry[] = getWorkingMemory();
+    const budget = getBudgetStatus();
 
     console.log(chalk.cyan.bold("\nElectricSheep Status\n"));
 
+    // Token budget
+    if (budget.enabled) {
+      const pct = Math.round((budget.used / budget.limit) * 100);
+      const color = pct >= 90 ? chalk.red : pct >= 70 ? chalk.yellow : chalk.green;
+      console.log(chalk.bold("Token Budget:"));
+      console.log(
+        `  ${color(`${budget.used.toLocaleString()} / ${budget.limit.toLocaleString()} tokens (${pct}%)`)}` +
+          `  ${chalk.dim(`remaining: ${budget.remaining.toLocaleString()}`)}`
+      );
+      console.log(`  ${chalk.dim(`date: ${budget.date} UTC`)}`);
+    } else {
+      console.log(chalk.bold("Token Budget:") + chalk.dim(" disabled"));
+    }
+
     // State
-    console.log(chalk.bold("Agent State:"));
+    console.log(`\n${chalk.bold("Agent State:")}`);
     for (const [k, v] of Object.entries(state)) {
+      if (k.startsWith("budget_")) continue;
       console.log(`  ${chalk.bold(k)}: ${String(v)}`);
     }
 
