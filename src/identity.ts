@@ -32,6 +32,12 @@ function resolveDir(): string {
 
 function loadFile(dir: string, filename: string): string {
   const filepath = resolve(dir, filename);
+  // Guard against path traversal: resolved path must stay within the target dir.
+  const resolvedDir = resolve(dir);
+  if (!filepath.startsWith(resolvedDir + "/") && filepath !== resolvedDir) {
+    logger.warn(`Identity: path traversal blocked for ${filename} in ${dir}`);
+    return "";
+  }
   if (existsSync(filepath)) {
     const content = readFileSync(filepath, "utf-8").trim();
     if (content) {

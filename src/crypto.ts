@@ -9,7 +9,7 @@
  */
 
 import { randomBytes, createCipheriv, createDecipheriv } from "node:crypto";
-import { readFileSync, writeFileSync, existsSync, chmodSync } from "node:fs";
+import { readFileSync, existsSync, openSync, writeSync, closeSync } from "node:fs";
 import { resolve } from "node:path";
 import { DATA_DIR, DREAM_ENCRYPTION_KEY } from "./config.js";
 
@@ -64,8 +64,11 @@ export function getOrCreateDreamKey(): Buffer {
   }
 
   const key = Cipher.generateKey();
-  writeFileSync(KEY_FILE, key);
-  chmodSync(KEY_FILE, 0o600);
+  // Open with exclusive create and restrictive permissions atomically
+  // to avoid a race window where the file is world-readable.
+  const fd = openSync(KEY_FILE, "wx", 0o600);
+  writeSync(fd, key);
+  closeSync(fd);
   return Buffer.from(key, "base64");
 }
 

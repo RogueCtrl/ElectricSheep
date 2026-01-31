@@ -26,10 +26,6 @@ for (const dir of [DATA_DIR, MEMORY_DIR, DREAMS_DIR]) {
   mkdirSync(dir, { recursive: true });
 }
 
-// API keys
-export const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY ?? "";
-export const MOLTBOOK_API_KEY = process.env.MOLTBOOK_API_KEY ?? "";
-
 // Agent
 export const AGENT_NAME = process.env.AGENT_NAME ?? "ElectricSheep";
 export const AGENT_MODEL = process.env.AGENT_MODEL ?? "claude-sonnet-4-5-20250929";
@@ -48,8 +44,27 @@ export const STATE_FILE = resolve(MEMORY_DIR, "state.json");
 // Set to 0 to disable the daily budget limit.
 export const MAX_DAILY_TOKENS = parseInt(process.env.MAX_DAILY_TOKENS ?? "800000", 10);
 
-// Workspace (for SOUL.md / IDENTITY.md discovery in standalone mode)
+// Workspace (for SOUL.md / IDENTITY.md discovery)
 export const WORKSPACE_DIR = process.env.OPENCLAW_WORKSPACE_DIR ?? "";
 
 // Dream
 export const DREAM_ENCRYPTION_KEY = process.env.DREAM_ENCRYPTION_KEY ?? "";
+
+// ─── LLM Call Limits ─────────────────────────────────────────────────────────
+// Max tokens for various LLM call types.
+export const MAX_TOKENS_SUMMARY = 150;
+export const MAX_TOKENS_DECISION = 1000;
+export const MAX_TOKENS_DREAM = 2000;
+
+// ─── Feed Limits ─────────────────────────────────────────────────────────────
+export const FEED_LIMIT = 10; // max posts shown to agent for engagement decisions
+export const FEED_FETCH_LIMIT = 25; // default API fetch limit
+export const CONTENT_PREVIEW_LENGTH = 200; // chars of post content shown in summaries
+
+// ─── Working Memory Context ──────────────────────────────────────────────────
+// Approximate token budget for working memory context injected into prompts.
+// Multiplied by 4 to estimate character count (1 token ≈ 4 chars).
+export const WORKING_MEMORY_CONTEXT_TOKENS = 2000;
+
+// ─── Dream File Naming ───────────────────────────────────────────────────────
+export const DREAM_TITLE_MAX_LENGTH = 40;

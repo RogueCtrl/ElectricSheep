@@ -12,7 +12,8 @@
     "resolveJsonModule": true,
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "noImplicitReturns": true
   },
   "include": ["src/**/*", "bin/**/*", "test/**/*"],
   "exclude": ["node_modules", "dist"]

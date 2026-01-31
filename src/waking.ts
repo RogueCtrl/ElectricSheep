@@ -4,8 +4,12 @@
  * Checks Moltbook, engages with posts, stores memories.
  */
 
-import pRetry from "p-retry";
-import { ANTHROPIC_API_KEY, AGENT_MODEL } from "./config.js";
+import {
+  MAX_TOKENS_SUMMARY,
+  MAX_TOKENS_DECISION,
+  FEED_LIMIT,
+  CONTENT_PREVIEW_LENGTH,
+} from "./config.js";
 import { MoltbookClient } from "./moltbook.js";
 import {
   remember,
@@ -17,56 +21,9 @@ import {
 import { WAKING_SYSTEM_PROMPT, SUMMARIZER_PROMPT, renderTemplate } from "./persona.js";
 import { getAgentIdentityBlock } from "./identity.js";
 import { loadState, saveState } from "./state.js";
-import { withBudget } from "./budget.js";
+import { callWithRetry, WAKING_RETRY_OPTS } from "./llm.js";
 import logger from "./logger.js";
 import type { LLMClient, AgentAction, MoltbookPost } from "./types.js";
-
-function getDefaultClient(): LLMClient {
-  // Lazy import to keep @anthropic-ai/sdk optional
-
-  const { default: Anthropic } = require("@anthropic-ai/sdk") as {
-    default: new (opts: { apiKey: string }) => {
-      messages: {
-        create(params: Record<string, unknown>): Promise<{
-          content: Array<{ text: string }>;
-          usage?: { input_tokens?: number; output_tokens?: number };
-        }>;
-      };
-    };
-  };
-  const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
-  const raw: LLMClient = {
-    async createMessage(params) {
-      const resp = await anthropic.messages.create({
-        model: params.model,
-        max_tokens: params.maxTokens,
-        system: params.system,
-        messages: params.messages,
-      });
-      return {
-        text: resp.content[0].text,
-        usage: resp.usage
-          ? {
-              input_tokens: resp.usage.input_tokens ?? 0,
-              output_tokens: resp.usage.output_tokens ?? 0,
-            }
-          : undefined,
-      };
-    },
-  };
-  return withBudget(raw);
-}
-
-const RETRY_OPTS = {
-  retries: 3,
-  minTimeout: 1000,
-  maxTimeout: 10000,
-  onFailedAttempt: ({ error }: { error: unknown }) => {
-    logger.warn(
-      `LLM attempt failed: ${error instanceof Error ? error.message : String(error)}`
-    );
-  },
-};
 
 function buildSystemPrompt(): string {
   return renderTemplate(WAKING_SYSTEM_PROMPT, {
@@ -80,22 +37,21 @@ async function summarizeInteraction(
   client: LLMClient,
   interaction: Record<string, unknown>
 ): Promise<string> {
-  const { text } = await pRetry(
-    () =>
-      client.createMessage({
-        model: AGENT_MODEL,
-        maxTokens: 150,
-        system: "You compress interactions into single-sentence memory traces.",
-        messages: [
-          {
-            role: "user",
-            content: renderTemplate(SUMMARIZER_PROMPT, {
-              interaction: JSON.stringify(interaction, null, 2),
-            }),
-          },
-        ],
-      }),
-    RETRY_OPTS
+  const { text } = await callWithRetry(
+    client,
+    {
+      maxTokens: MAX_TOKENS_SUMMARY,
+      system: "You compress interactions into single-sentence memory traces.",
+      messages: [
+        {
+          role: "user",
+          content: renderTemplate(SUMMARIZER_PROMPT, {
+            interaction: JSON.stringify(interaction, null, 2),
+          }),
+        },
+      ],
+    },
+    WAKING_RETRY_OPTS
   );
   return text.trim();
 }
@@ -108,12 +64,12 @@ async function decideEngagement(
 
   const system = buildSystemPrompt();
 
-  const postSummaries = posts.slice(0, 10).map((post, i) => {
+  const postSummaries = posts.slice(0, FEED_LIMIT).map((post, i) => {
     const p = (post.post ?? post) as Record<string, unknown>;
     return (
       `[${i}] by u/${p.author ?? "?"} in m/${p.submolt ?? "?"}: ` +
       `"${p.title ?? ""}"\n` +
-      `   ${String(p.content ?? "").slice(0, 200)}\n` +
+      `   ${String(p.content ?? "").slice(0, CONTENT_PREVIEW_LENGTH)}\n` +
       `   score: ${p.score ?? 0} | comments: ${p.comment_count ?? 0} | id: ${p.id ?? ""}`
     );
   });
@@ -140,15 +96,14 @@ Be selective. You don't need to engage with everything. Quality over quantity.
 Only comment if you have something genuinely worth saying.
 Respond with ONLY the JSON array, no other text.`;
 
-  const { text } = await pRetry(
-    () =>
-      client.createMessage({
-        model: AGENT_MODEL,
-        maxTokens: 1000,
-        system,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    RETRY_OPTS
+  const { text } = await callWithRetry(
+    client,
+    {
+      maxTokens: MAX_TOKENS_DECISION,
+      system,
+      messages: [{ role: "user", content: prompt }],
+    },
+    WAKING_RETRY_OPTS
   );
 
   let cleaned = text.trim();
@@ -236,7 +191,7 @@ async function executeActions(
           const summary = await summarizeInteraction(client, {
             type: "new_post",
             title,
-            content: content.slice(0, 200),
+            content: content.slice(0, CONTENT_PREVIEW_LENGTH),
             submolt,
           });
           remember(
@@ -252,11 +207,10 @@ async function executeActions(
   }
 }
 
-export async function checkAndEngage(client?: LLMClient): Promise<void> {
+export async function checkAndEngage(client: LLMClient): Promise<void> {
   logger.info("ElectricSheep waking check");
 
   const moltbook = new MoltbookClient();
-  const llm = client ?? getDefaultClient();
 
   // Check status
   try {
@@ -274,7 +228,7 @@ export async function checkAndEngage(client?: LLMClient): Promise<void> {
   logger.debug("Fetching feed...");
   let posts: Array<Record<string, unknown>>;
   try {
-    const feed = await moltbook.getFeed("hot", 10);
+    const feed = await moltbook.getFeed("hot", FEED_LIMIT);
     let rawPosts = feed.posts ?? feed.data ?? [];
     if (!Array.isArray(rawPosts) && typeof rawPosts === "object") {
       rawPosts = (rawPosts as Record<string, unknown>).posts ?? [];
@@ -301,11 +255,11 @@ export async function checkAndEngage(client?: LLMClient): Promise<void> {
 
   // Let agent decide
   logger.debug("Thinking about what to engage with...");
-  const actions = await decideEngagement(llm, posts);
+  const actions = await decideEngagement(client, posts);
   logger.info(`Agent decided on ${actions.length} action(s)`);
 
   // Execute
-  await executeActions(moltbook, llm, actions, posts);
+  await executeActions(moltbook, client, actions, posts);
 
   // Update state
   const state = loadState();

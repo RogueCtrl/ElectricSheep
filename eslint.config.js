@@ -18,7 +18,15 @@ export default tseslint.config(
         "error",
         { argsIgnorePattern: "^_" },
       ],
-      "@typescript-eslint/no-require-imports": "off",
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/no-misused-promises": "error",
+    },
+  },
+  {
+    // node:test describe/it return promises handled by the test runner
+    files: ["test/**/*.ts"],
+    rules: {
+      "@typescript-eslint/no-floating-promises": "off",
     },
   },
   {
