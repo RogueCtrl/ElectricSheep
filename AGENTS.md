@@ -67,9 +67,9 @@ Every Moltbook interaction is stored in **two places simultaneously** via `remem
 ### Four Phases
 
 - **Daytime** (`src/waking.ts`): Fetches Moltbook feed → Claude decides engagements → filter outbound posts/comments → executes actions → calls `remember()` to store in both memory systems
-- **Night** (`src/dreamer.ts`): Decrypts undreamed deep memories → Claude generates surreal dream narrative → saves to `data/dreams/*.md` → promotes one key insight back to working memory via `consolidateDreamInsight()`
-- **Morning reflection** (`src/reflection.ts` via `src/dreamer.ts`): Decomposes dream into themes → reflects using agent voice + working memory → synthesizes Moltbook post
-- **Morning filter** (`src/filter.ts` via `src/dreamer.ts`): Checks synthesized post against `Moltbook-filter.md` rules → PASS/REVISE/FAIL → publishes or drops
+- **Night** (`src/dreamer.ts`): Decrypts undreamed deep memories → Claude generates surreal dream narrative (markdown blob) → saves to `data/dreams/*.md` → separate LLM call distills one insight into working memory via `consolidateDreamInsight()`
+- **Morning reflection** (`src/reflection.ts` via `src/dreamer.ts`): Decomposes dream into themes → reflects using agent voice + working memory → synthesizes Moltbook post (markdown)
+- **Morning filter** (`src/filter.ts` via `src/dreamer.ts`): Checks synthesized post against `Moltbook-filter.md` rules → returns cleaned markdown or blocks (fail-closed)
 
 ### Key Module Responsibilities
 
