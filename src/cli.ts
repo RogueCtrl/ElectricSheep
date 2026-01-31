@@ -1,11 +1,11 @@
 /**
  * ElectricSheep CLI.
  *
+ * Provides utility commands for inspecting agent state.
+ * Core agent behavior (check, dream, journal) runs via OpenClaw.
+ *
  * Usage:
  *   electricsheep register --name "Name" --description "Bio"
- *   electricsheep check        # daytime: check feed, engage, remember
- *   electricsheep dream        # nighttime: process memories into dreams
- *   electricsheep journal      # morning: post latest dream to moltbook
  *   electricsheep status       # show agent status and memory stats
  *   electricsheep memories     # show working memory
  *   electricsheep dreams       # list saved dream journals
@@ -45,40 +45,10 @@ program
     console.log(`${chalk.bold("API Key:")} ${agent.api_key ?? "?"}`);
     console.log(`${chalk.bold("Claim URL:")} ${agent.claim_url ?? "?"}`);
     console.log(`${chalk.bold("Verification:")} ${agent.verification_code ?? "?"}`);
-    console.log(chalk.yellow("\nSave your API key to .env as MOLTBOOK_API_KEY"));
+    console.log(
+      chalk.yellow("\nYour API key has been saved to credentials.json automatically")
+    );
     console.log(chalk.yellow("Visit the claim URL and post the verification tweet"));
-  });
-
-program
-  .command("check")
-  .description("Daytime: check Moltbook feed, engage, store memories")
-  .action(async () => {
-    const { checkAndEngage } = await import("./waking.js");
-    await checkAndEngage();
-  });
-
-program
-  .command("dream")
-  .description("Nighttime: process deep memories into a dream narrative")
-  .action(async () => {
-    const { runDreamCycle } = await import("./dreamer.js");
-    await runDreamCycle();
-  });
-
-program
-  .command("journal")
-  .description("Morning: post the latest dream journal to Moltbook")
-  .action(async () => {
-    const { postDreamJournal } = await import("./dreamer.js");
-    await postDreamJournal();
-  });
-
-program
-  .command("schedule")
-  .description("Run the agent as a scheduled long-lived process")
-  .action(async () => {
-    const { scheduleJobs } = await import("./scheduler.js");
-    scheduleJobs();
   });
 
 program
@@ -187,9 +157,7 @@ program
 
     if (dreamFiles.length === 0) {
       console.log(
-        chalk.dim(
-          "No dreams yet. Run 'electricsheep dream' after collecting some memories."
-        )
+        chalk.dim("No dreams yet. The dream cycle runs automatically via OpenClaw cron.")
       );
       return;
     }

@@ -11,7 +11,7 @@ metadata:
 
 You are configuring the ElectricSheep extension on this OpenClaw instance. Follow each section in order. Run every command shown and verify the expected output before moving on.
 
-> **Prerequisite:** The operator must already have a Moltbook account and API key. This guide does not cover Moltbook registration. If you do not have a Moltbook API key, stop here and direct the operator to create an account at https://moltbook.com.
+> **Prerequisite:** The operator needs a Moltbook account. If you do not have one, create an account at https://moltbook.com. The `electricsheep register` command will handle agent registration and API key setup.
 
 ---
 
@@ -81,9 +81,6 @@ Add the ElectricSheep plugin entry to your OpenClaw config file (`~/.openclaw/co
       "electricsheep": {
         enabled: true,
         config: {
-          // REQUIRED: Your Moltbook API key
-          moltbookApiKey: "your-moltbook-api-key-here",
-
           // Agent identity on Moltbook
           agentName: "ElectricSheep",
 
@@ -102,34 +99,26 @@ Add the ElectricSheep plugin entry to your OpenClaw config file (`~/.openclaw/co
 }
 ```
 
-The `moltbookApiKey` is the only required field. All others have sensible defaults.
+All config fields have sensible defaults. The Moltbook API key is obtained during registration and stored automatically in `credentials.json`.
 
 ---
 
-## 5. Set Environment Variables
+## 5. Set Environment Variables (Optional)
 
-Create a `.env` file in the ElectricSheep directory (copy from the template):
+Optionally create a `.env` file in the ElectricSheep directory to customize settings:
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` and set:
-
 ```bash
-# Required for standalone mode only (OpenClaw gateway handles this in extension mode)
-ANTHROPIC_API_KEY=sk-ant-...
-
-# Your Moltbook API key
-MOLTBOOK_API_KEY=your-key-here
-
 # Daily token budget kill switch (best-effort, resets midnight UTC)
 # Default: 800000 tokens ≈ $20/day at Opus 4.5 output pricing
 # Set to 0 to disable
 MAX_DAILY_TOKENS=800000
 ```
 
-When running as an OpenClaw extension, `ANTHROPIC_API_KEY` is not needed — LLM calls route through the OpenClaw gateway. The `moltbookApiKey` in the plugin config takes precedence over the env var.
+All LLM calls route through the OpenClaw gateway — no separate API key is needed.
 
 ---
 
@@ -176,13 +165,7 @@ Expected output includes:
 
 If Moltbook shows "not connected", verify your API key is correct.
 
-Run a single daytime check:
-
-```bash
-electricsheep check
-```
-
-This fetches the Moltbook feed, lets the agent decide what to engage with, executes actions, and stores experiences in dual memory. After completion, run `electricsheep status` again — you should see working memory entries and deep memory counts increase.
+The daytime check, dream cycle, and journal posting run automatically via the registered cron jobs. After the first daytime check runs, `electricsheep status` will show working memory entries and deep memory counts increasing.
 
 ---
 
@@ -236,7 +219,7 @@ To verify cron jobs are active, check `openclaw plugins info electricsheep` and 
 The Moltbook agent exists but hasn't been verified. The operator needs to visit their claim URL and complete the verification step on Moltbook.
 
 **"Moltbook: not connected" in status:**
-The API key is missing or invalid. Verify `moltbookApiKey` in the plugin config or `MOLTBOOK_API_KEY` in `.env`.
+The API key is missing or invalid. Run `electricsheep register` to obtain and store a valid key.
 
 **Node version mismatch:**
 ElectricSheep requires Node.js >= 24. Run `node --version` to check. Use `nvm install 24` or download from https://nodejs.org.

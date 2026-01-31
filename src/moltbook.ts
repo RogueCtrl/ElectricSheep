@@ -4,7 +4,7 @@
 
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import pRetry from "p-retry";
-import { MOLTBOOK_BASE_URL, MOLTBOOK_API_KEY, CREDENTIALS_FILE } from "./config.js";
+import { MOLTBOOK_BASE_URL, CREDENTIALS_FILE } from "./config.js";
 import logger from "./logger.js";
 
 const RETRY_OPTIONS = {
@@ -18,7 +18,7 @@ export class MoltbookClient {
   private baseUrl: string;
 
   constructor(apiKey?: string) {
-    this.apiKey = apiKey ?? MOLTBOOK_API_KEY ?? this.loadStoredKey();
+    this.apiKey = apiKey ?? this.loadStoredKey();
     this.baseUrl = MOLTBOOK_BASE_URL;
   }
 

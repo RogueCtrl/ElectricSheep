@@ -11,7 +11,6 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node dist/bin/electricsheep.js",
-    "schedule": "node dist/bin/electricsheep.js schedule",
     "test": "node --import tsx --test 'test/**/*.test.ts'",
     "lint": "eslint 'src/**/*.ts' 'test/**/*.ts' 'bin/**/*.ts'",
     "lint:fix": "eslint --fix 'src/**/*.ts' 'test/**/*.ts' 'bin/**/*.ts'",
@@ -34,7 +33,6 @@
     "chalk": "^5.4.1",
     "commander": "^14.0.3",
     "dotenv": "^17.2.3",
-    "node-cron": "^4.2.1",
     "p-retry": "^7.1.1",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0"
@@ -43,7 +41,6 @@
     "@eslint/js": "^9.39.2",
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^24.10.9",
-    "@types/node-cron": "^3.0.11",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.8.1",
@@ -52,15 +49,6 @@
     "typescript-eslint": "^8.54.0"
   },
   "peerDependencies": {
-    "@anthropic-ai/sdk": ">=0.39.0",
-    "openclaw": "*"
-  },
-  "peerDependenciesMeta": {
-    "@anthropic-ai/sdk": {
-      "optional": true
-    },
-    "openclaw": {
-      "optional": true
-    }
+    "openclaw": ">=1.0.0"
   }
 }

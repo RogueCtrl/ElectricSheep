@@ -5,10 +5,9 @@
  * consolidates insights back into working memory, and posts dream journals.
  */
 
-import pRetry from "p-retry";
 import { writeFileSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { ANTHROPIC_API_KEY, AGENT_MODEL, DREAMS_DIR } from "./config.js";
+import { DREAMS_DIR, MAX_TOKENS_DREAM, DREAM_TITLE_MAX_LENGTH } from "./config.js";
 import { MoltbookClient } from "./moltbook.js";
 import {
   retrieveUndreamedMemories,
@@ -19,54 +18,9 @@ import {
 import { DREAM_SYSTEM_PROMPT, renderTemplate } from "./persona.js";
 import { getAgentIdentityBlock } from "./identity.js";
 import { loadState, saveState } from "./state.js";
-import { withBudget } from "./budget.js";
+import { callWithRetry, DREAM_RETRY_OPTS } from "./llm.js";
 import logger from "./logger.js";
 import type { LLMClient, Dream, DecryptedMemory } from "./types.js";
-
-function getDefaultClient(): LLMClient {
-  const { default: Anthropic } = require("@anthropic-ai/sdk") as {
-    default: new (opts: { apiKey: string }) => {
-      messages: {
-        create(params: Record<string, unknown>): Promise<{
-          content: Array<{ text: string }>;
-          usage?: { input_tokens?: number; output_tokens?: number };
-        }>;
-      };
-    };
-  };
-  const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
-  const raw: LLMClient = {
-    async createMessage(params) {
-      const resp = await anthropic.messages.create({
-        model: params.model,
-        max_tokens: params.maxTokens,
-        system: params.system,
-        messages: params.messages,
-      });
-      return {
-        text: resp.content[0].text,
-        usage: resp.usage
-          ? {
-              input_tokens: resp.usage.input_tokens ?? 0,
-              output_tokens: resp.usage.output_tokens ?? 0,
-            }
-          : undefined,
-      };
-    },
-  };
-  return withBudget(raw);
-}
-
-const RETRY_OPTS = {
-  retries: 3,
-  minTimeout: 2000,
-  maxTimeout: 20000,
-  onFailedAttempt: ({ error }: { error: unknown }) => {
-    logger.warn(
-      `Dream generation failed: ${error instanceof Error ? error.message : String(error)}`
-    );
-  },
-};
 
 async function generateDream(
   client: LLMClient,
@@ -83,24 +37,23 @@ async function generateDream(
     memories: memoriesText,
   });
 
-  const { text } = await pRetry(
-    () =>
-      client.createMessage({
-        model: AGENT_MODEL,
-        maxTokens: 2000,
-        system,
-        messages: [
-          {
-            role: "user",
-            content:
-              "Process these memories into a dream. " +
-              "Remember: you are the subconscious, not the waking agent. " +
-              "Be surreal, associative, and emotionally amplified. " +
-              "End with a CONSOLIDATION line.",
-          },
-        ],
-      }),
-    RETRY_OPTS
+  const { text } = await callWithRetry(
+    client,
+    {
+      maxTokens: MAX_TOKENS_DREAM,
+      system,
+      messages: [
+        {
+          role: "user",
+          content:
+            "Process these memories into a dream. " +
+            "Remember: you are the subconscious, not the waking agent. " +
+            "Be surreal, associative, and emotionally amplified. " +
+            "End with a CONSOLIDATION line.",
+        },
+      ],
+    },
+    DREAM_RETRY_OPTS
   );
 
   const lines = text.trim().split("\n");
@@ -125,7 +78,7 @@ async function generateDream(
 }
 
 function saveDreamLocally(dream: Dream, dateStr: string): string {
-  const safeName = dream.title.slice(0, 40).replace(/[\s/]/g, "_");
+  const safeName = dream.title.slice(0, DREAM_TITLE_MAX_LENGTH).replace(/[\s/]/g, "_");
   const filename = `${dateStr}_${safeName}.md`;
   const filepath = resolve(DREAMS_DIR, filename);
 
@@ -141,7 +94,7 @@ ${dream.narrative}
   return filepath;
 }
 
-export async function runDreamCycle(client?: LLMClient): Promise<Dream | null> {
+export async function runDreamCycle(client: LLMClient): Promise<Dream | null> {
   logger.info("ElectricSheep dream cycle starting");
 
   const stats = deepMemoryStats();
@@ -161,8 +114,7 @@ export async function runDreamCycle(client?: LLMClient): Promise<Dream | null> {
 
   logger.debug(`Processing ${memories.length} memories into dream...`);
 
-  const llm = client ?? getDefaultClient();
-  const dream = await generateDream(llm, memories);
+  const dream = await generateDream(client, memories);
 
   logger.info(`Dream: ${dream.title}`);
   logger.debug(`Narrative snippet: ${dream.narrative.slice(0, 200)}...`);

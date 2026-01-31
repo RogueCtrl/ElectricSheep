@@ -2,4 +2,4 @@
 
 import { program } from "../src/cli.js";
 
-program.parseAsync(process.argv);
+void program.parseAsync(process.argv);

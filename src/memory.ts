@@ -13,6 +13,7 @@ import {
   DEEP_MEMORY_DB,
   WORKING_MEMORY_FILE,
   WORKING_MEMORY_MAX_ENTRIES,
+  WORKING_MEMORY_CONTEXT_TOKENS,
 } from "./config.js";
 import type { WorkingMemoryEntry, DecryptedMemory, DeepMemoryStats } from "./types.js";
 
@@ -35,6 +36,14 @@ function getDb(): Database.Database {
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_deep_dreamed
     ON deep_memories(dreamed, timestamp)
+  `);
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_deep_category
+    ON deep_memories(category)
+  `);
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_deep_timestamp
+    ON deep_memories(timestamp)
   `);
   return db;
 }
@@ -203,7 +212,9 @@ export function getWorkingMemory(
   return memories;
 }
 
-export function getWorkingMemoryContext(maxTokensApprox: number = 2000): string {
+export function getWorkingMemoryContext(
+  maxTokensApprox: number = WORKING_MEMORY_CONTEXT_TOKENS
+): string {
   const memories = loadWorkingMemory();
   if (memories.length === 0) {
     return "No memories yet. This is my first day.";
