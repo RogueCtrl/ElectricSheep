@@ -12,6 +12,7 @@ process.env.MAX_DAILY_TOKENS = "1000";
 const { withBudget, getTokensUsedToday, getTokensRemaining, getBudgetStatus } =
   await import("../src/budget.js");
 const { saveState } = await import("../src/state.js");
+const { closeLogger } = await import("../src/logger.js");
 
 function mockClient(inputTokens: number, outputTokens: number): LLMClient {
   return {
@@ -123,6 +124,7 @@ describe("Token budget", () => {
   });
 });
 
-after(() => {
+after(async () => {
+  await closeLogger();
   rmSync(testDir, { recursive: true, force: true });
 });

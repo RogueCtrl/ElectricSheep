@@ -36,4 +36,11 @@ export function setVerbose(verbose: boolean): void {
   logger.level = verbose ? "debug" : "info";
 }
 
+export function closeLogger(): Promise<void> {
+  return new Promise((resolve) => {
+    logger.on("finish", resolve);
+    logger.end();
+  });
+}
+
 export default logger;

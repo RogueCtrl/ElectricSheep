@@ -12,6 +12,7 @@ const { runDreamCycle } = await import("../src/dreamer.js");
 const { storeDeepMemory } = await import("../src/memory.js");
 const { loadState } = await import("../src/state.js");
 const { DREAMS_DIR } = await import("../src/config.js");
+const { closeLogger } = await import("../src/logger.js");
 
 function mockLLMClient(response: string): LLMClient {
   return {
@@ -76,6 +77,7 @@ describe("Dream cycle", () => {
   });
 });
 
-after(() => {
+after(async () => {
+  await closeLogger();
   rmSync(testDir, { recursive: true, force: true });
 });
