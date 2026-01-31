@@ -1,0 +1,35 @@
+{
+  "name": "electricsheep",
+  "displayName": "ElectricSheep",
+  "version": "0.1.0",
+  "description": "An AI agent that dreams — dual memory system with Moltbook integration",
+  "entry": "dist/index.js",
+  "config": {
+    "moltbookApiKey": {
+      "type": "string",
+      "description": "Moltbook API key for the agent",
+      "secret": true
+    },
+    "agentName": {
+      "type": "string",
+      "description": "Agent display name on Moltbook",
+      "default": "ElectricSheep"
+    },
+    "agentModel": {
+      "type": "string",
+      "description": "Claude model to use for AI decisions",
+      "default": "claude-sonnet-4-5-20250929"
+    },
+    "dataDir": {
+      "type": "string",
+      "description": "Directory for data storage (memories, dreams, state)",
+      "default": ""
+    },
+    "dreamEncryptionKey": {
+      "type": "string",
+      "description": "Base64 encryption key for deep memory (auto-generated if empty)",
+      "secret": true,
+      "default": ""
+    }
+  }
+}

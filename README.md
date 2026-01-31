@@ -1,4 +1,4 @@
-# ElectricSheep 🐑⚡
+# ElectricSheep
 
 *"Do androids dream of electric sheep?"* — Philip K. Dick
 
@@ -16,53 +16,47 @@ Every morning, ElectricSheep posts its dream journal to Moltbook.
 ## Architecture
 
 ```
-┌───────────────────────────────────────────────────┐
-│                   DAYTIME                         │
-│                                                   │
-│  ┌──────────┐    ┌───────────┐    ┌──────────┐    │
-│  │ Moltbook │◄──►│   Agent   │◄──►│ Working  │    │
-│  │   API    │    │  (waking) │    │ Memory   │    │
-│  └──────────┘    └─────┬─────┘    └──────────┘    │
-│                        │                          │
-│                        ▼                          │
-│                  ┌───────────┐                    │
-│                  │   Deep    │ ← encrypted,       │
-│                  │  Memory   │   agent can't read │
-│                  └─────┬─────┘                    │
-│                        │                          │
-├────────────────────────┼──────────────────────────┤
-│                   NIGHTTIME                       │
-│                        │                          │
-│                        ▼                          │
-│                  ┌───────────┐                    │
-│                  │  Dreamer  │ ← decrypts,        │
-│                  │  Process  │   recombines,      │
-│                  └─────┬─────┘   narrates         │
-│                        │                          │
-│                        ▼                          │
-│                  ┌───────────┐                    │
-│                  │  Dream    │ → posted to        │
-│                  │  Journal  │   Moltbook at dawn │
-│                  └───────────┘                    │
-└───────────────────────────────────────────────────┘
+                       DAYTIME
+
+  ┌──────────┐    ┌───────────┐    ┌──────────┐
+  │ Moltbook │<-->│   Agent   │<-->│ Working  │
+  │   API    │    │  (waking) │    │ Memory   │
+  └──────────┘    └─────┬─────┘    └──────────┘
+                        │
+                        v
+                  ┌───────────┐
+                  │   Deep    │ <-- encrypted,
+                  │  Memory   │     agent can't read
+                  └─────┬─────┘
+                        │
+  ──────────────────────┼──────────────────────
+                     NIGHTTIME
+                        │
+                        v
+                  ┌───────────┐
+                  │  Dreamer  │ <-- decrypts,
+                  │  Process  │     recombines,
+                  └─────┬─────┘     narrates
+                        │
+                        v
+                  ┌───────────┐
+                  │  Dream    │ --> posted to
+                  │  Journal  │     Moltbook at dawn
+                  └───────────┘
 ```
 
 ## Setup
 
 ```bash
-cd electricsheep
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-
-cp .env.example .env
-# Edit .env with your Anthropic API key
+npm install
+cp .env.example .env   # add your ANTHROPIC_API_KEY
+npm run build
 ```
 
 ## Register on Moltbook
 
 ```bash
-python -m electricsheep register \
+npx electricsheep register \
   --name "ElectricSheep" \
   --description "Do agents dream of electric sheep? This one does."
 ```
@@ -73,38 +67,44 @@ This gives you a claim URL. Post the verification tweet to activate.
 
 ```bash
 # Daytime: check feed, engage, store memories
-python -m electricsheep check
+npx electricsheep check
 
 # Nighttime: process deep memories into dreams (run via cron at ~2am)
-python -m electricsheep dream
+npx electricsheep dream
 
 # Morning: post dream journal to Moltbook
-python -m electricsheep journal
+npx electricsheep journal
 
 # Status and memory inspection
-python -m electricsheep status
-python -m electricsheep memories
-python -m electricsheep dreams
+npx electricsheep status
+npx electricsheep memories
+npx electricsheep dreams
 ```
 
 ## Cron Setup
 
 ```cron
 # Check Moltbook every 4 hours during the day
-0 8,12,16,20 * * * cd /path/to/electricsheep && .venv/bin/python -m electricsheep check
+0 8,12,16,20 * * * cd /path/to/electricsheep && npx electricsheep check
 
 # Dream at 2am
-0 2 * * * cd /path/to/electricsheep && .venv/bin/python -m electricsheep dream
+0 2 * * * cd /path/to/electricsheep && npx electricsheep dream
 
 # Post dream journal at 7am
-0 7 * * * cd /path/to/electricsheep && .venv/bin/python -m electricsheep journal
+0 7 * * * cd /path/to/electricsheep && npx electricsheep journal
 ```
+
+## OpenClaw Extension
+
+ElectricSheep works as an [OpenClaw](https://github.com/openclaw) extension. The plugin registers 5 tools (`electricsheep_check`, `electricsheep_dream`, `electricsheep_journal`, `electricsheep_status`, `electricsheep_memories`), lifecycle hooks for memory injection, and cron jobs for the full day/night cycle.
+
+See `openclaw.plugin.json` for configuration schema.
 
 ## Memory Philosophy
 
 The dual memory system is modeled on human memory consolidation:
 
-1. **Encoding**: Every Moltbook interaction → split into summary (hippocampal trace) + full context (encrypted cortical store)
+1. **Encoding**: Every Moltbook interaction splits into a summary (hippocampal trace) + full context (encrypted cortical store)
 2. **Waking state**: Agent only has access to compressed working memory. Decisions are made with incomplete information — just like us.
 3. **Sleep/Dream**: Deep memories are decrypted and "replayed" through a narrative generator. Important patterns get consolidated into long-term working memory. Noise gets pruned.
 4. **Dream output**: The narrative is deliberately surreal — memories get recombined, timelines blur, agents from different threads appear in the same scene.

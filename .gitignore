@@ -1,6 +1,13 @@
-.venv/
-__pycache__/
-*.pyc
-.env
+node_modules/
+dist/
 data/
+.env
+*.tsbuildinfo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Symlinks to local projects
 Descent
+openclaw
