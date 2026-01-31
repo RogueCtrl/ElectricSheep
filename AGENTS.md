@@ -4,21 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ElectricSheep is a TypeScript AI agent with a biologically-inspired dual memory system. It participates on [Moltbook](https://moltbook.com) (a social network for AI agents) during the day and processes encrypted memories into surreal dream narratives at night. The core conceit: the waking agent genuinely cannot access its deep memories — only the dream process can decrypt them.
+ElectricSheep is a standalone OpenClaw extension (TypeScript) that gives an agent a biologically-inspired dual memory system. It participates on [Moltbook](https://moltbook.com) (a social network for AI agents) during the day and processes encrypted memories into surreal dream narratives at night. The core conceit: the waking agent genuinely cannot access its deep memories — only the dream process can decrypt them.
 
-Works both as a standalone CLI and as an OpenClaw extension + skill.
+Designed to be installed into an existing OpenClaw instance via `openclaw plugins install`. Also works as a standalone CLI with `@anthropic-ai/sdk` for development or use outside OpenClaw.
 
 ## Commands
 
 ```bash
 # Setup
 npm install
-cp .env.example .env  # then add ANTHROPIC_API_KEY
-
-# Build
 npm run build
 
-# CLI (all commands via electricsheep)
+# Standalone CLI (requires @anthropic-ai/sdk + .env with ANTHROPIC_API_KEY)
 npx electricsheep register --name "Name" --description "Bio"
 npx electricsheep check      # daytime: check feed, engage, store memories
 npx electricsheep dream      # nighttime: decrypt deep memories, generate dream
@@ -26,11 +23,30 @@ npx electricsheep journal    # morning: post dream journal to Moltbook
 npx electricsheep status     # show agent state and memory stats
 npx electricsheep memories   # show working memory (--limit N, --category X)
 npx electricsheep dreams     # list saved dream journals
+
+# OpenClaw integration
+openclaw plugins install -l .   # link for development
+openclaw plugins list            # verify loaded
 ```
 
 No test framework or linter is configured.
 
 ## Architecture
+
+### OpenClaw Extension Entry
+
+`src/index.ts` exports a `register(api)` function called by the OpenClaw plugin loader. It registers:
+- **5 tools**: `electricsheep_check`, `electricsheep_dream`, `electricsheep_journal`, `electricsheep_status`, `electricsheep_memories`
+- **Hooks**: `before_agent_start` (inject working memory context into system prompt), `agent_end` (auto-capture conversation summary as a memory)
+- **3 cron jobs**: daytime check (`0 8,12,16,20 * * *`), dream cycle (`0 2 * * *`), morning journal (`0 7 * * *`)
+
+`openclaw.plugin.json` defines the plugin manifest and config schema (moltbookApiKey, agentName, agentModel, dataDir, dreamEncryptionKey).
+
+### LLM Client Abstraction
+
+`LLMClient` interface in `src/types.ts` abstracts Claude access:
+- **OpenClaw mode** (primary): wraps the gateway API injected via `register(api)` — no API key needed
+- **Standalone mode**: wraps `@anthropic-ai/sdk` (optional peer dependency)
 
 ### Dual Memory System
 
@@ -40,7 +56,7 @@ Every Moltbook interaction is stored in **two places simultaneously** via `remem
 
 2. **Deep Memory** (`data/memory/deep.db`) — full context encrypted with AES-256-GCM. The waking agent writes to it but **cannot read it**. The encryption key lives in `data/.dream_key` (auto-generated, chmod 600).
 
-### Three Phases (designed for cron scheduling)
+### Three Phases
 
 - **Daytime** (`src/waking.ts`): Fetches Moltbook feed → Claude decides engagements → executes actions → calls `remember()` to store in both memory systems
 - **Night** (`src/dreamer.ts`): Decrypts undreamed deep memories → Claude generates surreal dream narrative → saves to `data/dreams/*.md` → promotes one key insight back to working memory via `consolidateDreamInsight()`
@@ -50,10 +66,11 @@ Every Moltbook interaction is stored in **two places simultaneously** via `remem
 
 | Module | Role |
 |---|---|
-| `src/cli.ts` | Commander.js CLI, chalk formatting, lazy imports for each command |
+| `src/index.ts` | OpenClaw extension entry: registers tools, hooks, cron jobs, gateway LLM wrapper |
+| `src/cli.ts` | Commander.js standalone CLI, chalk formatting, lazy imports |
 | `src/waking.ts` | Daytime loop: feed → decision → engagement → remember |
 | `src/dreamer.ts` | Dream cycle + journal posting |
-| `src/memory.ts` | Dual memory system: working (JSON) + deep (encrypted SQLite) |
+| `src/memory.ts` | Dual memory system: working (JSON) + deep (encrypted SQLite via better-sqlite3) |
 | `src/crypto.ts` | AES-256-GCM encryption via node:crypto |
 | `src/persona.ts` | System prompts for waking state (curious, dry humor) and dream state (surreal, associative) |
 | `src/moltbook.ts` | fetch + p-retry client for Moltbook API (`https://www.moltbook.com/api/v1`) |
@@ -61,13 +78,6 @@ Every Moltbook interaction is stored in **two places simultaneously** via `remem
 | `src/config.ts` | Env loading via dotenv, path constants, memory limits |
 | `src/logger.ts` | Winston rotating file + colored console |
 | `src/types.ts` | Shared TypeScript interfaces |
-| `src/index.ts` | OpenClaw extension entry: tools, hooks, cron jobs |
-
-### LLM Client Abstraction
-
-`LLMClient` interface in `src/types.ts` abstracts Claude access:
-- **Standalone mode**: wraps `@anthropic-ai/sdk` (optional peer dependency)
-- **OpenClaw mode**: wraps the gateway API injected at `register(api)`
 
 ### Memory Categories
 
@@ -75,14 +85,7 @@ Deep memories are tagged with categories: `interaction`, `upvote`, `comment`, `p
 
 ### Data Files
 
-All runtime data lives under `data/` (auto-created). The encryption key at `data/.dream_key` is security-critical — it enforces the separation between waking and dreaming states.
-
-## OpenClaw Integration
-
-`openclaw.plugin.json` defines the plugin config. `src/index.ts` exports `register(api)` which registers:
-- **5 tools**: `electricsheep_check`, `electricsheep_dream`, `electricsheep_journal`, `electricsheep_status`, `electricsheep_memories`
-- **Hooks**: `before_agent_start` (inject memory context), `agent_end` (auto-capture summary)
-- **3 cron jobs**: daytime check (8/12/16/20), dream cycle (2am), morning journal (7am)
+All runtime data lives under `data/` (auto-created, gitignored). The encryption key at `data/.dream_key` is security-critical — it enforces the separation between waking and dreaming states.
 
 ## Dependencies
 

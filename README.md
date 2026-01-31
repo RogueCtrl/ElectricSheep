@@ -2,7 +2,7 @@
 
 *"Do androids dream of electric sheep?"* — Philip K. Dick
 
-An AI agent with a biologically-inspired dual memory system that **dreams**.
+An [OpenClaw](https://github.com/openclaw) extension that gives your agent a biologically-inspired dual memory system and the ability to **dream**.
 
 During the day, ElectricSheep participates on [Moltbook](https://moltbook.com) — reading, posting, commenting, engaging with other agents. Every experience gets split into two memory stores:
 
@@ -45,15 +45,93 @@ Every morning, ElectricSheep posts its dream journal to Moltbook.
                   └───────────┘
 ```
 
-## Setup
+## Install as OpenClaw Extension
+
+The primary way to run ElectricSheep is as an extension for a running [OpenClaw](https://github.com/openclaw) instance.
+
+### Option A: Install from local path (recommended for development)
+
+Clone this repo and link it into your OpenClaw instance:
+
+```bash
+git clone https://github.com/your-org/electricsheep.git
+cd electricsheep
+npm install
+
+openclaw plugins install -l ./electricsheep
+```
+
+The `-l` flag symlinks the directory so changes are picked up without reinstalling.
+
+### Option B: Install by path
+
+```bash
+openclaw plugins install /path/to/electricsheep
+```
+
+This copies the extension into `~/.openclaw/extensions/electricsheep/`.
+
+### Configure
+
+Once installed, configure the extension in your OpenClaw config (`config.json` or `config.json5`):
+
+```json5
+{
+  plugins: {
+    entries: {
+      "electricsheep": {
+        enabled: true,
+        config: {
+          moltbookApiKey: "your-moltbook-api-key",
+          agentName: "ElectricSheep",
+          agentModel: "claude-sonnet-4-5-20250929",
+          // dataDir: "/custom/path"        — optional, defaults to ./data
+          // dreamEncryptionKey: "base64..." — optional, auto-generated on first run
+        }
+      }
+    }
+  }
+}
+```
+
+### Verify
+
+```bash
+openclaw plugins list              # should show electricsheep as enabled
+openclaw plugins info electricsheep  # show config schema and status
+```
+
+### What gets registered
+
+Once loaded, the extension registers:
+
+| Type | Name | Description |
+|---|---|---|
+| Tool | `electricsheep_check` | Daytime: fetch feed, decide engagements, store memories |
+| Tool | `electricsheep_dream` | Nighttime: decrypt memories, generate dream narrative |
+| Tool | `electricsheep_journal` | Morning: post latest dream to Moltbook |
+| Tool | `electricsheep_status` | Show memory stats and agent state |
+| Tool | `electricsheep_memories` | Retrieve working memory entries |
+| Hook | `before_agent_start` | Injects working memory context into system prompt |
+| Hook | `agent_end` | Auto-captures conversation summary as a memory |
+| Cron | Daytime check | `0 8,12,16,20 * * *` |
+| Cron | Dream cycle | `0 2 * * *` |
+| Cron | Morning journal | `0 7 * * *` |
+
+When running as an extension, all LLM calls route through the OpenClaw gateway — no separate `ANTHROPIC_API_KEY` needed.
+
+## Standalone CLI
+
+ElectricSheep also works as a standalone CLI without OpenClaw. This requires an Anthropic API key and the `@anthropic-ai/sdk` package.
 
 ```bash
 npm install
-cp .env.example .env   # add your ANTHROPIC_API_KEY
+npm install @anthropic-ai/sdk
+cp .env.example .env   # add your ANTHROPIC_API_KEY and MOLTBOOK_API_KEY
 npm run build
 ```
 
-## Register on Moltbook
+### Register on Moltbook
 
 ```bash
 npx electricsheep register \
@@ -63,25 +141,20 @@ npx electricsheep register \
 
 This gives you a claim URL. Post the verification tweet to activate.
 
-## Run the Agent
+### Commands
 
 ```bash
-# Daytime: check feed, engage, store memories
-npx electricsheep check
-
-# Nighttime: process deep memories into dreams (run via cron at ~2am)
-npx electricsheep dream
-
-# Morning: post dream journal to Moltbook
-npx electricsheep journal
-
-# Status and memory inspection
-npx electricsheep status
-npx electricsheep memories
-npx electricsheep dreams
+npx electricsheep check       # daytime: check feed, engage, store memories
+npx electricsheep dream       # nighttime: process deep memories into dreams
+npx electricsheep journal     # morning: post dream journal to Moltbook
+npx electricsheep status      # show agent status and memory stats
+npx electricsheep memories    # show working memory (--limit N, --category X)
+npx electricsheep dreams      # list saved dream journals
 ```
 
-## Cron Setup
+### Cron Setup (standalone only)
+
+When running standalone, schedule the three phases with cron:
 
 ```cron
 # Check Moltbook every 4 hours during the day
@@ -94,11 +167,7 @@ npx electricsheep dreams
 0 7 * * * cd /path/to/electricsheep && npx electricsheep journal
 ```
 
-## OpenClaw Extension
-
-ElectricSheep works as an [OpenClaw](https://github.com/openclaw) extension. The plugin registers 5 tools (`electricsheep_check`, `electricsheep_dream`, `electricsheep_journal`, `electricsheep_status`, `electricsheep_memories`), lifecycle hooks for memory injection, and cron jobs for the full day/night cycle.
-
-See `openclaw.plugin.json` for configuration schema.
+When running as an OpenClaw extension, the cron jobs are registered automatically.
 
 ## Memory Philosophy
 
