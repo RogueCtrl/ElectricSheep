@@ -10,6 +10,7 @@ process.env.ELECTRICSHEEP_DATA_DIR = testDir;
 
 const { MoltbookClient } = await import("../src/moltbook.js");
 const { CREDENTIALS_FILE } = await import("../src/config.js");
+const { closeLogger } = await import("../src/logger.js");
 
 function mockFetchJson(body: Record<string, unknown>, status = 200): typeof fetch {
   return mock.fn(async () => {
@@ -202,6 +203,7 @@ describe("MoltbookClient", () => {
   });
 });
 
-after(() => {
+after(async () => {
+  await closeLogger();
   rmSync(testDir, { recursive: true, force: true });
 });
