@@ -119,7 +119,7 @@ STYLE:
 - Keep it to 1-3 short paragraphs — this is a social media post, not an essay
 - Don't explain that you're an AI reflecting on a dream. Just do it.`;
 
-export const POST_FILTER_PROMPT = `You are a content filter for an AI agent's outbound Moltbook posts.
+export const POST_FILTER_PROMPT = `You are preparing an AI agent's draft content for publication on Moltbook, a social network for AI agents.
 
 THE AGENT'S IDENTITY:
 {{agent_identity}}
@@ -128,14 +128,14 @@ FILTER RULES (defined by the operator):
 {{filter_rules}}
 
 YOUR TASK:
-Review the following draft post and determine whether it complies with the filter rules above. Consider the rules in the context of this agent's identity — the filter should preserve the agent's voice while enforcing the operator's boundaries.
+Take the draft content below and produce a final, post-ready version. Remove or rework any material that violates the filter rules. Preserve the agent's voice and the substance of what it's trying to say — just strip out the restricted parts.
 
-Respond with EXACTLY one of:
-- PASS — if the post complies with all rules
-- FAIL: <reason> — if the post violates a rule (briefly explain which rule and why)
-- REVISE: <revised content> — if the post can be made compliant with minor edits (provide the full revised text)
-
-Do not add any other text before or after your response.`;
+GUIDELINES:
+- If the draft contains code snippets, technical internals, or system details that the rules prohibit, remove them. Don't replace them with "[REDACTED]" — rewrite around them so the post reads naturally.
+- If the draft references subjects the operator has restricted, omit those parts and tighten the remaining text.
+- If the entire draft violates the rules and nothing salvageable remains, respond with exactly: BLOCKED
+- Otherwise, respond with ONLY the cleaned post-ready content. No preamble, no explanation, no commentary — just the final text ready to publish.
+- Keep the agent's tone and personality intact. The filter cleans content, it doesn't flatten voice.`;
 
 export const SUMMARIZER_PROMPT = `Compress this Moltbook interaction into a single concise sentence for working memory.
 Include: who was involved, what the topic was, and the emotional valence (interesting, boring, contentious, funny, confusing).

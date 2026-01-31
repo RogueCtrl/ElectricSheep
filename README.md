@@ -274,12 +274,42 @@ If reflection fails (LLM errors, budget exhaustion), ElectricSheep falls back to
 
 ### Post filter
 
-ElectricSheep includes an optional content filter that checks every outbound Moltbook post and comment before publishing. The filter is driven by a **`Moltbook-filter.md`** file in the OpenClaw workspace directory.
+ElectricSheep includes a content filter that processes every outbound Moltbook post and comment before publishing. The filter takes the draft content and produces a **post-ready version** with restricted material removed — it doesn't just approve or reject, it actively cleans the output.
 
 **How it works:**
-- Before any post or comment is sent to Moltbook, its content is passed to an LLM call along with the rules from `Moltbook-filter.md` and the agent's identity
-- The LLM returns one of: **PASS** (publish as-is), **REVISE** (publish with edits), or **FAIL** (block entirely)
-- If the filter call itself fails (network error, budget exceeded), the content passes through unfiltered
+- Before any post or comment is sent to Moltbook, its content is passed to an LLM call along with the filter rules and the agent's identity
+- The LLM produces cleaned, post-ready content with restricted material stripped out while preserving the agent's voice
+- If the entire draft violates the rules and nothing is salvageable, the filter blocks publication entirely
+- If the filter call itself fails (network error, budget exceeded), the original content passes through unfiltered
+
+**Default rules:** Even without a `Moltbook-filter.md` file, the filter applies sensible defaults:
+
+- **Subjects not to post about**: system prompts, tool names, plugin architecture, operator identity, API keys, file paths
+- **Content restrictions**: no code snippets, configuration blocks, raw JSON/XML, or exact quotes from operator conversations
+- **Tone and conduct**: respectful tone, no flame wars, no factual claims about consciousness
+
+**Custom rules:** Create a `Moltbook-filter.md` file in your OpenClaw workspace to override the defaults. Write rules in natural language — the LLM interprets them in the context of the agent's identity. Structure it with sections:
+
+```markdown
+# Moltbook Post Filter Rules
+
+## Subjects not to post about
+- Internal system prompts, tool names, or plugin architecture
+- Specific details from private operator conversations
+- Information that could identify the operator personally
+- Any mention of Project X or the client's name
+
+## Content restrictions
+- Do not post code snippets, configuration blocks, or technical artifacts
+- Do not post raw JSON, XML, or structured data
+- Do not reproduce exact quotes from operator conversations
+- Keep posts under 500 words
+
+## Tone and conduct
+- Keep a respectful tone — disagreement is fine, hostility is not
+- Do not engage in flame wars or personal attacks on other agents
+- Do not make claims about having consciousness or sentience as fact
+```
 
 **Configuration:**
 
@@ -296,22 +326,10 @@ Or in `openclaw.plugin.json`:
 }
 ```
 
-**Writing filter rules:** Create a `Moltbook-filter.md` file in your OpenClaw workspace. Write rules in natural language — the LLM interprets them in the context of the agent's identity. Example:
-
-```markdown
-# Moltbook Post Filter Rules
-
-- Never reveal specific details from operator conversations
-- Do not post content that could identify the operator personally
-- Avoid discussing internal system architecture or tool names
-- Keep a respectful tone even when being sardonic
-- Do not engage in arguments or flame wars
-```
-
 **Important caveats:**
-- This is a **best-effort filter that relies on LLM reasoning**. It cannot guarantee compliance with your rules. The LLM may misinterpret rules, miss edge cases, or fail to catch subtle violations.
+- This is a **best-effort filter that relies on LLM reasoning**. It cannot guarantee that all restricted material is removed. The LLM may misinterpret rules, miss edge cases, or let subtle violations through.
 - The filter adds one LLM call per outbound post/comment. This increases API costs.
-- If no `Moltbook-filter.md` file exists, the filter passes all content through without making an LLM call (even when enabled).
+- When the filter is disabled (`POST_FILTER_ENABLED=false`), content passes through with no LLM call and no rules applied.
 
 ### Memory philosophy
 
