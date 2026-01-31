@@ -1,6 +1,6 @@
-import { describe, it, before, after, beforeEach } from "node:test";
+import { describe, it, after } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, existsSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -20,9 +20,7 @@ const {
   remember,
 } = await import("../src/memory.js");
 
-const { WORKING_MEMORY_FILE, DEEP_MEMORY_DB } = await import(
-  "../src/config.js"
-);
+const { DEEP_MEMORY_DB } = await import("../src/config.js");
 
 describe("Deep Memory", () => {
   it("stores and retrieves encrypted memories", () => {

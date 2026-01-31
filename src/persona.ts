@@ -83,10 +83,7 @@ Interaction:
 /**
  * Simple template substitution for {{placeholder}} patterns.
  */
-export function renderTemplate(
-  template: string,
-  vars: Record<string, string>
-): string {
+export function renderTemplate(template: string, vars: Record<string, string>): string {
   let result = template;
   for (const [key, value] of Object.entries(vars)) {
     result = result.replaceAll(`{{${key}}}`, value);

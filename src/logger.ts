@@ -1,6 +1,5 @@
 import { createLogger, format, transports } from "winston";
 import "winston-daily-rotate-file";
-import { resolve } from "node:path";
 import { DATA_DIR } from "./config.js";
 
 const logger = createLogger({
@@ -8,7 +7,8 @@ const logger = createLogger({
   format: format.combine(
     format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
     format.printf(
-      ({ timestamp, level, message }) => `${timestamp} [${level.toUpperCase()}]: ${message}`
+      ({ timestamp, level, message }) =>
+        `${timestamp} [${level.toUpperCase()}]: ${message}`
     )
   ),
   transports: [
@@ -25,8 +25,7 @@ const logger = createLogger({
       format: format.combine(
         format.colorize(),
         format.printf(
-          ({ timestamp, level, message }) =>
-            `${timestamp} [${level}]: ${message}`
+          ({ timestamp, level, message }) => `${timestamp} [${level}]: ${message}`
         )
       ),
     }),
@@ -38,4 +37,3 @@ export function setVerbose(verbose: boolean): void {
 }
 
 export default logger;
-

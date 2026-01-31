@@ -8,11 +8,7 @@
  * Key: 32 bytes, stored as base64 in data/.dream_key
  */
 
-import {
-  randomBytes,
-  createCipheriv,
-  createDecipheriv,
-} from "node:crypto";
+import { randomBytes, createCipheriv, createDecipheriv } from "node:crypto";
 import { readFileSync, writeFileSync, existsSync, chmodSync } from "node:fs";
 import { resolve } from "node:path";
 import { DATA_DIR, DREAM_ENCRYPTION_KEY } from "./config.js";
@@ -39,10 +35,7 @@ export class Cipher {
   encrypt(plaintext: string): string {
     const iv = randomBytes(IV_LENGTH);
     const cipher = createCipheriv(ALGORITHM, this.key, iv);
-    const encrypted = Buffer.concat([
-      cipher.update(plaintext, "utf-8"),
-      cipher.final(),
-    ]);
+    const encrypted = Buffer.concat([cipher.update(plaintext, "utf-8"), cipher.final()]);
     const authTag = cipher.getAuthTag();
     const token = Buffer.concat([iv, encrypted, authTag]);
     return token.toString("base64");
@@ -56,10 +49,7 @@ export class Cipher {
 
     const decipher = createDecipheriv(ALGORITHM, this.key, iv);
     decipher.setAuthTag(authTag);
-    const decrypted = Buffer.concat([
-      decipher.update(ciphertext),
-      decipher.final(),
-    ]);
+    const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
     return decrypted.toString("utf-8");
   }
 }

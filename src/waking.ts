@@ -14,18 +14,14 @@ import {
   storeWorkingMemory,
   storeDeepMemory,
 } from "./memory.js";
-import {
-  WAKING_SYSTEM_PROMPT,
-  SUMMARIZER_PROMPT,
-  renderTemplate,
-} from "./persona.js";
+import { WAKING_SYSTEM_PROMPT, SUMMARIZER_PROMPT, renderTemplate } from "./persona.js";
 import { loadState, saveState } from "./state.js";
 import logger from "./logger.js";
 import type { LLMClient, AgentAction, MoltbookPost } from "./types.js";
 
 function getDefaultClient(): LLMClient {
   // Lazy import to keep @anthropic-ai/sdk optional
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+
   const { default: Anthropic } = require("@anthropic-ai/sdk") as {
     default: new (opts: { apiKey: string }) => {
       messages: {
@@ -182,7 +178,11 @@ async function executeActions(
             post_title: post.title,
             post_author: post.author,
           });
-          remember(summary, { type: "upvote", post, reason: "Agent chose to upvote" }, "upvote");
+          remember(
+            summary,
+            { type: "upvote", post, reason: "Agent chose to upvote" },
+            "upvote"
+          );
         } catch (e) {
           logger.error(`Failed to upvote: ${e}`);
         }
@@ -275,10 +275,7 @@ export async function checkAndEngage(client?: LLMClient): Promise<void> {
   logger.debug(`Found ${posts.length} posts`);
 
   if (posts.length === 0) {
-    storeWorkingMemory(
-      "Checked Moltbook but feed was empty. Quiet day.",
-      "observation"
-    );
+    storeWorkingMemory("Checked Moltbook but feed was empty. Quiet day.", "observation");
     logger.info("Empty feed. Stored observation.");
     return;
   }
@@ -307,6 +304,6 @@ export async function checkAndEngage(client?: LLMClient): Promise<void> {
   const stats = deepMemoryStats();
   logger.debug(
     `Working memories: ${getWorkingMemoryContext().length} chars | ` +
-    `Deep memories: ${stats.total_memories} (${stats.undreamed} undreamed)`
+      `Deep memories: ${stats.total_memories} (${stats.undreamed} undreamed)`
   );
 }

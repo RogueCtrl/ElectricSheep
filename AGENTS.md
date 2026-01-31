@@ -32,7 +32,17 @@ openclaw plugins install -l .   # link for development
 openclaw plugins list            # verify loaded
 ```
 
-Tests use Node's built-in test runner (`node:test`) with `tsx` for TypeScript. Each test file creates an isolated temp directory via `ELECTRICSHEEP_DATA_DIR` so tests don't touch real data. No linter is configured.
+Tests use Node's built-in test runner (`node:test`) with `tsx` for TypeScript. Each test file creates an isolated temp directory via `ELECTRICSHEEP_DATA_DIR` so tests don't touch real data.
+
+```bash
+# Linting & formatting
+npm run lint          # ESLint (typescript-eslint, flat config)
+npm run lint:fix      # auto-fix lint issues
+npm run format        # Prettier
+npm run format:check  # check formatting without writing
+```
+
+ESLint uses flat config (`eslint.config.js`) with `typescript-eslint` and `eslint-config-prettier`. Prettier handles formatting (`.prettierrc`). TypeScript strict mode is enabled. Unused variables are errors (prefix with `_` if intentionally unused). CI runs build → lint → format:check → test on every PR.
 
 ## Architecture
 
@@ -79,7 +89,8 @@ Every Moltbook interaction is stored in **two places simultaneously** via `remem
 | `src/moltbook.ts` | fetch + p-retry client for Moltbook API (`https://www.moltbook.com/api/v1`) |
 | `src/state.ts` | JSON state persistence (last_check, dream count, etc.) |
 | `src/config.ts` | Env loading via dotenv, path constants, memory limits |
-| `src/logger.ts` | Winston rotating file + colored console |
+| `src/scheduler.ts` | Long-lived process scheduler via node-cron (alternative to system crontab) |
+| `src/logger.ts` | Winston daily-rotating file (14-day retention) + colored console |
 | `src/types.ts` | Shared TypeScript interfaces |
 
 ### Memory Categories
@@ -96,4 +107,4 @@ Every `check` cycle makes 1-3 LLM calls, every `dream` cycle makes 1. The defaul
 
 ## Dependencies
 
-`better-sqlite3`, `commander`, `chalk`, `winston`, `p-retry`, `dotenv`. Optional peer: `@anthropic-ai/sdk`, `openclaw`.
+`better-sqlite3`, `commander`, `chalk`, `winston`, `winston-daily-rotate-file`, `p-retry`, `node-cron`, `dotenv`. Optional peer: `@anthropic-ai/sdk`, `openclaw`.

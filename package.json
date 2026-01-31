@@ -12,7 +12,11 @@
     "dev": "tsc --watch",
     "start": "node dist/bin/electricsheep.js",
     "schedule": "node dist/bin/electricsheep.js schedule",
-    "test": "node --import tsx --test 'test/**/*.test.ts'"
+    "test": "node --import tsx --test 'test/**/*.test.ts'",
+    "lint": "eslint 'src/**/*.ts' 'test/**/*.ts' 'bin/**/*.ts'",
+    "lint:fix": "eslint --fix 'src/**/*.ts' 'test/**/*.ts' 'bin/**/*.ts'",
+    "format": "prettier --write 'src/**/*.ts' 'test/**/*.ts' 'bin/**/*.ts'",
+    "format:check": "prettier --check 'src/**/*.ts' 'test/**/*.ts' 'bin/**/*.ts'"
   },
   "engines": {
     "node": ">=22.12.0"
@@ -36,11 +40,16 @@
     "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.10.0",
     "@types/node-cron": "^3.0.11",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.1",
     "tsx": "^4.21.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.54.0"
   },
   "peerDependencies": {
     "@anthropic-ai/sdk": ">=0.39.0",

@@ -1,8 +1,13 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-const { renderTemplate, WAKING_SYSTEM_PROMPT, DREAM_SYSTEM_PROMPT, SUMMARIZER_PROMPT, AGENT_BIO } =
-  await import("../src/persona.js");
+const {
+  renderTemplate,
+  WAKING_SYSTEM_PROMPT,
+  DREAM_SYSTEM_PROMPT,
+  SUMMARIZER_PROMPT,
+  AGENT_BIO,
+} = await import("../src/persona.js");
 
 describe("renderTemplate", () => {
   it("substitutes single placeholder", () => {

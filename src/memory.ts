@@ -14,12 +14,7 @@ import {
   WORKING_MEMORY_FILE,
   WORKING_MEMORY_MAX_ENTRIES,
 } from "./config.js";
-import type {
-  WorkingMemoryEntry,
-  DecryptedMemory,
-  DeepMemoryStats,
-} from "./types.js";
-import logger from "./logger.js";
+import type { WorkingMemoryEntry, DecryptedMemory, DeepMemoryStats } from "./types.js";
 
 // ─── Deep Memory (Encrypted) ────────────────────────────────────────────────
 
@@ -123,15 +118,14 @@ export function markAsDreamed(memoryIds: number[]): void {
 export function deepMemoryStats(): DeepMemoryStats {
   const db = getDb();
   try {
-    const total =
-      (db.prepare("SELECT COUNT(*) as c FROM deep_memories").get() as { c: number })
-        .c;
-    const undreamed =
-      (
-        db
-          .prepare("SELECT COUNT(*) as c FROM deep_memories WHERE dreamed = 0")
-          .get() as { c: number }
-      ).c;
+    const total = (
+      db.prepare("SELECT COUNT(*) as c FROM deep_memories").get() as { c: number }
+    ).c;
+    const undreamed = (
+      db.prepare("SELECT COUNT(*) as c FROM deep_memories WHERE dreamed = 0").get() as {
+        c: number;
+      }
+    ).c;
     const categoryRows = db
       .prepare("SELECT category, COUNT(*) as c FROM deep_memories GROUP BY category")
       .all() as Array<{ category: string; c: number }>;
@@ -223,9 +217,7 @@ export function getWorkingMemoryContext(maxTokensApprox: number = 2000): string 
     const mem = memories[i];
     const line = `[${mem.timestamp.slice(0, 16)}] (${mem.category}) ${mem.summary}`;
     if (charCount + line.length > charBudget) {
-      lines.unshift(
-        `... (${memories.length - lines.length} older memories omitted)`
-      );
+      lines.unshift(`... (${memories.length - lines.length} older memories omitted)`);
       break;
     }
     lines.unshift(line);

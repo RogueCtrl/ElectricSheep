@@ -112,9 +112,7 @@ async function generateDream(
 }
 
 function saveDreamLocally(dream: Dream, dateStr: string): string {
-  const safeName = dream.title
-    .slice(0, 40)
-    .replace(/[\s/]/g, "_");
+  const safeName = dream.title.slice(0, 40).replace(/[\s/]/g, "_");
   const filename = `${dateStr}_${safeName}.md`;
   const filepath = resolve(DREAMS_DIR, filename);
 

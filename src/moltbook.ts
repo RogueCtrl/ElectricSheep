@@ -80,10 +80,7 @@ export class MoltbookClient {
 
   // --- Registration ---
 
-  async register(
-    name: string,
-    description: string
-  ): Promise<Record<string, unknown>> {
+  async register(name: string, description: string): Promise<Record<string, unknown>> {
     logger.info(`Registering agent: ${name}`);
     const result = await this.retryRequest("POST", "/agents/register", {
       body: { name, description },
@@ -202,10 +199,7 @@ export class MoltbookClient {
 
   // --- Search ---
 
-  async search(
-    query: string,
-    limit: number = 25
-  ): Promise<Record<string, unknown>> {
+  async search(query: string, limit: number = 25): Promise<Record<string, unknown>> {
     logger.info(`Searching for: ${query}`);
     return this.retryRequest("GET", "/search", {
       params: { q: query, limit },

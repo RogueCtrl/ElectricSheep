@@ -32,8 +32,7 @@ export const MOLTBOOK_API_KEY = process.env.MOLTBOOK_API_KEY ?? "";
 
 // Agent
 export const AGENT_NAME = process.env.AGENT_NAME ?? "ElectricSheep";
-export const AGENT_MODEL =
-  process.env.AGENT_MODEL ?? "claude-sonnet-4-5-20250929";
+export const AGENT_MODEL = process.env.AGENT_MODEL ?? "claude-sonnet-4-5-20250929";
 
 // Moltbook
 export const MOLTBOOK_BASE_URL = "https://www.moltbook.com/api/v1";

@@ -44,15 +44,9 @@ program
     console.log(chalk.green.bold("\nRegistered!\n"));
     console.log(`${chalk.bold("API Key:")} ${agent.api_key ?? "?"}`);
     console.log(`${chalk.bold("Claim URL:")} ${agent.claim_url ?? "?"}`);
-    console.log(
-      `${chalk.bold("Verification:")} ${agent.verification_code ?? "?"}`
-    );
-    console.log(
-      chalk.yellow("\nSave your API key to .env as MOLTBOOK_API_KEY")
-    );
-    console.log(
-      chalk.yellow("Visit the claim URL and post the verification tweet")
-    );
+    console.log(`${chalk.bold("Verification:")} ${agent.verification_code ?? "?"}`);
+    console.log(chalk.yellow("\nSave your API key to .env as MOLTBOOK_API_KEY"));
+    console.log(chalk.yellow("Visit the claim URL and post the verification tweet"));
   });
 
 program
@@ -113,9 +107,7 @@ program
       `${chalk.bold("Deep Memory:")} ${memStats.total_memories} total, ${memStats.undreamed} undreamed`
     );
     if (Object.keys(memStats.categories).length > 0) {
-      console.log(
-        `${chalk.bold("Categories:")} ${JSON.stringify(memStats.categories)}`
-      );
+      console.log(`${chalk.bold("Categories:")} ${JSON.stringify(memStats.categories)}`);
     }
 
     // Moltbook status
@@ -140,19 +132,14 @@ program
   .option("--category <cat>", "Filter by category")
   .action(async (opts: { limit: string; category?: string }) => {
     const { getWorkingMemory } = await import("./memory.js");
-    const mems = getWorkingMemory(
-      parseInt(opts.limit, 10),
-      opts.category
-    );
+    const mems = getWorkingMemory(parseInt(opts.limit, 10), opts.category);
 
     if (mems.length === 0) {
       console.log(chalk.dim("No working memories yet."));
       return;
     }
 
-    console.log(
-      chalk.cyan.bold(`\nWorking Memory (${mems.length} entries)\n`)
-    );
+    console.log(chalk.cyan.bold(`\nWorking Memory (${mems.length} entries)\n`));
 
     for (const mem of mems) {
       const ts = mem.timestamp.slice(0, 16);
@@ -160,13 +147,9 @@ program
       const summary = mem.summary;
 
       if (cat === "dream_consolidation") {
-        console.log(
-          `  ${chalk.magenta(ts)} ${chalk.magenta.bold("[DREAM]")} ${summary}`
-        );
+        console.log(`  ${chalk.magenta(ts)} ${chalk.magenta.bold("[DREAM]")} ${summary}`);
       } else {
-        console.log(
-          `  ${chalk.dim(ts)} ${chalk.cyan(`(${cat})`)} ${summary}`
-        );
+        console.log(`  ${chalk.dim(ts)} ${chalk.cyan(`(${cat})`)} ${summary}`);
       }
     }
   });
@@ -194,9 +177,7 @@ program
       return;
     }
 
-    console.log(
-      chalk.magenta.bold(`\nDream Archive (${dreamFiles.length} dreams)\n`)
-    );
+    console.log(chalk.magenta.bold(`\nDream Archive (${dreamFiles.length} dreams)\n`));
 
     for (const f of dreamFiles.slice(0, 20)) {
       const content = readFileSync(resolve(DREAMS_DIR, f), "utf-8");

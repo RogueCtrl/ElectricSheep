@@ -28,11 +28,11 @@ describe("State persistence", () => {
   });
 
   it("overwrites previous state completely", () => {
-    saveState({ a: 1, b: 2 });
-    saveState({ c: 3 });
+    saveState({ a: 1, b: 2 } as Record<string, unknown>);
+    saveState({ c: 3 } as Record<string, unknown>);
     const loaded = loadState();
     assert.deepEqual(loaded, { c: 3 });
-    assert.equal(loaded.a, undefined);
+    assert.ok(!("a" in loaded));
   });
 });
 

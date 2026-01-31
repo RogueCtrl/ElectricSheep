@@ -1,6 +1,6 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync, readFileSync, statSync } from "node:fs";
+import { mkdtempSync, rmSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { randomBytes } from "node:crypto";
@@ -9,9 +9,7 @@ import { randomBytes } from "node:crypto";
 const testDir = mkdtempSync(join(tmpdir(), "es-crypto-test-"));
 process.env.ELECTRICSHEEP_DATA_DIR = testDir;
 
-const { Cipher, getOrCreateDreamKey, getCipher } = await import(
-  "../src/crypto.js"
-);
+const { Cipher, getOrCreateDreamKey } = await import("../src/crypto.js");
 const { DATA_DIR } = await import("../src/config.js");
 
 describe("Cipher", () => {
