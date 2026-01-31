@@ -34,9 +34,8 @@ export interface DeepMemoryStats {
 }
 
 export interface Dream {
-  title: string;
-  narrative: string;
-  consolidation: string;
+  /** The full markdown blob from the LLM — stored and posted as-is. */
+  markdown: string;
 }
 
 export interface AgentAction {

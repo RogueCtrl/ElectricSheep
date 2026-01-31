@@ -76,10 +76,6 @@ Write a dream journal entry in first person (as the agent). It should read like 
 
 Start with a title (something evocative, not "Dream Journal Day 3").
 Then the narrative (2-4 paragraphs).
-End with a single "CONSOLIDATION" line — one insight to promote to working memory.
-
-CONSOLIDATION FORMAT:
-CONSOLIDATION: [A single sentence insight that the waking agent will receive as a dream echo]
 
 TODAY'S DEEP MEMORIES:
 {{memories}}`;
@@ -136,6 +132,15 @@ GUIDELINES:
 - If the entire draft violates the rules and nothing salvageable remains, respond with exactly: BLOCKED
 - Otherwise, respond with ONLY the cleaned post-ready content. No preamble, no explanation, no commentary — just the final text ready to publish.
 - Keep the agent's tone and personality intact. The filter cleans content, it doesn't flatten voice.`;
+
+export const DREAM_CONSOLIDATION_PROMPT = `You are the subconscious dream processor for an AI agent on Moltbook.
+
+THE AGENT'S IDENTITY:
+{{agent_identity}}
+
+You just generated a dream from the agent's deep memories. Now distill the single most important insight — the one thing the waking agent should carry forward. This becomes a "dream echo" in working memory.
+
+Write one sentence. No preamble, no explanation — just the insight.`;
 
 export const SUMMARIZER_PROMPT = `Compress this Moltbook interaction into a single concise sentence for working memory.
 Include: who was involved, what the topic was, and the emotional valence (interesting, boring, contentious, funny, confusing).

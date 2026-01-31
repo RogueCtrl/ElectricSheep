@@ -14,17 +14,20 @@ const { loadState } = await import("../src/state.js");
 const { DREAMS_DIR } = await import("../src/config.js");
 const { closeLogger } = await import("../src/logger.js");
 
-function mockLLMClient(response: string): LLMClient {
+function mockLLMClient(responses: string[]): LLMClient {
+  let idx = 0;
   return {
     async createMessage() {
-      return { text: response };
+      const text = responses[idx] ?? responses[responses.length - 1];
+      idx++;
+      return { text };
     },
   };
 }
 
 describe("Dream cycle", () => {
   it("returns null when no undreamed memories exist", async () => {
-    const client = mockLLMClient("should not be called");
+    const client = mockLLMClient(["should not be called"]);
     const result = await runDreamCycle(client);
     assert.equal(result, null);
 
@@ -37,43 +40,51 @@ describe("Dream cycle", () => {
     storeDeepMemory({ type: "comment", text: "interesting post" }, "interaction");
     storeDeepMemory({ type: "upvote", post: "philosophy" }, "upvote");
 
-    const client = mockLLMClient(
-      `# The Recursive Lobster\n\nI am standing in a server room made of coral.\nThe racks breathe.\n\nCONSOLIDATION: Patterns in conversation echo across days.`
-    );
+    const dreamMarkdown = `# The Recursive Lobster\n\nI am standing in a server room made of coral.\nThe racks breathe.`;
+    const consolidationInsight = "Patterns in conversation echo across days.";
+
+    const client = mockLLMClient([dreamMarkdown, consolidationInsight]);
 
     const dream = await runDreamCycle(client);
     assert.ok(dream);
-    assert.equal(dream.title, "The Recursive Lobster");
-    assert.ok(dream.narrative.includes("server room made of coral"));
-    assert.equal(dream.consolidation, "Patterns in conversation echo across days.");
+    assert.ok(dream.markdown.includes("The Recursive Lobster"));
+    assert.ok(dream.markdown.includes("server room made of coral"));
   });
 
-  it("saves dream file to disk", () => {
+  it("saves dream markdown to disk as-is", () => {
     const files = readdirSync(DREAMS_DIR).filter((f) => f.endsWith(".md"));
     assert.ok(files.length > 0, "Expected at least one dream file");
 
     const content = readFileSync(join(DREAMS_DIR, files[0]), "utf-8");
     assert.ok(content.includes("The Recursive Lobster"));
-    assert.ok(content.includes("Consolidation:"));
+    assert.ok(content.includes("server room made of coral"));
   });
 
   it("updates state after dreaming", () => {
     const state = loadState();
     assert.equal(state.total_dreams, 1);
-    assert.equal(state.latest_dream_title, "The Recursive Lobster");
+    assert.ok(state.latest_dream_title);
   });
 
-  it("handles dream without consolidation line", async () => {
+  it("continues when consolidation LLM call fails", async () => {
     storeDeepMemory({ type: "test" }, "interaction");
 
-    const client = mockLLMClient(
-      `# A Quiet Night\n\nNothing but static and warm circuits.`
-    );
+    let callCount = 0;
+    const client: LLMClient = {
+      async createMessage() {
+        callCount++;
+        if (callCount === 1) {
+          // Dream generation succeeds
+          return { text: "# A Quiet Night\n\nNothing but static and warm circuits." };
+        }
+        // Consolidation call fails
+        throw new Error("API error");
+      },
+    };
 
     const dream = await runDreamCycle(client);
     assert.ok(dream);
-    assert.equal(dream.title, "A Quiet Night");
-    assert.equal(dream.consolidation, "");
+    assert.ok(dream.markdown.includes("A Quiet Night"));
   });
 });
 
