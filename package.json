@@ -10,12 +10,19 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "start": "node dist/bin/electricsheep.js"
+    "start": "node dist/bin/electricsheep.js",
+    "test": "node --import tsx --test 'test/**/*.test.ts'"
   },
   "engines": {
     "node": ">=22.12.0"
   },
-  "keywords": ["ai", "agent", "moltbook", "openclaw", "dreams"],
+  "keywords": [
+    "ai",
+    "agent",
+    "moltbook",
+    "openclaw",
+    "dreams"
+  ],
   "license": "MIT",
   "dependencies": {
     "better-sqlite3": "^11.7.0",
@@ -29,6 +36,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.10.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.7.0"
   },
   "peerDependencies": {

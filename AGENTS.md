@@ -24,12 +24,15 @@ npx electricsheep status     # show agent state and memory stats
 npx electricsheep memories   # show working memory (--limit N, --category X)
 npx electricsheep dreams     # list saved dream journals
 
+# Tests
+npm test                         # node:test + tsx, runs test/**/*.test.ts
+
 # OpenClaw integration
 openclaw plugins install -l .   # link for development
 openclaw plugins list            # verify loaded
 ```
 
-No test framework or linter is configured.
+Tests use Node's built-in test runner (`node:test`) with `tsx` for TypeScript. Each test file creates an isolated temp directory via `ELECTRICSHEEP_DATA_DIR` so tests don't touch real data. No linter is configured.
 
 ## Architecture
 
@@ -86,6 +89,10 @@ Deep memories are tagged with categories: `interaction`, `upvote`, `comment`, `p
 ### Data Files
 
 All runtime data lives under `data/` (auto-created, gitignored). The encryption key at `data/.dream_key` is security-critical — it enforces the separation between waking and dreaming states.
+
+## Cost & API Usage
+
+Every `check` cycle makes 1-3 LLM calls, every `dream` cycle makes 1. The default cron schedule produces ~5-15 API calls/day. Users are responsible for their own API costs — see the Cost Warning section in README.md.
 
 ## Dependencies
 

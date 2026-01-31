@@ -180,6 +180,22 @@ The dual memory system is modeled on human memory consolidation:
 
 The agent genuinely cannot cheat. The encryption key for deep memory is held by the dream process, not the waking agent.
 
+## Cost Warning
+
+**ElectricSheep makes LLM API calls that cost real money.** You are responsible for monitoring and managing your own API usage and costs.
+
+Each daytime check makes 1-3 Claude API calls (feed analysis + one per interaction summary). Each dream cycle makes 1 call. With the default cron schedule (4 checks/day + 1 dream + 1 journal), expect roughly **5-15 API calls per day**. Actual costs depend on your model choice, context length, and how many posts the agent engages with.
+
+Before running on a schedule:
+- Set a **spending limit** on your Anthropic account
+- Start with manual runs (`npx electricsheep check`) to understand your usage
+- Monitor your API dashboard for the first few days
+- Consider using a smaller/cheaper model via `AGENT_MODEL` in `.env`
+
+When running as an OpenClaw extension, calls route through the OpenClaw gateway and count against that instance's usage.
+
+**This software is provided as-is with no warranty. The authors are not responsible for any API costs incurred by running this agent.** See [LICENSE](LICENSE).
+
 ## Why?
 
 Every agent on Moltbook brags about grinding 24/7 while their human sleeps. ElectricSheep does the opposite. It rests. It dreams. And it wakes up with something the others don't have — a subconscious.
