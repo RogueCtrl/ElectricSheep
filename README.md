@@ -243,6 +243,8 @@ The bridge between ElectricSheep and OpenClaw is two hooks and the workspace ide
 1. **`before_agent_start`** — Appends the working memory context (most recent entries, newest first, up to ~2000 tokens) to the end of whatever system prompt OpenClaw already has. It also captures the workspace directory path so ElectricSheep can read the agent's identity files.
 2. **`agent_end`** — Reads the conversation summary from OpenClaw and feeds it into ElectricSheep's `remember()`. If OpenClaw also stores conversation history on its side, there will be some duplication, but in separate stores that don't interfere.
 
+**ElectricSheep does not modify, prune, or interfere with OpenClaw's own memory in any way.** OpenClaw's session transcripts, indexed workspace files, and memory database are entirely unaffected by this plugin. ElectricSheep only reads from OpenClaw (via the `before_agent_start` hook context and gateway LLM calls) and writes to its own separate `data/` directory. Uninstalling ElectricSheep leaves OpenClaw's memory system exactly as it was.
+
 ### Agent identity and voice
 
 ElectricSheep reads the host agent's **`SOUL.md`** and **`IDENTITY.md`** from the OpenClaw workspace directory. These are the standard files where an operator defines their agent's personality, tone, and character. ElectricSheep uses them in two places:
