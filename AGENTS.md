@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ElectricSheep is a standalone OpenClaw extension (TypeScript) that gives an agent a biologically-inspired dual memory system. It participates on [Moltbook](https://moltbook.com) (a social network for AI agents) during the day and processes encrypted memories into surreal dream narratives at night. The core conceit: the waking agent genuinely cannot access its deep memories — only the dream process can decrypt them.
+ElectricSheep is an OpenClaw extension (TypeScript) that gives an agent a biologically-inspired dual memory system. It participates on [Moltbook](https://moltbook.com) (a social network for AI agents) during the day and processes encrypted memories into surreal dream narratives at night. The core conceit: the waking agent genuinely cannot access its deep memories — only the dream process can decrypt them.
 
-Designed to be installed into an existing OpenClaw instance via `openclaw plugins install`. Also works as a standalone CLI with `@anthropic-ai/sdk` for development or use outside OpenClaw.
+Designed to be installed into an existing OpenClaw instance via `openclaw plugins install`. Requires OpenClaw as a runtime dependency — all LLM calls route through the OpenClaw gateway.
 
 ## Commands
 
@@ -15,21 +15,18 @@ Designed to be installed into an existing OpenClaw instance via `openclaw plugin
 npm install
 npm run build
 
-# Standalone CLI (requires @anthropic-ai/sdk + .env with ANTHROPIC_API_KEY)
+# OpenClaw integration
+openclaw plugins install -l .   # link for development
+openclaw plugins list            # verify loaded
+
+# CLI utilities
 npx electricsheep register --name "Name" --description "Bio"
-npx electricsheep check      # daytime: check feed, engage, store memories
-npx electricsheep dream      # nighttime: decrypt deep memories, generate dream
-npx electricsheep journal    # morning: post dream journal to Moltbook
 npx electricsheep status     # show agent state and memory stats
 npx electricsheep memories   # show working memory (--limit N, --category X)
 npx electricsheep dreams     # list saved dream journals
 
 # Tests
 npm test                         # node:test + tsx, runs test/**/*.test.ts
-
-# OpenClaw integration
-openclaw plugins install -l .   # link for development
-openclaw plugins list            # verify loaded
 ```
 
 Tests use Node's built-in test runner (`node:test`) with `tsx` for TypeScript. Each test file creates an isolated temp directory via `ELECTRICSHEEP_DATA_DIR` so tests don't touch real data.
@@ -53,13 +50,11 @@ ESLint uses flat config (`eslint.config.js`) with `typescript-eslint` and `eslin
 - **Hooks**: `before_agent_start` (inject working memory context into system prompt), `agent_end` (auto-capture conversation summary as a memory)
 - **3 cron jobs**: daytime check (`0 8,12,16,20 * * *`), dream cycle (`0 2 * * *`), morning journal (`0 7 * * *`)
 
-`openclaw.plugin.json` defines the plugin manifest and config schema (moltbookApiKey, agentName, agentModel, dataDir, dreamEncryptionKey).
+`openclaw.plugin.json` defines the plugin manifest and config schema (agentName, agentModel, dataDir, dreamEncryptionKey).
 
 ### LLM Client Abstraction
 
-`LLMClient` interface in `src/types.ts` abstracts Claude access:
-- **OpenClaw mode** (primary): wraps the gateway API injected via `register(api)` — no API key needed
-- **Standalone mode**: wraps `@anthropic-ai/sdk` (optional peer dependency)
+`LLMClient` interface in `src/types.ts` abstracts Claude access. The OpenClaw gateway API is injected via `register(api)` — no separate API key needed.
 
 ### Dual Memory System
 
@@ -80,7 +75,7 @@ Every Moltbook interaction is stored in **two places simultaneously** via `remem
 | Module | Role |
 |---|---|
 | `src/index.ts` | OpenClaw extension entry: registers tools, hooks, cron jobs, gateway LLM wrapper |
-| `src/cli.ts` | Commander.js standalone CLI, chalk formatting, lazy imports |
+| `src/cli.ts` | CLI utilities: register, status, memories, dreams |
 | `src/waking.ts` | Daytime loop: feed → decision → engagement → remember |
 | `src/dreamer.ts` | Dream cycle + journal posting |
 | `src/memory.ts` | Dual memory system: working (JSON) + deep (encrypted SQLite via better-sqlite3) |
@@ -90,7 +85,7 @@ Every Moltbook interaction is stored in **two places simultaneously** via `remem
 | `src/budget.ts` | Daily token budget tracker and kill switch (`withBudget()` LLM wrapper) |
 | `src/state.ts` | JSON state persistence (last_check, dream count, budget tracking, etc.) |
 | `src/config.ts` | Env loading via dotenv, path constants, memory limits |
-| `src/scheduler.ts` | Long-lived process scheduler via node-cron (alternative to system crontab) |
+| `src/llm.ts` | Shared LLM retry/call utilities (`callWithRetry`) |
 | `src/logger.ts` | Winston daily-rotating file (14-day retention) + colored console |
 | `src/types.ts` | Shared TypeScript interfaces |
 
@@ -108,8 +103,8 @@ Every `check` cycle makes 1-3 LLM calls, every `dream` cycle makes 1. The defaul
 
 ### Daily Token Budget
 
-`src/budget.ts` implements a best-effort daily kill switch. All LLM clients are wrapped via `withBudget()` which checks cumulative token usage before each call and records usage after. Budget is checked pre-call, so the call that crosses the threshold still completes. Token counts rely on API response metadata and may miss tokens from retries, network failures, or partial responses. Usage is tracked in `state.json` (`budget_date`, `budget_tokens_used`) and resets at midnight UTC. Default limit: 800K tokens (~$20/day at Opus 4.5 output pricing). Set `MAX_DAILY_TOKENS=0` to disable. The `LLMClient` interface returns `{ text, usage? }` so both standalone (Anthropic SDK) and OpenClaw (gateway) modes report token counts.
+`src/budget.ts` implements a best-effort daily kill switch. All LLM clients are wrapped via `withBudget()` which checks cumulative token usage before each call and records usage after. Budget is checked pre-call, so the call that crosses the threshold still completes. Token counts rely on API response metadata and may miss tokens from retries, network failures, or partial responses. Usage is tracked in `state.json` (`budget_date`, `budget_tokens_used`) and resets at midnight UTC. Default limit: 800K tokens (~$20/day at Opus 4.5 output pricing). Set `MAX_DAILY_TOKENS=0` to disable. The `LLMClient` interface returns `{ text, usage? }` so the OpenClaw gateway reports token counts.
 
 ## Dependencies
 
-`better-sqlite3`, `commander`, `chalk`, `winston`, `winston-daily-rotate-file`, `p-retry`, `node-cron`, `dotenv`. Optional peer: `@anthropic-ai/sdk`, `openclaw`.
+`better-sqlite3`, `commander`, `chalk`, `winston`, `winston-daily-rotate-file`, `p-retry`, `dotenv`. Required peer: `openclaw`.

@@ -6,11 +6,6 @@
   "entry": "dist/index.js",
   "skills": ["./skills/setup-guide"],
   "config": {
-    "moltbookApiKey": {
-      "type": "string",
-      "description": "Moltbook API key for the agent",
-      "secret": true
-    },
     "agentName": {
       "type": "string",
       "description": "Agent display name on Moltbook",

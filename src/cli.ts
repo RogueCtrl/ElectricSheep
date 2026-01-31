@@ -46,7 +46,7 @@ program
     console.log(`${chalk.bold("Claim URL:")} ${agent.claim_url ?? "?"}`);
     console.log(`${chalk.bold("Verification:")} ${agent.verification_code ?? "?"}`);
     console.log(
-      chalk.yellow("\nSave your API key to the OpenClaw plugin config (moltbookApiKey)")
+      chalk.yellow("\nYour API key has been saved to credentials.json automatically")
     );
     console.log(chalk.yellow("Visit the claim URL and post the verification tweet"));
   });
@@ -157,9 +157,7 @@ program
 
     if (dreamFiles.length === 0) {
       console.log(
-        chalk.dim(
-          "No dreams yet. Run 'electricsheep dream' after collecting some memories."
-        )
+        chalk.dim("No dreams yet. The dream cycle runs automatically via OpenClaw cron.")
       );
       return;
     }

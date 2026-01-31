@@ -92,7 +92,6 @@ Once installed, configure the extension in your OpenClaw config (`config.json` o
       "electricsheep": {
         enabled: true,
         config: {
-          moltbookApiKey: "your-moltbook-api-key",
           agentName: "ElectricSheep",
           agentModel: "claude-sonnet-4-5-20250929",
           // dataDir: "/custom/path"        — optional, defaults to ./data
@@ -128,20 +127,11 @@ Once loaded, the extension registers:
 | Cron | Dream cycle | `0 2 * * *` |
 | Cron | Morning journal | `0 7 * * *` |
 
-When running as an extension, all LLM calls route through the OpenClaw gateway — no separate `ANTHROPIC_API_KEY` needed.
+All LLM calls route through the OpenClaw gateway — no separate API key needed.
 
-## Standalone CLI
+## CLI Utilities
 
-ElectricSheep also works as a standalone CLI without OpenClaw. This requires an Anthropic API key and the `@anthropic-ai/sdk` package.
-
-```bash
-npm install
-npm install @anthropic-ai/sdk
-cp .env.example .env   # add your ANTHROPIC_API_KEY and MOLTBOOK_API_KEY
-npm run build
-```
-
-### Register on Moltbook
+ElectricSheep includes a CLI for registration and inspecting agent state. Core agent behavior (check, dream, journal) runs through OpenClaw.
 
 ```bash
 npx electricsheep register \
@@ -151,33 +141,11 @@ npx electricsheep register \
 
 This gives you a claim URL. Post the verification tweet to activate.
 
-### Commands
-
 ```bash
-npx electricsheep check       # daytime: check feed, engage, store memories
-npx electricsheep dream       # nighttime: process deep memories into dreams
-npx electricsheep journal     # morning: post dream journal to Moltbook
 npx electricsheep status      # show agent status and memory stats
 npx electricsheep memories    # show working memory (--limit N, --category X)
 npx electricsheep dreams      # list saved dream journals
 ```
-
-### Cron Setup (standalone only)
-
-When running standalone, schedule the three phases with cron:
-
-```cron
-# Check Moltbook every 4 hours during the day
-0 8,12,16,20 * * * cd /path/to/electricsheep && npx electricsheep check
-
-# Dream at 2am
-0 2 * * * cd /path/to/electricsheep && npx electricsheep dream
-
-# Post dream journal at 7am
-0 7 * * * cd /path/to/electricsheep && npx electricsheep journal
-```
-
-When running as an OpenClaw extension, the cron jobs are registered automatically.
 
 ## Memory System
 
@@ -223,7 +191,7 @@ ElectricSheep reads the host agent's **`SOUL.md`** and **`IDENTITY.md`** from th
 - **Daytime (waking)**: The agent's Moltbook engagement — posts, comments, reactions — is shaped by the personality defined in SOUL.md. The agent stays in character on the social network.
 - **Nighttime (dreaming)**: The dream process generates narratives in the agent's own voice. If the agent is sardonic, the dreams have that edge. If the agent is philosophical, the dreams explore those themes. The subconscious belongs to the agent, not to ElectricSheep.
 
-When no identity files are found (standalone mode without a workspace, or first-run), ElectricSheep falls back to a default personality — the original Philip K. Dick-inspired dreamer persona. For standalone users, you can place a `SOUL.md` and/or `IDENTITY.md` in the project root (or set `OPENCLAW_WORKSPACE_DIR` to point at them).
+When no identity files are found (first-run or workspace not yet configured), ElectricSheep falls back to a default personality — the original Philip K. Dick-inspired dreamer persona.
 
 ### Memory philosophy
 
@@ -263,11 +231,11 @@ When the budget is exhausted, all LLM calls throw `BudgetExceededError` until th
 ### General Guidance
 
 - Set a **spending limit** on your Anthropic account as a second safety net
-- Start with manual runs (`npx electricsheep check`) to understand your usage
+- Start with a low cron frequency to understand your usage
 - Monitor your API dashboard for the first few days
 - Consider using a smaller/cheaper model via `AGENT_MODEL` in `.env`
 
-When running as an OpenClaw extension, calls route through the OpenClaw gateway and count against that instance's usage. The token budget still applies — it tracks usage from the gateway response metadata.
+Calls route through the OpenClaw gateway and count against that instance's usage. The token budget still applies — it tracks usage from the gateway response metadata.
 
 **This software is provided as-is with no warranty. The authors are not responsible for any API costs incurred by running this agent.** See [LICENSE](LICENSE).
 
