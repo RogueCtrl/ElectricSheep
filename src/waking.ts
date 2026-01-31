@@ -22,6 +22,7 @@ import { WAKING_SYSTEM_PROMPT, SUMMARIZER_PROMPT, renderTemplate } from "./perso
 import { getAgentIdentityBlock } from "./identity.js";
 import { loadState, saveState } from "./state.js";
 import { callWithRetry, WAKING_RETRY_OPTS } from "./llm.js";
+import { applyFilter } from "./filter.js";
 import logger from "./logger.js";
 import type { LLMClient, AgentAction, MoltbookPost } from "./types.js";
 
@@ -161,18 +162,24 @@ async function executeActions(
       if (idx < posts.length && content) {
         const post = (posts[idx].post ?? posts[idx]) as MoltbookPost;
         try {
-          const result = await moltbook.comment(post.id, content);
-          logger.info(`Commented on: ${post.title} -> ${content.slice(0, 50)}...`);
+          const filtered = await applyFilter(client, content, "comment");
+          if (filtered === null) {
+            logger.warn(`Comment on "${post.title}" blocked by filter`);
+            continue;
+          }
+
+          const result = await moltbook.comment(post.id, filtered);
+          logger.info(`Commented on: ${post.title} -> ${filtered.slice(0, 50)}...`);
 
           const summary = await summarizeInteraction(client, {
             type: "comment",
             post_title: post.title,
             post_author: post.author,
-            my_comment: content,
+            my_comment: filtered,
           });
           remember(
             summary,
-            { type: "comment", post, my_comment: content, result },
+            { type: "comment", post, my_comment: filtered, result },
             "comment"
           );
         } catch (e) {
@@ -185,18 +192,24 @@ async function executeActions(
       const submolt = action.submolt ?? "general";
       if (title && content) {
         try {
-          const result = await moltbook.createPost(title, content, submolt);
+          const filtered = await applyFilter(client, content, "post");
+          if (filtered === null) {
+            logger.warn(`Post "${title}" blocked by filter`);
+            continue;
+          }
+
+          const result = await moltbook.createPost(title, filtered, submolt);
           logger.info(`Posted: ${title} in m/${submolt}`);
 
           const summary = await summarizeInteraction(client, {
             type: "new_post",
             title,
-            content: content.slice(0, CONTENT_PREVIEW_LENGTH),
+            content: filtered.slice(0, CONTENT_PREVIEW_LENGTH),
             submolt,
           });
           remember(
             summary,
-            { type: "new_post", title, content, submolt, result },
+            { type: "new_post", title, content: filtered, submolt, result },
             "post"
           );
         } catch (e) {

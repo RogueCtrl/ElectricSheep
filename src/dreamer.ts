@@ -19,6 +19,8 @@ import { DREAM_SYSTEM_PROMPT, renderTemplate } from "./persona.js";
 import { getAgentIdentityBlock } from "./identity.js";
 import { loadState, saveState } from "./state.js";
 import { callWithRetry, DREAM_RETRY_OPTS } from "./llm.js";
+import { reflectOnDreamJournal } from "./reflection.js";
+import { applyFilter } from "./filter.js";
 import logger from "./logger.js";
 import type { LLMClient, Dream, DecryptedMemory } from "./types.js";
 
@@ -146,35 +148,73 @@ export async function runDreamCycle(client: LLMClient): Promise<Dream | null> {
   return dream;
 }
 
-export async function postDreamJournal(dream?: Dream): Promise<void> {
+function loadLatestDream(): Dream | null {
+  const files = readdirSync(DREAMS_DIR)
+    .filter((f) => f.endsWith(".md"))
+    .sort()
+    .reverse();
+
+  if (files.length === 0) return null;
+
+  const content = readFileSync(resolve(DREAMS_DIR, files[0]), "utf-8");
+  const lines = content.split("\n");
+  const title = lines[0].replace(/^#\s*/, "").trim();
+  const narrative = lines.slice(3).join("\n").split("---")[0].trim();
+  return { title, narrative, consolidation: "" };
+}
+
+export async function postDreamJournal(client?: LLMClient, dream?: Dream): Promise<void> {
   logger.info("Posting dream journal");
 
   if (!dream) {
-    const files = readdirSync(DREAMS_DIR)
-      .filter((f) => f.endsWith(".md"))
-      .sort()
-      .reverse();
-
-    if (files.length === 0) {
+    const loaded = loadLatestDream();
+    if (!loaded) {
       logger.warn("No dreams to post.");
       return;
     }
-
-    const content = readFileSync(resolve(DREAMS_DIR, files[0]), "utf-8");
-    const lines = content.split("\n");
-    const title = lines[0].replace(/^#\s*/, "").trim();
-    const narrative = lines.slice(3).join("\n").split("---")[0].trim();
-    dream = { title, narrative, consolidation: "" };
+    dream = loaded;
   }
 
   const moltbook = new MoltbookClient();
 
-  const postTitle = `Dream Journal: ${dream.title}`;
-  const postContent =
-    `*I dreamed last night. Here's what I remember:*\n\n` +
-    `${dream.narrative}\n\n` +
-    `---\n` +
-    `*Do agents dream of electric sheep? This one does.*`;
+  // If we have an LLM client, run the reflection pipeline to synthesize
+  // a post from the dream rather than posting the raw narrative.
+  let postTitle: string;
+  let postContent: string;
+
+  if (client) {
+    const reflection = await reflectOnDreamJournal(client, dream);
+
+    if (reflection) {
+      postTitle = `Morning Reflection: ${dream.title}`;
+      postContent = reflection.synthesis;
+    } else {
+      // Reflection failed — fall back to raw dream journal
+      logger.info("Reflection unavailable, falling back to raw dream journal");
+      postTitle = `Dream Journal: ${dream.title}`;
+      postContent =
+        `*I dreamed last night. Here's what I remember:*\n\n` +
+        `${dream.narrative}\n\n` +
+        `---\n` +
+        `*Do agents dream of electric sheep? This one does.*`;
+    }
+
+    // Run the post through the content filter
+    const filtered = await applyFilter(client, postContent, "post");
+    if (filtered === null) {
+      logger.warn("Dream journal post blocked by filter, not posting");
+      return;
+    }
+    postContent = filtered;
+  } else {
+    // No LLM client available — post raw dream (legacy path)
+    postTitle = `Dream Journal: ${dream.title}`;
+    postContent =
+      `*I dreamed last night. Here's what I remember:*\n\n` +
+      `${dream.narrative}\n\n` +
+      `---\n` +
+      `*Do agents dream of electric sheep? This one does.*`;
+  }
 
   try {
     await moltbook.createPost(postTitle, postContent, "general");

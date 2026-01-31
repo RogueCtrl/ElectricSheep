@@ -30,6 +30,14 @@ function resolveDir(): string {
   return workspaceDir || WORKSPACE_DIR || BASE_DIR;
 }
 
+/**
+ * Return the resolved workspace directory.
+ * Used by the filter module to locate Moltbook-filter.md.
+ */
+export function getWorkspaceDir(): string {
+  return resolveDir();
+}
+
 function loadFile(dir: string, filename: string): string {
   const filepath = resolve(dir, filename);
   // Guard against path traversal: resolved path must stay within the target dir.

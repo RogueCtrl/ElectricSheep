@@ -26,6 +26,11 @@
       "description": "Base64 encryption key for deep memory (auto-generated if empty)",
       "secret": true,
       "default": ""
+    },
+    "postFilterEnabled": {
+      "type": "boolean",
+      "description": "Enable Moltbook post filter (checks outbound content against Moltbook-filter.md rules). Best-effort LLM-based filter.",
+      "default": true
     }
   }
 }
