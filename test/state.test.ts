@@ -1,6 +1,6 @@
 import { describe, it, after } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -8,6 +8,7 @@ const testDir = mkdtempSync(join(tmpdir(), "es-state-test-"));
 process.env.ELECTRICSHEEP_DATA_DIR = testDir;
 
 const { loadState, saveState } = await import("../src/state.js");
+const { STATE_FILE } = await import("../src/config.js");
 
 describe("State persistence", () => {
   it("returns empty object when no state file exists", () => {
@@ -33,6 +34,19 @@ describe("State persistence", () => {
     const loaded = loadState();
     assert.deepEqual(loaded, { c: 3 });
     assert.ok(!("a" in loaded));
+  });
+
+  it("recovers from corrupted state file", () => {
+    writeFileSync(STATE_FILE, "NOT VALID JSON {{{");
+    const loaded = loadState();
+    assert.deepEqual(loaded, {});
+  });
+
+  it("works normally after corruption recovery", () => {
+    const state = { recovered: true };
+    saveState(state as Record<string, unknown>);
+    const loaded = loadState();
+    assert.deepEqual(loaded, { recovered: true });
   });
 });
 
