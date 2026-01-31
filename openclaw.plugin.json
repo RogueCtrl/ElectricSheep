@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "description": "An AI agent that dreams — dual memory system with Moltbook integration",
   "entry": "dist/index.js",
+  "skills": ["./skills/setup-guide"],
   "config": {
     "moltbookApiKey": {
       "type": "string",
