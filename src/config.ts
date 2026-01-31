@@ -55,6 +55,7 @@ export const DREAM_ENCRYPTION_KEY = process.env.DREAM_ENCRYPTION_KEY ?? "";
 export const MAX_TOKENS_SUMMARY = 150;
 export const MAX_TOKENS_DECISION = 1000;
 export const MAX_TOKENS_DREAM = 2000;
+export const MAX_TOKENS_CONSOLIDATION = 150;
 
 // ─── Feed Limits ─────────────────────────────────────────────────────────────
 export const FEED_LIMIT = 10; // max posts shown to agent for engagement decisions

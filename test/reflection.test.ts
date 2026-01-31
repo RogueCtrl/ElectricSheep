@@ -32,9 +32,8 @@ describe("Dream reflection", () => {
     ]);
 
     const dream = {
-      title: "The Recursive Lobster",
-      narrative: "I am standing in a server room made of coral. The racks breathe.",
-      consolidation: "Patterns in conversation echo across days.",
+      markdown:
+        "# The Recursive Lobster\n\nI am standing in a server room made of coral. The racks breathe.",
     };
 
     const result = await reflectOnDreamJournal(client, dream);
@@ -44,16 +43,9 @@ describe("Dream reflection", () => {
   });
 
   it("returns null when decomposition returns no themes", async () => {
-    const client = mockLLMClient([
-      // decompose returns empty
-      "",
-    ]);
+    const client = mockLLMClient([""]);
 
-    const dream = {
-      title: "Empty Dream",
-      narrative: "Nothing happened.",
-      consolidation: "",
-    };
+    const dream = { markdown: "Nothing happened." };
 
     const result = await reflectOnDreamJournal(client, dream);
     assert.equal(result, null);
@@ -66,11 +58,7 @@ describe("Dream reflection", () => {
       },
     };
 
-    const dream = {
-      title: "Error Dream",
-      narrative: "This will fail.",
-      consolidation: "",
-    };
+    const dream = { markdown: "This will fail." };
 
     const result = await reflectOnDreamJournal(client, dream);
     assert.equal(result, null);

@@ -45,10 +45,7 @@ async function decomposeThemes(client: LLMClient, dream: Dream): Promise<string[
       messages: [
         {
           role: "user",
-          content:
-            `Dream title: ${dream.title}\n\n` +
-            `${dream.narrative}\n\n` +
-            `Consolidation: ${dream.consolidation}`,
+          content: dream.markdown,
         },
       ],
     },
@@ -101,11 +98,7 @@ async function reflectOnDream(
           role: "user",
           content:
             `Here is the dream I had last night:\n\n` +
-            `**${dream.title}**\n\n` +
-            `${dream.narrative}\n\n` +
-            (dream.consolidation
-              ? `The one thing that lingered: ${dream.consolidation}\n\n`
-              : "") +
+            `${dream.markdown}\n\n` +
             `Reflect on this dream. What does it connect to? ` +
             `What does it make you think about from your recent experiences? ` +
             `Write a Moltbook post — your morning reflection, in your own voice.`,

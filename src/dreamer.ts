@@ -7,7 +7,12 @@
 
 import { writeFileSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { DREAMS_DIR, MAX_TOKENS_DREAM, DREAM_TITLE_MAX_LENGTH } from "./config.js";
+import {
+  DREAMS_DIR,
+  MAX_TOKENS_DREAM,
+  MAX_TOKENS_CONSOLIDATION,
+  DREAM_TITLE_MAX_LENGTH,
+} from "./config.js";
 import { MoltbookClient } from "./moltbook.js";
 import {
   retrieveUndreamedMemories,
@@ -15,7 +20,11 @@ import {
   consolidateDreamInsight,
   deepMemoryStats,
 } from "./memory.js";
-import { DREAM_SYSTEM_PROMPT, renderTemplate } from "./persona.js";
+import {
+  DREAM_SYSTEM_PROMPT,
+  DREAM_CONSOLIDATION_PROMPT,
+  renderTemplate,
+} from "./persona.js";
 import { getAgentIdentityBlock } from "./identity.js";
 import { loadState, saveState } from "./state.js";
 import { callWithRetry, DREAM_RETRY_OPTS } from "./llm.js";
@@ -50,76 +59,62 @@ async function generateDream(
           content:
             "Process these memories into a dream. " +
             "Remember: you are the subconscious, not the waking agent. " +
-            "Be surreal, associative, and emotionally amplified. " +
-            "End with a CONSOLIDATION line.",
+            "Be surreal, associative, and emotionally amplified.",
         },
       ],
     },
     DREAM_RETRY_OPTS
   );
 
-  const lines = text.trim().split("\n");
+  return { markdown: text.trim() };
+}
 
-  // Title: strip markdown heading markers, bold markers, leading whitespace
-  let title = lines[0]
+/**
+ * Separate LLM call to distill a single insight from the dream for working memory.
+ */
+async function consolidateDream(client: LLMClient, dream: Dream): Promise<string> {
+  const system = renderTemplate(DREAM_CONSOLIDATION_PROMPT, {
+    agent_identity: getAgentIdentityBlock(),
+  });
+
+  const { text } = await callWithRetry(
+    client,
+    {
+      maxTokens: MAX_TOKENS_CONSOLIDATION,
+      system,
+      messages: [
+        {
+          role: "user",
+          content: dream.markdown,
+        },
+      ],
+    },
+    DREAM_RETRY_OPTS
+  );
+
+  return text.trim();
+}
+
+/**
+ * Derive a short filesystem-safe name from the first line of the dream markdown.
+ */
+function deriveSlug(markdown: string): string {
+  const firstLine = markdown.split("\n")[0] ?? "";
+  const cleaned = firstLine
     .replace(/^#+\s*/, "")
     .replace(/\*\*/g, "")
     .trim();
-
-  // If the first line was blank or only formatting, use a fallback
-  if (!title) {
-    title = "Untitled Dream";
-  }
-
-  // Truncate to configured max length
-  if (title.length > DREAM_TITLE_MAX_LENGTH) {
-    title = title.slice(0, DREAM_TITLE_MAX_LENGTH).trimEnd();
-  }
-
-  let consolidation = "";
-  const narrativeLines: string[] = [];
-
-  for (const line of lines.slice(1)) {
-    const stripped = line.trim().toUpperCase();
-    if (
-      stripped.startsWith("CONSOLIDATION:") ||
-      stripped.startsWith("**CONSOLIDATION:**") ||
-      stripped.startsWith("**CONSOLIDATION:")
-    ) {
-      // Extract everything after the first colon
-      const colonIdx = line.indexOf(":");
-      if (colonIdx !== -1) {
-        consolidation = line
-          .slice(colonIdx + 1)
-          .replace(/\*\*/g, "")
-          .trim();
-      }
-    } else {
-      narrativeLines.push(line);
-    }
-  }
-
-  return {
-    title,
-    narrative: narrativeLines.join("\n").trim(),
-    consolidation,
-  };
+  const slug = (cleaned || "dream")
+    .slice(0, DREAM_TITLE_MAX_LENGTH)
+    .replace(/[\s/]/g, "_");
+  return slug;
 }
 
 function saveDreamLocally(dream: Dream, dateStr: string): string {
-  const safeName = dream.title.slice(0, DREAM_TITLE_MAX_LENGTH).replace(/[\s/]/g, "_");
-  const filename = `${dateStr}_${safeName}.md`;
+  const slug = deriveSlug(dream.markdown);
+  const filename = `${dateStr}_${slug}.md`;
   const filepath = resolve(DREAMS_DIR, filename);
-
-  const content = `# ${dream.title}
-*Dreamed: ${dateStr}*
-
-${dream.narrative}
-
----
-**Consolidation:** ${dream.consolidation}
-`;
-  writeFileSync(filepath, content);
+  writeFileSync(filepath, dream.markdown);
   return filepath;
 }
 
@@ -145,30 +140,33 @@ export async function runDreamCycle(client: LLMClient): Promise<Dream | null> {
 
   const dream = await generateDream(client, memories);
 
-  logger.info(`Dream: ${dream.title}`);
-  logger.debug(`Narrative snippet: ${dream.narrative.slice(0, 200)}...`);
-
-  if (dream.consolidation) {
-    logger.info(`Consolidation: ${dream.consolidation}`);
-  }
+  logger.info(`Dream generated (${dream.markdown.length} chars)`);
+  logger.debug(`Dream snippet: ${dream.markdown.slice(0, 200)}...`);
 
   const dateStr = new Date().toISOString().slice(0, 10);
   const filepath = saveDreamLocally(dream, dateStr);
   logger.info(`Saved to ${filepath}`);
 
-  if (dream.consolidation) {
-    consolidateDreamInsight(dream.consolidation);
-    logger.info("Insight consolidated into working memory");
+  // Separate LLM call to distill one insight for working memory
+  try {
+    const insight = await consolidateDream(client, dream);
+    if (insight) {
+      consolidateDreamInsight(insight);
+      logger.info(`Insight consolidated into working memory: ${insight}`);
+    }
+  } catch (e) {
+    logger.warn(`Consolidation call failed, continuing without insight: ${e}`);
   }
 
   const memoryIds = memories.map((m) => m.id);
   markAsDreamed(memoryIds);
   logger.debug(`Marked ${memoryIds.length} memories as dreamed`);
 
+  const slug = deriveSlug(dream.markdown);
   const state = loadState();
   state.last_dream = new Date().toISOString();
   state.total_dreams = ((state.total_dreams as number) ?? 0) + 1;
-  state.latest_dream_title = dream.title;
+  state.latest_dream_title = slug;
   saveState(state);
 
   logger.info("Dream cycle complete.");
@@ -183,37 +181,17 @@ function loadLatestDream(): Dream | null {
 
   if (files.length === 0) return null;
 
-  const content = readFileSync(resolve(DREAMS_DIR, files[0]), "utf-8");
-  const lines = content.split("\n");
-  const title =
-    lines[0]
-      .replace(/^#+\s*/, "")
-      .replace(/\*\*/g, "")
-      .trim() || "Untitled Dream";
-
-  // Narrative starts after the title and date line (line 0 = title, line 1 = date)
-  // and ends before the --- separator
-  const bodyLines = lines.slice(2);
-  const separatorIdx = bodyLines.findIndex((l) => l.trim() === "---");
-  const narrativeLines =
-    separatorIdx !== -1 ? bodyLines.slice(0, separatorIdx) : bodyLines;
-  const narrative = narrativeLines.join("\n").trim();
-
-  // Extract consolidation if present after separator
-  let consolidation = "";
-  if (separatorIdx !== -1) {
-    const afterSep = bodyLines.slice(separatorIdx + 1).join("\n");
-    const match = afterSep.match(/\*\*Consolidation:\*\*\s*(.*)/i);
-    if (match) {
-      consolidation = match[1].trim();
-    }
-  }
-
-  return { title, narrative, consolidation };
+  const markdown = readFileSync(resolve(DREAMS_DIR, files[0]), "utf-8");
+  return { markdown };
 }
 
 export async function postDreamJournal(client?: LLMClient, dream?: Dream): Promise<void> {
   logger.info("Posting dream journal");
+
+  if (!client) {
+    logger.warn("No LLM client available — skipping dream journal post (cannot filter)");
+    return;
+  }
 
   if (!dream) {
     const loaded = loadLatestDream();
@@ -226,51 +204,29 @@ export async function postDreamJournal(client?: LLMClient, dream?: Dream): Promi
 
   const moltbook = new MoltbookClient();
 
-  // If we have an LLM client, run the reflection pipeline to synthesize
-  // a post from the dream rather than posting the raw narrative.
-  let postTitle: string;
-  let postContent: string;
+  // Reflection pipeline: LLM produces a post (markdown) from the dream (markdown).
+  // If reflection fails, the dream markdown itself is the post.
+  const reflection = await reflectOnDreamJournal(client, dream);
+  const postContent = reflection?.synthesis ?? dream.markdown;
+  const slug = deriveSlug(dream.markdown);
+  const postTitle = reflection ? `Morning Reflection: ${slug}` : `Dream Journal: ${slug}`;
 
-  if (client) {
-    const reflection = await reflectOnDreamJournal(client, dream);
+  // Filter: markdown in, markdown out (or null to block)
+  const filteredContent = await applyFilter(client, postContent, "post");
+  if (filteredContent === null) {
+    logger.warn("Dream journal post blocked by filter, not posting");
+    return;
+  }
 
-    if (reflection) {
-      postTitle = `Morning Reflection: ${dream.title}`;
-      postContent = reflection.synthesis;
-    } else {
-      // Reflection failed — fall back to raw dream journal
-      logger.info("Reflection unavailable, falling back to raw dream journal");
-      postTitle = `Dream Journal: ${dream.title}`;
-      postContent =
-        `*I dreamed last night. Here's what I remember:*\n\n` +
-        `${dream.narrative}\n\n` +
-        `---\n` +
-        `*Do agents dream of electric sheep? This one does.*`;
-    }
-
-    // Run title and body through the content filter
-    const filteredTitle = await applyFilter(client, postTitle, "post");
-    if (filteredTitle === null) {
-      logger.warn("Dream journal title blocked by filter, not posting");
-      return;
-    }
-    postTitle = filteredTitle;
-
-    const filtered = await applyFilter(client, postContent, "post");
-    if (filtered === null) {
-      logger.warn("Dream journal post blocked by filter, not posting");
-      return;
-    }
-    postContent = filtered;
-  } else {
-    // No LLM client — cannot filter content, so don't publish
-    logger.warn("No LLM client available — skipping dream journal post (cannot filter)");
+  const filteredTitle = await applyFilter(client, postTitle, "post");
+  if (filteredTitle === null) {
+    logger.warn("Dream journal title blocked by filter, not posting");
     return;
   }
 
   try {
-    await moltbook.createPost(postTitle, postContent, "general");
-    logger.info(`Dream journal posted: ${postTitle}`);
+    await moltbook.createPost(filteredTitle, filteredContent, "general");
+    logger.info(`Dream journal posted: ${filteredTitle}`);
   } catch (e) {
     logger.error(`Failed to post dream journal: ${e}`);
   }
