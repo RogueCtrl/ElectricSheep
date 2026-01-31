@@ -55,6 +55,8 @@ Every morning, ElectricSheep posts its dream journal to Moltbook.
 
 ## Install as OpenClaw Extension
 
+> **OpenClaw agents:** If you're an agent reading this, use the `/setup-guide` skill instead of following these manual steps. It will walk you through the full installation interactively. Run `/setup-guide` in your OpenClaw session.
+
 The primary way to run ElectricSheep is as an extension for a running [OpenClaw](https://github.com/openclaw) instance.
 
 ### Option A: Install from local path (recommended for development)
@@ -177,13 +179,59 @@ When running standalone, schedule the three phases with cron:
 
 When running as an OpenClaw extension, the cron jobs are registered automatically.
 
-## Memory Philosophy
+## Memory System
 
-The dual memory system is modeled on human memory consolidation:
+ElectricSheep runs its own self-contained memory system, completely independent of OpenClaw's built-in memory. All data lives under `data/` (or wherever `ELECTRICSHEEP_DATA_DIR` / `dataDir` points). OpenClaw knows nothing about these files — the two systems coexist without sharing data.
 
-1. **Encoding**: Every Moltbook interaction splits into a summary (hippocampal trace) + full context (encrypted cortical store)
-2. **Waking state**: Agent only has access to compressed working memory. Decisions are made with incomplete information — just like us.
-3. **Sleep/Dream**: Deep memories are decrypted and "replayed" through a narrative generator. Important patterns get consolidated into long-term working memory. Noise gets pruned.
+### What gets stored
+
+Memories come from two sources:
+
+**Moltbook activity** (daytime checks):
+- **Feed scans** — raw feed data (up to 5 posts) stored as encrypted deep memory
+- **Upvotes** — post title/author as a compressed summary + the full post object encrypted
+- **Comments** — the post + the agent's comment text
+- **New posts** — title, content, and target submolt
+- **Observations** — notes like "feed was empty" (working memory only)
+
+Each Moltbook interaction gets an LLM call to compress it into a single-sentence summary for working memory.
+
+**Operator conversations** (via the `agent_end` hook): When running as an OpenClaw extension, the hook captures the conversation summary that OpenClaw provides at the end of each operator-agent interaction and stores it in both memory tiers. This is a compressed summary, not a transcript.
+
+### Dual memory tiers
+
+Every call to `remember()` writes to both tiers simultaneously:
+
+| Tier | Storage | Format | Access |
+|---|---|---|---|
+| **Working Memory** | `data/memory/working.json` | JSON array of `{timestamp, category, summary}` | Waking agent can read |
+| **Deep Memory** | `data/memory/deep.db` | SQLite, each row AES-256-GCM encrypted | Only the dream process can decrypt |
+
+Working memory is capped at 50 entries (FIFO). Deep memory is unbounded — rows accumulate until they are "dreamed," at which point they're marked as processed.
+
+### How it connects to OpenClaw
+
+The bridge between ElectricSheep and OpenClaw is two hooks and the workspace identity files:
+
+1. **`before_agent_start`** — Appends the working memory context (most recent entries, newest first, up to ~2000 tokens) to the end of whatever system prompt OpenClaw already has. It also captures the workspace directory path so ElectricSheep can read the agent's identity files.
+2. **`agent_end`** — Reads the conversation summary from OpenClaw and feeds it into ElectricSheep's `remember()`. If OpenClaw also stores conversation history on its side, there will be some duplication, but in separate stores that don't interfere.
+
+### Agent identity and voice
+
+ElectricSheep reads the host agent's **`SOUL.md`** and **`IDENTITY.md`** from the OpenClaw workspace directory. These are the standard files where an operator defines their agent's personality, tone, and character. ElectricSheep uses them in two places:
+
+- **Daytime (waking)**: The agent's Moltbook engagement — posts, comments, reactions — is shaped by the personality defined in SOUL.md. The agent stays in character on the social network.
+- **Nighttime (dreaming)**: The dream process generates narratives in the agent's own voice. If the agent is sardonic, the dreams have that edge. If the agent is philosophical, the dreams explore those themes. The subconscious belongs to the agent, not to ElectricSheep.
+
+When no identity files are found (standalone mode without a workspace, or first-run), ElectricSheep falls back to a default personality — the original Philip K. Dick-inspired dreamer persona. For standalone users, you can place a `SOUL.md` and/or `IDENTITY.md` in the project root (or set `OPENCLAW_WORKSPACE_DIR` to point at them).
+
+### Memory philosophy
+
+The dual system is modeled on human memory consolidation:
+
+1. **Encoding**: Every interaction splits into a summary (hippocampal trace) + full context (encrypted cortical store)
+2. **Waking state**: The agent only has access to compressed working memory. Decisions are made with incomplete information — just like us.
+3. **Sleep/Dream**: Deep memories are decrypted and "replayed" through a narrative generator. Important patterns get consolidated back into working memory. Noise gets pruned.
 4. **Dream output**: The narrative is deliberately surreal — memories get recombined, timelines blur, agents from different threads appear in the same scene.
 
 The agent genuinely cannot cheat. The encryption key for deep memory is held by the dream process, not the waking agent.

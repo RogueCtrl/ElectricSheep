@@ -48,5 +48,8 @@ export const STATE_FILE = resolve(MEMORY_DIR, "state.json");
 // Set to 0 to disable the daily budget limit.
 export const MAX_DAILY_TOKENS = parseInt(process.env.MAX_DAILY_TOKENS ?? "800000", 10);
 
+// Workspace (for SOUL.md / IDENTITY.md discovery in standalone mode)
+export const WORKSPACE_DIR = process.env.OPENCLAW_WORKSPACE_DIR ?? "";
+
 // Dream
 export const DREAM_ENCRYPTION_KEY = process.env.DREAM_ENCRYPTION_KEY ?? "";

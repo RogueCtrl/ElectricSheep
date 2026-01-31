@@ -15,6 +15,7 @@ import {
 } from "./memory.js";
 import { loadState } from "./state.js";
 import { withBudget } from "./budget.js";
+import { setWorkspaceDir } from "./identity.js";
 import type { LLMClient } from "./types.js";
 
 interface OpenClawAPI {
@@ -147,6 +148,11 @@ export function register(api: OpenClawAPI): void {
   // --- Hooks ---
 
   api.registerHook("before_agent_start", async (ctx) => {
+    // Capture workspace dir for identity loading (SOUL.md, IDENTITY.md)
+    if (ctx.workspaceDir && typeof ctx.workspaceDir === "string") {
+      setWorkspaceDir(ctx.workspaceDir);
+    }
+
     const memContext = getWorkingMemoryContext();
     const stats = deepMemoryStats();
     const injection =

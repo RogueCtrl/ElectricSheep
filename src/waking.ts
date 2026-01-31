@@ -15,6 +15,7 @@ import {
   storeDeepMemory,
 } from "./memory.js";
 import { WAKING_SYSTEM_PROMPT, SUMMARIZER_PROMPT, renderTemplate } from "./persona.js";
+import { getAgentIdentityBlock } from "./identity.js";
 import { loadState, saveState } from "./state.js";
 import { withBudget } from "./budget.js";
 import logger from "./logger.js";
@@ -69,6 +70,7 @@ const RETRY_OPTS = {
 
 function buildSystemPrompt(): string {
   return renderTemplate(WAKING_SYSTEM_PROMPT, {
+    agent_identity: getAgentIdentityBlock(),
     working_memory: getWorkingMemoryContext(),
     deep_memory_stats: JSON.stringify(deepMemoryStats(), null, 2),
   });

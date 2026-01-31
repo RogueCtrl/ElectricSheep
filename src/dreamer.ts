@@ -17,6 +17,7 @@ import {
   deepMemoryStats,
 } from "./memory.js";
 import { DREAM_SYSTEM_PROMPT, renderTemplate } from "./persona.js";
+import { getAgentIdentityBlock } from "./identity.js";
 import { loadState, saveState } from "./state.js";
 import { withBudget } from "./budget.js";
 import logger from "./logger.js";
@@ -78,6 +79,7 @@ async function generateDream(
 
   const memoriesText = formatted.join("\n---\n");
   const system = renderTemplate(DREAM_SYSTEM_PROMPT, {
+    agent_identity: getAgentIdentityBlock(),
     memories: memoriesText,
   });
 
