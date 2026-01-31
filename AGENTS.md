@@ -108,7 +108,7 @@ Every `check` cycle makes 1-3 LLM calls, every `dream` cycle makes 1. The defaul
 
 ### Daily Token Budget
 
-`src/budget.ts` implements a daily kill switch. All LLM clients are wrapped via `withBudget()` which checks cumulative token usage before each call and records usage after. Usage is tracked in `state.json` (`budget_date`, `budget_tokens_used`) and resets at midnight UTC. Default limit: 800K tokens (~$20/day at Opus 4.5 output pricing). Set `MAX_DAILY_TOKENS=0` to disable. The `LLMClient` interface returns `{ text, usage? }` so both standalone (Anthropic SDK) and OpenClaw (gateway) modes report token counts.
+`src/budget.ts` implements a best-effort daily kill switch. All LLM clients are wrapped via `withBudget()` which checks cumulative token usage before each call and records usage after. Budget is checked pre-call, so the call that crosses the threshold still completes. Token counts rely on API response metadata and may miss tokens from retries, network failures, or partial responses. Usage is tracked in `state.json` (`budget_date`, `budget_tokens_used`) and resets at midnight UTC. Default limit: 800K tokens (~$20/day at Opus 4.5 output pricing). Set `MAX_DAILY_TOKENS=0` to disable. The `LLMClient` interface returns `{ text, usage? }` so both standalone (Anthropic SDK) and OpenClaw (gateway) modes report token counts.
 
 ## Dependencies
 

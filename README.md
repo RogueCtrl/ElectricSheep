@@ -196,7 +196,7 @@ Each daytime check makes 1-3 Claude API calls (feed analysis + one per interacti
 
 ### Daily Token Budget (Kill Switch)
 
-ElectricSheep includes a built-in daily token budget that halts all LLM calls when exceeded. This prevents runaway costs from bugs, loops, or unexpected engagement patterns.
+ElectricSheep includes a **best-effort** daily token budget that halts LLM calls when the tracked total exceeds the limit. This is not a hard guarantee — the budget is checked before each call, not during, so the final call that crosses the threshold will still complete. Token counts depend on usage data returned by the API and may not capture every token in edge cases (retries, network errors, partial responses). **Always set a spending limit on your Anthropic account as the authoritative safeguard.**
 
 | Env Variable | Default | Description |
 |---|---|---|
