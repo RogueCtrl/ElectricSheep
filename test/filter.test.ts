@@ -72,7 +72,7 @@ describe("Post filter", () => {
     assert.equal(result, null);
   });
 
-  it("passes content through on LLM error", async () => {
+  it("blocks content on LLM error", async () => {
     clearFilterCache();
     const client: LLMClient = {
       async createMessage() {
@@ -80,7 +80,7 @@ describe("Post filter", () => {
       },
     };
     const result = await applyFilter(client, "My original content", "post");
-    assert.equal(result, "My original content");
+    assert.equal(result, null);
   });
 
   it("returns content unchanged when filter is disabled", async () => {

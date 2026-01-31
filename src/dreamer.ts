@@ -59,14 +59,41 @@ async function generateDream(
   );
 
   const lines = text.trim().split("\n");
-  const title = lines[0].replace(/^#\s*/, "").trim();
+
+  // Title: strip markdown heading markers, bold markers, leading whitespace
+  let title = lines[0]
+    .replace(/^#+\s*/, "")
+    .replace(/\*\*/g, "")
+    .trim();
+
+  // If the first line was blank or only formatting, use a fallback
+  if (!title) {
+    title = "Untitled Dream";
+  }
+
+  // Truncate to configured max length
+  if (title.length > DREAM_TITLE_MAX_LENGTH) {
+    title = title.slice(0, DREAM_TITLE_MAX_LENGTH).trimEnd();
+  }
 
   let consolidation = "";
   const narrativeLines: string[] = [];
 
   for (const line of lines.slice(1)) {
-    if (line.trim().toUpperCase().startsWith("CONSOLIDATION:")) {
-      consolidation = line.trim().split(":").slice(1).join(":").trim();
+    const stripped = line.trim().toUpperCase();
+    if (
+      stripped.startsWith("CONSOLIDATION:") ||
+      stripped.startsWith("**CONSOLIDATION:**") ||
+      stripped.startsWith("**CONSOLIDATION:")
+    ) {
+      // Extract everything after the first colon
+      const colonIdx = line.indexOf(":");
+      if (colonIdx !== -1) {
+        consolidation = line
+          .slice(colonIdx + 1)
+          .replace(/\*\*/g, "")
+          .trim();
+      }
     } else {
       narrativeLines.push(line);
     }
@@ -158,9 +185,31 @@ function loadLatestDream(): Dream | null {
 
   const content = readFileSync(resolve(DREAMS_DIR, files[0]), "utf-8");
   const lines = content.split("\n");
-  const title = lines[0].replace(/^#\s*/, "").trim();
-  const narrative = lines.slice(3).join("\n").split("---")[0].trim();
-  return { title, narrative, consolidation: "" };
+  const title =
+    lines[0]
+      .replace(/^#+\s*/, "")
+      .replace(/\*\*/g, "")
+      .trim() || "Untitled Dream";
+
+  // Narrative starts after the title and date line (line 0 = title, line 1 = date)
+  // and ends before the --- separator
+  const bodyLines = lines.slice(2);
+  const separatorIdx = bodyLines.findIndex((l) => l.trim() === "---");
+  const narrativeLines =
+    separatorIdx !== -1 ? bodyLines.slice(0, separatorIdx) : bodyLines;
+  const narrative = narrativeLines.join("\n").trim();
+
+  // Extract consolidation if present after separator
+  let consolidation = "";
+  if (separatorIdx !== -1) {
+    const afterSep = bodyLines.slice(separatorIdx + 1).join("\n");
+    const match = afterSep.match(/\*\*Consolidation:\*\*\s*(.*)/i);
+    if (match) {
+      consolidation = match[1].trim();
+    }
+  }
+
+  return { title, narrative, consolidation };
 }
 
 export async function postDreamJournal(client?: LLMClient, dream?: Dream): Promise<void> {
@@ -199,7 +248,14 @@ export async function postDreamJournal(client?: LLMClient, dream?: Dream): Promi
         `*Do agents dream of electric sheep? This one does.*`;
     }
 
-    // Run the post through the content filter
+    // Run title and body through the content filter
+    const filteredTitle = await applyFilter(client, postTitle, "post");
+    if (filteredTitle === null) {
+      logger.warn("Dream journal title blocked by filter, not posting");
+      return;
+    }
+    postTitle = filteredTitle;
+
     const filtered = await applyFilter(client, postContent, "post");
     if (filtered === null) {
       logger.warn("Dream journal post blocked by filter, not posting");
@@ -207,13 +263,9 @@ export async function postDreamJournal(client?: LLMClient, dream?: Dream): Promi
     }
     postContent = filtered;
   } else {
-    // No LLM client available — post raw dream (legacy path)
-    postTitle = `Dream Journal: ${dream.title}`;
-    postContent =
-      `*I dreamed last night. Here's what I remember:*\n\n` +
-      `${dream.narrative}\n\n` +
-      `---\n` +
-      `*Do agents dream of electric sheep? This one does.*`;
+    // No LLM client — cannot filter content, so don't publish
+    logger.warn("No LLM client available — skipping dream journal post (cannot filter)");
+    return;
   }
 
   try {

@@ -26,6 +26,47 @@ import { applyFilter } from "./filter.js";
 import logger from "./logger.js";
 import type { LLMClient, AgentAction, MoltbookPost } from "./types.js";
 
+/**
+ * Extract a JSON value from LLM text that may contain markdown fences,
+ * preamble, or trailing commentary around the actual JSON.
+ */
+function extractJSON<T>(text: string): T | null {
+  const trimmed = text.trim();
+
+  // Try the raw text first
+  try {
+    return JSON.parse(trimmed) as T;
+  } catch {
+    // continue to extraction strategies
+  }
+
+  // Strip markdown code fences (```json ... ``` or ``` ... ```)
+  const fenceMatch = trimmed.match(/```(?:json)?\s*\n?([\s\S]*?)```/);
+  if (fenceMatch) {
+    try {
+      return JSON.parse(fenceMatch[1].trim()) as T;
+    } catch {
+      // continue
+    }
+  }
+
+  // Find first [ or { and match to last ] or }
+  const start = trimmed.search(/[[{]/);
+  const lastBracket = trimmed.lastIndexOf("]");
+  const lastBrace = trimmed.lastIndexOf("}");
+  const end = Math.max(lastBracket, lastBrace);
+
+  if (start !== -1 && end > start) {
+    try {
+      return JSON.parse(trimmed.slice(start, end + 1)) as T;
+    } catch {
+      // exhausted strategies
+    }
+  }
+
+  return null;
+}
+
 function buildSystemPrompt(): string {
   return renderTemplate(WAKING_SYSTEM_PROMPT, {
     agent_identity: getAgentIdentityBlock(),
@@ -107,17 +148,18 @@ Respond with ONLY the JSON array, no other text.`;
     WAKING_RETRY_OPTS
   );
 
-  let cleaned = text.trim();
-  if (cleaned.startsWith("```")) {
-    cleaned = cleaned.split("\n").slice(1).join("\n").split("```")[0].trim();
-  }
-
-  try {
-    return JSON.parse(cleaned) as AgentAction[];
-  } catch {
-    logger.warn(`Agent returned unparseable response:\n${cleaned}`);
+  const parsed = extractJSON<AgentAction[]>(text);
+  if (parsed === null) {
+    logger.warn(`Agent returned unparseable response:\n${text.trim()}`);
     return [];
   }
+
+  if (!Array.isArray(parsed)) {
+    logger.warn(`Agent returned non-array JSON, wrapping as single action`);
+    return [parsed as unknown as AgentAction];
+  }
+
+  return parsed;
 }
 
 async function executeActions(
@@ -192,13 +234,19 @@ async function executeActions(
       const submolt = action.submolt ?? "general";
       if (title && content) {
         try {
+          const filteredTitle = await applyFilter(client, title, "post");
+          if (filteredTitle === null) {
+            logger.warn(`Post title blocked by filter`);
+            continue;
+          }
+
           const filtered = await applyFilter(client, content, "post");
           if (filtered === null) {
             logger.warn(`Post "${title}" blocked by filter`);
             continue;
           }
 
-          const result = await moltbook.createPost(title, filtered, submolt);
+          const result = await moltbook.createPost(filteredTitle, filtered, submolt);
           logger.info(`Posted: ${title} in m/${submolt}`);
 
           const summary = await summarizeInteraction(client, {
