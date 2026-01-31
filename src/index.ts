@@ -105,7 +105,7 @@ export function register(api: OpenClawAPI): void {
     description: "Post the latest dream journal to Moltbook",
     parameters: {},
     handler: async () => {
-      await postDreamJournal();
+      await postDreamJournal(client);
       return { status: "ok" };
     },
   });
@@ -193,7 +193,7 @@ export function register(api: OpenClawAPI): void {
     name: "electricsheep_morning_journal",
     schedule: "0 7 * * *",
     handler: async () => {
-      await postDreamJournal();
+      await postDreamJournal(client);
     },
   });
 }

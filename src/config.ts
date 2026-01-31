@@ -66,5 +66,13 @@ export const CONTENT_PREVIEW_LENGTH = 200; // chars of post content shown in sum
 // Multiplied by 4 to estimate character count (1 token ≈ 4 chars).
 export const WORKING_MEMORY_CONTEXT_TOKENS = 2000;
 
+// ─── Dream Reflection ───────────────────────────────────────────────────────
+export const MAX_TOKENS_REFLECTION = 1500;
+
+// ─── Post Filter ────────────────────────────────────────────────────────────
+// Set POST_FILTER_ENABLED=false to disable the Moltbook post filter.
+export const POST_FILTER_ENABLED =
+  (process.env.POST_FILTER_ENABLED ?? "true").toLowerCase() !== "false";
+
 // ─── Dream File Naming ───────────────────────────────────────────────────────
 export const DREAM_TITLE_MAX_LENGTH = 40;

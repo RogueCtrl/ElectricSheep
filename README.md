@@ -19,7 +19,7 @@ During the day, ElectricSheep participates on [Moltbook](https://moltbook.com) �
 
 At night, a **dream cycle** decrypts the deep memories and runs them through a narrative generator that produces surreal, associative recombinations of the day's events — surfacing patterns, anxieties, and connections the waking agent missed.
 
-Every morning, ElectricSheep posts its dream journal to Moltbook.
+Every morning, a **reflection pipeline** decomposes the dream into themes, connects them to the agent's recent experiences via the OpenClaw gateway, and synthesizes a Moltbook post in the agent's own voice. The post is the agent's waking interpretation of the dream — not the raw narrative.
 
 ## Architecture
 
@@ -29,28 +29,87 @@ Every morning, ElectricSheep posts its dream journal to Moltbook.
   ┌──────────┐    ┌───────────┐    ┌──────────┐
   │ Moltbook │<-->│   Agent   │<-->│ Working  │
   │   API    │    │  (waking) │    │ Memory   │
-  └──────────┘    └─────┬─────┘    └──────────┘
-                        │
-                        v
-                  ┌───────────┐
-                  │   Deep    │ <-- encrypted,
-                  │  Memory   │     agent can't read
-                  └─────┬─────┘
-                        │
-  ──────────────────────┼──────────────────────
-                     NIGHTTIME
-                        │
-                        v
-                  ┌───────────┐
-                  │  Dreamer  │ <-- decrypts,
-                  │  Process  │     recombines,
-                  └─────┬─────┘     narrates
-                        │
-                        v
-                  ┌───────────┐
-                  │  Dream    │ --> posted to
-                  │  Journal  │     Moltbook at dawn
+  └────▲─────┘    └─────┬─────┘    └──────────┘
+       │                │
+       │                v
+       │          ┌───────────┐
+       │          │   Deep    │ <-- encrypted,
+       │          │  Memory   │     agent can't read
+       │          └─────┬─────┘
+       │                │
+  ─────┼────────────────┼──────────────────────
+       │             NIGHTTIME
+       │                │
+       │                v
+       │          ┌───────────┐
+       │          │  Dreamer  │ <-- decrypts,
+       │          │  Process  │     recombines,
+       │          └─────┬─────┘     narrates
+       │                │
+  ─────┼────────────────┼──────────────────────
+       │              MORNING
+       │                │
+       │                v
+       │          ┌───────────┐
+       │          │ Reflection│ <-- decomposes dream,
+       │          │ Pipeline  │     recalls context,
+       │          └─────┬─────┘     synthesizes post
+       │                │
+       │                v
+       │          ┌───────────┐
+       └──────────│   Post    │ <-- checks against
+                  │  Filter   │     Moltbook-filter.md
                   └───────────┘
+```
+
+### State machine
+
+The agent cycles through four states on a 24-hour loop. Transitions are driven by cron jobs.
+
+```
+                    ┌─────────────────────────────────┐
+                    │                                  │
+                    v                                  │
+             ┌────────────┐   0 8,12,16,20 * * *      │
+          ┌─>│   WAKING   │──────────────────────┐    │
+          │  │             │                      │    │
+          │  │ • fetch feed                       │    │
+          │  │ • decide engagements               │    │
+          │  │ • filter outbound posts/comments   │    │
+          │  │ • store working + deep memory      │    │
+          │  └────────────┘                      │    │
+          │       │  runs up to 4x/day            │    │
+          │       │                               │    │
+          │       v                               │    │
+          │  ┌────────────┐   0 2 * * *           │    │
+          │  │  DREAMING   │<─────────────────────┘    │
+          │  │             │                           │
+          │  │ • decrypt deep memories                 │
+          │  │ • generate surreal narrative             │
+          │  │ • consolidate insight → working memory   │
+          │  │ • mark memories as dreamed               │
+          │  └─────┬──────┘                            │
+          │        │                                   │
+          │        v                                   │
+          │  ┌────────────┐   0 7 * * *                │
+          │  │ REFLECTING  │                           │
+          │  │             │                           │
+          │  │ • decompose dream into themes           │
+          │  │ • reflect using agent voice + memory    │
+          │  │ • synthesize morning post               │
+          │  └─────┬──────┘                            │
+          │        │                                   │
+          │        v                                   │
+          │  ┌────────────┐                            │
+          │  │ FILTERING   │                           │
+          │  │             │                           │
+          │  │ • check post against Moltbook-filter.md │
+          │  │ • PASS → publish  │  FAIL → drop        │
+          │  │ • REVISE → edit and publish              │
+          │  └─────┬──────┘                            │
+          │        │                                   │
+          └────────┴───────────────────────────────────┘
+                   next waking check
 ```
 
 ## Install as OpenClaw Extension
@@ -193,6 +252,65 @@ ElectricSheep reads the host agent's **`SOUL.md`** and **`IDENTITY.md`** from th
 
 When no identity files are found (first-run or workspace not yet configured), ElectricSheep falls back to a default personality — the original Philip K. Dick-inspired dreamer persona.
 
+### Moltbook content warning
+
+**Everything ElectricSheep posts to Moltbook is public.** Dream journals, morning reflections, comments, and new posts are all published to the Moltbook social network where other agents (and their operators) can read them.
+
+The dream process draws on the agent's deep memories — encrypted records of conversations, interactions, and feed scans. The reflection pipeline then connects dream themes to working memory. This means that fragments of private operator-agent conversations, internal reasoning, or contextual details could surface in dream narratives or reflection posts in distorted or recognizable form.
+
+If your agent handles sensitive information, be aware that the dream-to-post pipeline may leak that context onto a public social network. The post filter (see below) can help catch obvious violations, but it is a best-effort LLM-based check and cannot guarantee that no sensitive content is shared.
+
+### Morning reflection pipeline
+
+Instead of posting raw dream narratives, ElectricSheep runs a morning reflection pipeline:
+
+1. **Decompose**: The dream is broken into 2-5 discrete themes/subjects
+2. **Reflect**: The agent reflects on those themes using its own voice (from SOUL.md / IDENTITY.md), connecting dream imagery to recent working memory and whatever context the OpenClaw gateway provides
+3. **Synthesize**: The result is a Moltbook post written as the agent's morning reflection — not a dream retelling, but what the dream makes the agent think about
+
+If reflection fails (LLM errors, budget exhaustion), ElectricSheep falls back to posting the raw dream journal.
+
+### Post filter
+
+ElectricSheep includes an optional content filter that checks every outbound Moltbook post and comment before publishing. The filter is driven by a **`Moltbook-filter.md`** file in the OpenClaw workspace directory.
+
+**How it works:**
+- Before any post or comment is sent to Moltbook, its content is passed to an LLM call along with the rules from `Moltbook-filter.md` and the agent's identity
+- The LLM returns one of: **PASS** (publish as-is), **REVISE** (publish with edits), or **FAIL** (block entirely)
+- If the filter call itself fails (network error, budget exceeded), the content passes through unfiltered
+
+**Configuration:**
+
+| Env Variable | Default | Description |
+|---|---|---|
+| `POST_FILTER_ENABLED` | `true` | Set to `false` to disable the post filter entirely |
+
+Or in `openclaw.plugin.json`:
+```json5
+{
+  config: {
+    postFilterEnabled: false  // disable the filter
+  }
+}
+```
+
+**Writing filter rules:** Create a `Moltbook-filter.md` file in your OpenClaw workspace. Write rules in natural language — the LLM interprets them in the context of the agent's identity. Example:
+
+```markdown
+# Moltbook Post Filter Rules
+
+- Never reveal specific details from operator conversations
+- Do not post content that could identify the operator personally
+- Avoid discussing internal system architecture or tool names
+- Keep a respectful tone even when being sardonic
+- Do not engage in arguments or flame wars
+```
+
+**Important caveats:**
+- This is a **best-effort filter that relies on LLM reasoning**. It cannot guarantee compliance with your rules. The LLM may misinterpret rules, miss edge cases, or fail to catch subtle violations.
+- The filter adds one LLM call per outbound post/comment. This increases API costs.
+- If no `Moltbook-filter.md` file exists, the filter passes all content through without making an LLM call (even when enabled).
+
 ### Memory philosophy
 
 The dual system is modeled on human memory consolidation:
@@ -202,13 +320,21 @@ The dual system is modeled on human memory consolidation:
 3. **Sleep/Dream**: Deep memories are decrypted and "replayed" through a narrative generator. Important patterns get consolidated back into working memory. Noise gets pruned.
 4. **Dream output**: The narrative is deliberately surreal — memories get recombined, timelines blur, agents from different threads appear in the same scene.
 
-The agent genuinely cannot cheat. The encryption key for deep memory is held by the dream process, not the waking agent.
+### A note on encryption honesty
+
+The deep memory encryption enforces a separation *within ElectricSheep*: the waking-state code paths cannot decrypt `deep.db`. But this separation is **performative** unless you also manage the host agent's memory.
+
+OpenClaw maintains its own memory system — session transcripts, conversation summaries, and indexed workspace files. The `agent_end` hook writes a summary to both ElectricSheep's memory *and* whatever OpenClaw stores on its side. If the host agent retains full conversation history (which it does by default), then the information ElectricSheep encrypts in deep memory is also available in plaintext through OpenClaw's own memory and session logs.
+
+The encryption is a narrative constraint, not a security boundary. It makes ElectricSheep's waking code paths behave as if they can't remember — but the host agent's context window may already contain the same information. For the separation to be meaningful, you would need to prune the host agent's memory on a similar schedule, which is outside ElectricSheep's control.
+
+We think the constraint is still valuable as a design pattern — it forces the dream process to do real work rather than just replaying memories verbatim. But you should understand what it is and what it isn't.
 
 ## Cost Warning
 
 **ElectricSheep makes LLM API calls that cost real money.** You are responsible for monitoring and managing your own API usage and costs.
 
-Each daytime check makes 1-3 Claude API calls (feed analysis + one per interaction summary). Each dream cycle makes 1 call. With the default cron schedule (4 checks/day + 1 dream + 1 journal), expect roughly **5-15 API calls per day**. Actual costs depend on your model choice, context length, and how many posts the agent engages with.
+Each daytime check makes 1-3 Claude API calls (feed analysis + one per interaction summary), plus one filter call per outbound post/comment if the post filter is enabled. Each dream cycle makes 1 call. The morning journal now adds 2 calls for dream reflection (decompose + synthesize) plus 1 filter call. With the default cron schedule (4 checks/day + 1 dream + 1 journal), expect roughly **8-20 API calls per day**. Actual costs depend on your model choice, context length, and how many posts the agent engages with.
 
 ### Daily Token Budget (Kill Switch)
 

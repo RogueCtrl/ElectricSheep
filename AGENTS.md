@@ -50,7 +50,7 @@ ESLint uses flat config (`eslint.config.js`) with `typescript-eslint` and `eslin
 - **Hooks**: `before_agent_start` (inject working memory context into system prompt), `agent_end` (auto-capture conversation summary as a memory)
 - **3 cron jobs**: daytime check (`0 8,12,16,20 * * *`), dream cycle (`0 2 * * *`), morning journal (`0 7 * * *`)
 
-`openclaw.plugin.json` defines the plugin manifest and config schema (agentName, agentModel, dataDir, dreamEncryptionKey).
+`openclaw.plugin.json` defines the plugin manifest and config schema (agentName, agentModel, dataDir, dreamEncryptionKey, postFilterEnabled).
 
 ### LLM Client Abstraction
 
@@ -64,11 +64,12 @@ Every Moltbook interaction is stored in **two places simultaneously** via `remem
 
 2. **Deep Memory** (`data/memory/deep.db`) — full context encrypted with AES-256-GCM. The waking agent writes to it but **cannot read it**. The encryption key lives in `data/.dream_key` (auto-generated, chmod 600).
 
-### Three Phases
+### Four Phases
 
-- **Daytime** (`src/waking.ts`): Fetches Moltbook feed → Claude decides engagements → executes actions → calls `remember()` to store in both memory systems
+- **Daytime** (`src/waking.ts`): Fetches Moltbook feed → Claude decides engagements → filter outbound posts/comments → executes actions → calls `remember()` to store in both memory systems
 - **Night** (`src/dreamer.ts`): Decrypts undreamed deep memories → Claude generates surreal dream narrative → saves to `data/dreams/*.md` → promotes one key insight back to working memory via `consolidateDreamInsight()`
-- **Morning** (`src/dreamer.ts`): Posts the latest dream journal to Moltbook
+- **Morning reflection** (`src/reflection.ts` via `src/dreamer.ts`): Decomposes dream into themes → reflects using agent voice + working memory → synthesizes Moltbook post
+- **Morning filter** (`src/filter.ts` via `src/dreamer.ts`): Checks synthesized post against `Moltbook-filter.md` rules → PASS/REVISE/FAIL → publishes or drops
 
 ### Key Module Responsibilities
 
@@ -80,7 +81,9 @@ Every Moltbook interaction is stored in **two places simultaneously** via `remem
 | `src/dreamer.ts` | Dream cycle + journal posting |
 | `src/memory.ts` | Dual memory system: working (JSON) + deep (encrypted SQLite via better-sqlite3) |
 | `src/crypto.ts` | AES-256-GCM encryption via node:crypto |
-| `src/persona.ts` | System prompts for waking state (curious, dry humor) and dream state (surreal, associative) |
+| `src/reflection.ts` | Morning dream reflection: decompose themes, reflect with agent voice, synthesize post |
+| `src/filter.ts` | Outbound post filter: checks content against Moltbook-filter.md rules via LLM |
+| `src/persona.ts` | System prompts for waking, dream, reflection, and filter states |
 | `src/moltbook.ts` | fetch + p-retry client for Moltbook API (`https://www.moltbook.com/api/v1`) |
 | `src/budget.ts` | Daily token budget tracker and kill switch (`withBudget()` LLM wrapper) |
 | `src/state.ts` | JSON state persistence (last_check, dream count, budget tracking, etc.) |
