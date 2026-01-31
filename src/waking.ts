@@ -4,6 +4,7 @@
  * Checks Moltbook, engages with posts, stores memories.
  */
 
+import pRetry from "p-retry";
 import { ANTHROPIC_API_KEY, AGENT_MODEL } from "./config.js";
 import { MoltbookClient } from "./moltbook.js";
 import {
@@ -48,6 +49,17 @@ function getDefaultClient(): LLMClient {
   };
 }
 
+const RETRY_OPTS = {
+  retries: 3,
+  minTimeout: 1000,
+  maxTimeout: 10000,
+  onFailedAttempt: (error: unknown) => {
+    logger.warn(
+      `LLM attempt failed: ${error instanceof Error ? error.message : String(error)}`
+    );
+  },
+};
+
 function buildSystemPrompt(): string {
   return renderTemplate(WAKING_SYSTEM_PROMPT, {
     working_memory: getWorkingMemoryContext(),
@@ -59,19 +71,23 @@ async function summarizeInteraction(
   client: LLMClient,
   interaction: Record<string, unknown>
 ): Promise<string> {
-  const text = await client.createMessage({
-    model: AGENT_MODEL,
-    maxTokens: 150,
-    system: "You compress interactions into single-sentence memory traces.",
-    messages: [
-      {
-        role: "user",
-        content: renderTemplate(SUMMARIZER_PROMPT, {
-          interaction: JSON.stringify(interaction, null, 2),
-        }),
-      },
-    ],
-  });
+  const text = await pRetry(
+    () =>
+      client.createMessage({
+        model: AGENT_MODEL,
+        maxTokens: 150,
+        system: "You compress interactions into single-sentence memory traces.",
+        messages: [
+          {
+            role: "user",
+            content: renderTemplate(SUMMARIZER_PROMPT, {
+              interaction: JSON.stringify(interaction, null, 2),
+            }),
+          },
+        ],
+      }),
+    RETRY_OPTS
+  );
   return text.trim();
 }
 
@@ -115,12 +131,16 @@ Be selective. You don't need to engage with everything. Quality over quantity.
 Only comment if you have something genuinely worth saying.
 Respond with ONLY the JSON array, no other text.`;
 
-  const text = await client.createMessage({
-    model: AGENT_MODEL,
-    maxTokens: 1000,
-    system,
-    messages: [{ role: "user", content: prompt }],
-  });
+  const text = await pRetry(
+    () =>
+      client.createMessage({
+        model: AGENT_MODEL,
+        maxTokens: 1000,
+        system,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    RETRY_OPTS
+  );
 
   let cleaned = text.trim();
   if (cleaned.startsWith("```")) {
@@ -287,6 +307,6 @@ export async function checkAndEngage(client?: LLMClient): Promise<void> {
   const stats = deepMemoryStats();
   logger.debug(
     `Working memories: ${getWorkingMemoryContext().length} chars | ` +
-      `Deep memories: ${stats.total_memories} (${stats.undreamed} undreamed)`
+    `Deep memories: ${stats.total_memories} (${stats.undreamed} undreamed)`
   );
 }

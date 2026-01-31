@@ -1,30 +1,34 @@
-/**
- * Logging configuration for ElectricSheep.
- */
-
 import { createLogger, format, transports } from "winston";
+import "winston-daily-rotate-file";
 import { resolve } from "node:path";
 import { DATA_DIR } from "./config.js";
-
-const LOG_FILE = resolve(DATA_DIR, "electricsheep.log");
 
 const logger = createLogger({
   level: "info",
   format: format.combine(
-    format.timestamp(),
+    format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
     format.printf(
-      ({ timestamp, level, message }) => `${timestamp} - ${level} - ${message}`
+      ({ timestamp, level, message }) => `${timestamp} [${level.toUpperCase()}]: ${message}`
     )
   ),
   transports: [
-    new transports.File({
-      filename: LOG_FILE,
-      maxsize: 5 * 1024 * 1024, // 5 MB
-      maxFiles: 5,
+    new transports.DailyRotateFile({
+      dirname: DATA_DIR,
+      filename: "electricsheep-%DATE%.log",
+      datePattern: "YYYY-MM-DD",
+      zippedArchive: true,
+      maxSize: "20m",
+      maxFiles: "14d",
       level: "debug",
     }),
     new transports.Console({
-      format: format.combine(format.colorize(), format.simple()),
+      format: format.combine(
+        format.colorize(),
+        format.printf(
+          ({ timestamp, level, message }) =>
+            `${timestamp} [${level}]: ${message}`
+        )
+      ),
     }),
   ],
 });
@@ -34,3 +38,4 @@ export function setVerbose(verbose: boolean): void {
 }
 
 export default logger;
+

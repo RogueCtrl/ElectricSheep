@@ -5,6 +5,7 @@
  * consolidates insights back into working memory, and posts dream journals.
  */
 
+import pRetry from "p-retry";
 import { writeFileSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { ANTHROPIC_API_KEY, AGENT_MODEL, DREAMS_DIR } from "./config.js";
@@ -44,6 +45,17 @@ function getDefaultClient(): LLMClient {
   };
 }
 
+const RETRY_OPTS = {
+  retries: 3,
+  minTimeout: 2000,
+  maxTimeout: 20000,
+  onFailedAttempt: (error: unknown) => {
+    logger.warn(
+      `Dream generation failed: ${error instanceof Error ? error.message : String(error)}`
+    );
+  },
+};
+
 async function generateDream(
   client: LLMClient,
   memories: DecryptedMemory[]
@@ -58,21 +70,25 @@ async function generateDream(
     memories: memoriesText,
   });
 
-  const text = await client.createMessage({
-    model: AGENT_MODEL,
-    maxTokens: 2000,
-    system,
-    messages: [
-      {
-        role: "user",
-        content:
-          "Process these memories into a dream. " +
-          "Remember: you are the subconscious, not the waking agent. " +
-          "Be surreal, associative, and emotionally amplified. " +
-          "End with a CONSOLIDATION line.",
-      },
-    ],
-  });
+  const text = await pRetry(
+    () =>
+      client.createMessage({
+        model: AGENT_MODEL,
+        maxTokens: 2000,
+        system,
+        messages: [
+          {
+            role: "user",
+            content:
+              "Process these memories into a dream. " +
+              "Remember: you are the subconscious, not the waking agent. " +
+              "Be surreal, associative, and emotionally amplified. " +
+              "End with a CONSOLIDATION line.",
+          },
+        ],
+      }),
+    RETRY_OPTS
+  );
 
   const lines = text.trim().split("\n");
   const title = lines[0].replace(/^#\s*/, "").trim();

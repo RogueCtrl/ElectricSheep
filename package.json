@@ -11,6 +11,7 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node dist/bin/electricsheep.js",
+    "schedule": "node dist/bin/electricsheep.js schedule",
     "test": "node --import tsx --test 'test/**/*.test.ts'"
   },
   "engines": {
@@ -29,6 +30,7 @@
     "chalk": "^5.4.1",
     "commander": "^13.1.0",
     "dotenv": "^16.4.7",
+    "node-cron": "^4.2.1",
     "p-retry": "^6.2.1",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0"
@@ -36,6 +38,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.10.0",
+    "@types/node-cron": "^3.0.11",
     "tsx": "^4.21.0",
     "typescript": "^5.7.0"
   },

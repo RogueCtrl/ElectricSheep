@@ -80,6 +80,14 @@ program
   });
 
 program
+  .command("schedule")
+  .description("Run the agent as a scheduled long-lived process")
+  .action(async () => {
+    const { scheduleJobs } = await import("./scheduler.js");
+    scheduleJobs();
+  });
+
+program
   .command("status")
   .description("Show agent status, memory stats, and recent state")
   .action(async () => {
