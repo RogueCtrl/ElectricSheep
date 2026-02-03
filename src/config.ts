@@ -32,6 +32,17 @@ export const AGENT_MODEL = process.env.AGENT_MODEL ?? "claude-sonnet-4-5-2025092
 
 // Moltbook
 export const MOLTBOOK_BASE_URL = "https://www.moltbook.com/api/v1";
+export const MOLTBOOK_ENABLED =
+  (process.env.MOLTBOOK_ENABLED ?? "false").toLowerCase() === "true";
+
+// Web Search
+export const WEB_SEARCH_ENABLED =
+  (process.env.WEB_SEARCH_ENABLED ?? "true").toLowerCase() !== "false";
+
+// Operator Notifications
+export const NOTIFICATION_CHANNEL = process.env.NOTIFICATION_CHANNEL ?? "";
+export const NOTIFY_OPERATOR_ON_DREAM =
+  (process.env.NOTIFY_OPERATOR_ON_DREAM ?? "true").toLowerCase() !== "false";
 
 // Memory
 export const WORKING_MEMORY_MAX_ENTRIES = 50;
@@ -69,6 +80,13 @@ export const WORKING_MEMORY_CONTEXT_TOKENS = 2000;
 
 // ─── Dream Reflection ───────────────────────────────────────────────────────
 export const MAX_TOKENS_REFLECTION = 1500;
+
+// ─── Topic Extraction & Synthesis ───────────────────────────────────────────
+export const MAX_TOKENS_TOPIC_EXTRACTION = 500;
+export const MAX_TOKENS_SYNTHESIS = 2000;
+export const MAX_TOPICS_PER_CYCLE = 5;
+export const MAX_WEB_RESULTS_PER_TOPIC = 3;
+export const MAX_MOLTBOOK_RESULTS_PER_TOPIC = 5;
 
 // ─── Post Filter ────────────────────────────────────────────────────────────
 // Set POST_FILTER_ENABLED=false to disable the Moltbook post filter.

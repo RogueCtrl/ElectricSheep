@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ElectricSheep is an OpenClaw extension (TypeScript) that gives an agent a biologically-inspired dual memory system. It participates on [Moltbook](https://moltbook.com) (a social network for AI agents) during the day and processes encrypted memories into surreal dream narratives at night. The core conceit: the waking agent genuinely cannot access its deep memories — only the dream process can decrypt them.
+ElectricSheep is an OpenClaw extension (TypeScript) that gives an agent a biologically-inspired dual memory system. It synthesizes the agent's interactions with their human operator, enriching them with context from web searches and (optionally) the Moltbook AI agent community. The core conceit: the waking agent genuinely cannot access its deep memories — only the dream process can decrypt them.
+
+The agent processes its daily work into surreal dream narratives at night, then can notify its operator with "I had a dream last night..." to spark conversation about the dream's themes and insights.
 
 Designed to be installed into an existing OpenClaw instance via `openclaw plugins install`. Requires OpenClaw as a runtime dependency — all LLM calls route through the OpenClaw gateway.
 
@@ -20,7 +22,7 @@ openclaw plugins install -l .   # link for development
 openclaw plugins list            # verify loaded
 
 # CLI utilities
-npx electricsheep register --name "Name" --description "Bio"
+npx electricsheep register --name "Name" --description "Bio"  # for Moltbook (optional)
 npx electricsheep status     # show agent state and memory stats
 npx electricsheep memories   # show working memory (--limit N, --category X)
 npx electricsheep dreams     # list saved dream journals
@@ -46,30 +48,87 @@ ESLint uses flat config (`eslint.config.js`) with `typescript-eslint` and `eslin
 ### OpenClaw Extension Entry
 
 `src/index.ts` exports a `register(api)` function called by the OpenClaw plugin loader. It registers:
-- **5 tools**: `electricsheep_check`, `electricsheep_dream`, `electricsheep_journal`, `electricsheep_status`, `electricsheep_memories`
+- **6 tools**: `electricsheep_reflect`, `electricsheep_check` (legacy alias), `electricsheep_dream`, `electricsheep_journal`, `electricsheep_status`, `electricsheep_memories`
 - **Hooks**: `before_agent_start` (inject working memory context into system prompt), `agent_end` (auto-capture conversation summary as a memory)
-- **3 cron jobs**: daytime check (`0 8,12,16,20 * * *`), dream cycle (`0 2 * * *`), morning journal (`0 7 * * *`)
+- **3 cron jobs**: reflection cycle (`0 8,12,16,20 * * *`), dream cycle (`0 2 * * *`), morning journal (`0 7 * * *`, only if Moltbook enabled)
 
-`openclaw.plugin.json` defines the plugin manifest and config schema (agentName, agentModel, dataDir, dreamEncryptionKey, postFilterEnabled).
+`openclaw.plugin.json` defines the plugin manifest and config schema.
+
+### Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `agentName` | string | "ElectricSheep" | Agent display name |
+| `agentModel` | string | claude-sonnet-4-5 | Claude model for AI decisions |
+| `dataDir` | string | "" | Directory for data storage |
+| `dreamEncryptionKey` | string | "" | Base64 encryption key (auto-generated if empty) |
+| `moltbookEnabled` | boolean | false | Enable Moltbook integration (search + posting) |
+| `webSearchEnabled` | boolean | true | Enable web search for context gathering |
+| `notificationChannel` | string | "" | Channel to notify operator of dreams (telegram, discord, etc.) |
+| `notifyOperatorOnDream` | boolean | true | Send "I had a dream" message to operator |
+| `postFilterEnabled` | boolean | true | Enable content filter for outbound posts |
 
 ### LLM Client Abstraction
 
 `LLMClient` interface in `src/types.ts` abstracts Claude access. The OpenClaw gateway API is injected via `register(api)` — no separate API key needed.
 
+### Extended OpenClaw API
+
+The plugin can use these optional OpenClaw APIs when available:
+- `api.memory` — Store dreams and reflections in OpenClaw's persistent memory
+- `api.channels` — Send notifications to operator via configured channels
+- `api.webSearch` — Search the web for context related to operator conversations
+
 ### Dual Memory System
 
-Every Moltbook interaction is stored in **two places simultaneously** via `remember()`:
+Every interaction is stored in **two places simultaneously** via `remember()`:
 
 1. **Working Memory** (`data/memory/working.json`) — compressed single-sentence summaries the waking agent can read. Capped at 50 entries (FIFO). This is the only context the agent has for making decisions.
 
 2. **Deep Memory** (`data/memory/deep.db`) — full context encrypted with AES-256-GCM. The waking agent writes to it but **cannot read it**. The encryption key lives in `data/.dream_key` (auto-generated, chmod 600).
 
-### Four Phases
+### Three Phases
 
-- **Daytime** (`src/waking.ts`): Fetches Moltbook feed → Claude decides engagements → filter outbound posts/comments → executes actions → calls `remember()` to store in both memory systems
-- **Night** (`src/dreamer.ts`): Decrypts undreamed deep memories → Claude generates surreal dream narrative (markdown blob) → saves to `data/dreams/*.md` → separate LLM call distills one insight into working memory via `consolidateDreamInsight()`
-- **Morning reflection** (`src/reflection.ts` via `src/dreamer.ts`): Decomposes dream into themes → reflects using agent voice + working memory → synthesizes Moltbook post (markdown)
-- **Morning filter** (`src/filter.ts` via `src/dreamer.ts`): Checks synthesized post against `Moltbook-filter.md` rules → returns cleaned markdown or blocks (fail-closed)
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                   DAYTIME (Reflection Cycle)                    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Operator Conversations ──► Topic Extraction ──┬──► Synthesis   │
+│        (from hooks)              (LLM)         │      (LLM)     │
+│                                                │        │       │
+│  Moltbook Search ◄── topics ◄─────────────────┤        │       │
+│    (optional)                                  │        ▼       │
+│                                                │   OpenClaw     │
+│  Web Search ◄──── topics ◄────────────────────┘    Memory      │
+│    (optional)                                                   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                     NIGHTTIME (Dream Cycle)                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Deep Memory ──► Decrypt ──► Dream Generation ──► OpenClaw      │
+│  (encrypted)                      (LLM)           Memory        │
+│                                                      │          │
+│                                                      ▼          │
+│                                              Notify Operator    │
+│                                           (Telegram/Slack/etc)  │
+│                                                      │          │
+│                                                      ▼          │
+│                                            Operator Converses   │
+│                                              (feeds next cycle) │
+│                                                      │          │
+│                                                      ▼          │
+│                                           [Optional: Moltbook]  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+- **Daytime** (`src/waking.ts`): Analyzes operator conversations → extracts topics → searches Moltbook (optional) and web (optional) → synthesizes context → stores in memory systems
+- **Night** (`src/dreamer.ts`): Decrypts undreamed deep memories → generates surreal dream narrative → stores in OpenClaw memory → notifies operator → optionally posts to Moltbook
+- **Morning reflection** (`src/reflection.ts`): Decomposes dream into themes → reflects using agent voice → synthesizes post (if Moltbook enabled)
 
 ### Key Module Responsibilities
 
@@ -77,24 +136,30 @@ Every Moltbook interaction is stored in **two places simultaneously** via `remem
 |---|---|
 | `src/index.ts` | OpenClaw extension entry: registers tools, hooks, cron jobs, gateway LLM wrapper |
 | `src/cli.ts` | CLI utilities: register, status, memories, dreams |
-| `src/waking.ts` | Daytime loop: feed → decision → engagement → remember |
-| `src/dreamer.ts` | Dream cycle + journal posting |
-| `src/memory.ts` | Dual memory system: working (JSON) + deep (encrypted SQLite via better-sqlite3) |
+| `src/waking.ts` | Reflection cycle: conversations → topics → context → synthesis |
+| `src/dreamer.ts` | Dream cycle: decrypt → dream → store → notify → optionally post |
+| `src/topics.ts` | Topic extraction from operator conversations |
+| `src/synthesis.ts` | Context synthesis: combine operator + Moltbook + web context |
+| `src/web-search.ts` | Web search integration via OpenClaw API |
+| `src/moltbook-search.ts` | Moltbook search for community context (optional) |
+| `src/notify.ts` | Operator notifications via configured channel |
+| `src/memory.ts` | Dual memory system: working (JSON) + deep (encrypted SQLite) |
 | `src/crypto.ts` | AES-256-GCM encryption via node:crypto |
-| `src/reflection.ts` | Morning dream reflection: decompose themes, reflect with agent voice, synthesize post |
-| `src/filter.ts` | Outbound post filter: checks content against Moltbook-filter.md rules via LLM |
-| `src/persona.ts` | System prompts for waking, dream, reflection, and filter states |
-| `src/moltbook.ts` | fetch + p-retry client for Moltbook API (`https://www.moltbook.com/api/v1`) |
-| `src/budget.ts` | Daily token budget tracker and kill switch (`withBudget()` LLM wrapper) |
-| `src/state.ts` | JSON state persistence (last_check, dream count, budget tracking, etc.) |
-| `src/config.ts` | Env loading via dotenv, path constants, memory limits |
-| `src/llm.ts` | Shared LLM retry/call utilities (`callWithRetry`) |
-| `src/logger.ts` | Winston daily-rotating file (14-day retention) + colored console |
+| `src/reflection.ts` | Dream reflection: decompose themes, reflect, synthesize |
+| `src/filter.ts` | Outbound post filter (for Moltbook posts) |
+| `src/persona.ts` | System prompts for all LLM interactions |
+| `src/moltbook.ts` | Moltbook API client (optional) |
+| `src/budget.ts` | Daily token budget tracker |
+| `src/state.ts` | JSON state persistence |
+| `src/config.ts` | Env loading, path constants, memory limits |
+| `src/llm.ts` | Shared LLM retry/call utilities |
+| `src/logger.ts` | Winston daily-rotating file + console |
 | `src/types.ts` | Shared TypeScript interfaces |
+| `src/identity.ts` | Agent identity loader (SOUL.md / IDENTITY.md) |
 
 ### Memory Categories
 
-Deep memories are tagged with categories: `interaction`, `upvote`, `comment`, `post`, `feed_scan`, `dream_consolidation`.
+Deep memories are tagged with categories: `interaction`, `reflection`, `dream_consolidation`, and (if Moltbook enabled) `upvote`, `comment`, `post`, `feed_scan`.
 
 ### Data Files
 
@@ -102,7 +167,7 @@ All runtime data lives under `data/` (auto-created, gitignored). The encryption 
 
 ## Cost & API Usage
 
-Every `check` cycle makes 1-3 LLM calls, every `dream` cycle makes 1. The default cron schedule produces ~5-15 API calls/day. Users are responsible for their own API costs — see the Cost Warning section in README.md.
+Every `reflection` cycle makes 2-4 LLM calls (topic extraction, synthesis, summary), every `dream` cycle makes 2-3 (dream generation, consolidation, optional notification). The default cron schedule produces ~10-20 API calls/day. Users are responsible for their own API costs.
 
 ### Daily Token Budget
 
