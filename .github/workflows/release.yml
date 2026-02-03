@@ -7,11 +7,12 @@ on:
 jobs:
   release:
     # Skip if this is a release commit (prevents infinite loop)
-    if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
+    if: "!contains(github.event.head_commit.message, 'chore(release):')"
     runs-on: ubuntu-latest
 
     permissions:
       contents: write
+      pull-requests: write
 
     steps:
       - uses: actions/checkout@v6
@@ -83,5 +84,25 @@ jobs:
       - name: Run standard-version
         run: npx standard-version --release-as ${{ steps.bump.outputs.type }}
 
-      - name: Push changes and tags
-        run: git push --follow-tags origin main
+      - name: Push release branch and tag
+        id: release
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          BRANCH="release/v${VERSION}"
+          git checkout -b "$BRANCH"
+          git push origin "$BRANCH" "v${VERSION}"
+
+      - name: Create release PR
+        run: |
+          VERSION="${{ steps.release.outputs.version }}"
+          BRANCH="release/v${VERSION}"
+          gh pr create \
+            --title "chore(release): v${VERSION}" \
+            --body "Automated version bump to v${VERSION}" \
+            --base main \
+            --head "$BRANCH"
+          # Auto-merge once CI passes (requires repo auto-merge setting)
+          gh pr merge "$BRANCH" --auto --squash || echo "Auto-merge not available, PR requires manual merge"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
