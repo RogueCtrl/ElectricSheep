@@ -12,7 +12,6 @@ jobs:
 
     permissions:
       contents: write
-      pull-requests: write
 
     steps:
       - uses: actions/checkout@v6
@@ -82,27 +81,26 @@ jobs:
           fi
 
       - name: Run standard-version
-        run: npx standard-version --release-as ${{ steps.bump.outputs.type }}
+        run: npx standard-version --release-as ${{ steps.bump.outputs.type }} --skip.commit --skip.tag
 
-      - name: Push release branch and tag
+      - name: Create and push tag
         id: release
         run: |
           VERSION=$(node -p "require('./package.json').version")
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          BRANCH="release/v${VERSION}"
-          git checkout -b "$BRANCH"
-          git push origin "$BRANCH" "v${VERSION}"
+          git tag "v${VERSION}"
+          git push origin "v${VERSION}"
 
-      - name: Create release PR
+      - name: Create GitHub Release
         run: |
           VERSION="${{ steps.release.outputs.version }}"
-          BRANCH="release/v${VERSION}"
-          gh pr create \
-            --title "chore(release): v${VERSION}" \
-            --body "Automated version bump to v${VERSION}" \
-            --base main \
-            --head "$BRANCH"
-          # Auto-merge once CI passes (requires repo auto-merge setting)
-          gh pr merge "$BRANCH" --auto --squash || echo "Auto-merge not available, PR requires manual merge"
+          # Extract the changelog section for this version
+          BODY=$(awk '/^## \['"${VERSION}"'\]/{found=1; next} /^## \[/{if(found) exit} found{print}' CHANGELOG.md)
+          if [ -z "$BODY" ]; then
+            BODY="Release v${VERSION}"
+          fi
+          gh release create "v${VERSION}" \
+            --title "v${VERSION}" \
+            --notes "$BODY"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
