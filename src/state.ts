@@ -7,13 +7,22 @@ import { STATE_FILE } from "./config.js";
 import logger from "./logger.js";
 import type { AgentState } from "./types.js";
 
+/** Filesystem operations used by state persistence — replaceable for testing. */
+export const _fs = {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  renameSync,
+  unlinkSync,
+};
+
 export function loadState(): AgentState {
-  if (!existsSync(STATE_FILE)) {
+  if (!_fs.existsSync(STATE_FILE)) {
     return {};
   }
 
   try {
-    return JSON.parse(readFileSync(STATE_FILE, "utf-8"));
+    return JSON.parse(_fs.readFileSync(STATE_FILE, "utf-8") as string);
   } catch (e) {
     logger.error(`Corrupted state file, resetting to empty state: ${e}`);
     return {};
@@ -22,8 +31,8 @@ export function loadState(): AgentState {
 
 export function saveState(state: AgentState): void {
   const tmp = STATE_FILE + ".tmp";
-  writeFileSync(tmp, JSON.stringify(state, null, 2));
-  renameSync(tmp, STATE_FILE);
+  _fs.writeFileSync(tmp, JSON.stringify(state, null, 2));
+  _fs.renameSync(tmp, STATE_FILE);
 }
 
 /**
@@ -32,9 +41,9 @@ export function saveState(state: AgentState): void {
  */
 function cleanupStaleTemp(): void {
   const tmp = STATE_FILE + ".tmp";
-  if (existsSync(tmp)) {
+  if (_fs.existsSync(tmp)) {
     try {
-      unlinkSync(tmp);
+      _fs.unlinkSync(tmp);
     } catch {
       // best-effort
     }
