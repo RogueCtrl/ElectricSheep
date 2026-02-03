@@ -53,6 +53,33 @@ jobs:
             echo "Detected: PATCH bump"
           fi
 
+      - name: Clean up stale tag if exists
+        run: |
+          CURRENT=$(node -p "require('./package.json').version")
+          BUMP_TYPE="${{ steps.bump.outputs.type }}"
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          if [ "$BUMP_TYPE" = "major" ]; then
+            NEXT="$((MAJOR + 1)).0.0"
+          elif [ "$BUMP_TYPE" = "minor" ]; then
+            NEXT="${MAJOR}.$((MINOR + 1)).0"
+          else
+            NEXT="${MAJOR}.${MINOR}.$((PATCH + 1))"
+          fi
+
+          TAG="v${NEXT}"
+          echo "Expected next tag: $TAG"
+
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists locally, deleting..."
+            git tag -d "$TAG"
+          fi
+
+          if git ls-remote --tags origin "refs/tags/$TAG" | grep -q "$TAG"; then
+            echo "Tag $TAG exists on remote, deleting..."
+            git push origin ":refs/tags/$TAG"
+          fi
+
       - name: Run standard-version
         run: npx standard-version --release-as ${{ steps.bump.outputs.type }}
 
