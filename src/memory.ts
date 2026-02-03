@@ -19,7 +19,11 @@ import type { WorkingMemoryEntry, DecryptedMemory, DeepMemoryStats } from "./typ
 
 // ─── Deep Memory (Encrypted) ────────────────────────────────────────────────
 
+let _db: Database.Database | null = null;
+
 function getDb(): Database.Database {
+  if (_db) return _db;
+
   const db = new Database(DEEP_MEMORY_DB);
   db.pragma("journal_mode = WAL");
   db.exec(`
@@ -45,7 +49,20 @@ function getDb(): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_deep_timestamp
     ON deep_memories(timestamp)
   `);
+
+  _db = db;
   return db;
+}
+
+/**
+ * Close the shared SQLite connection. Safe to call multiple times.
+ * After closing, the next getDb() call will reopen.
+ */
+export function closeDb(): void {
+  if (_db) {
+    _db.close();
+    _db = null;
+  }
 }
 
 export function storeDeepMemory(
@@ -53,106 +70,90 @@ export function storeDeepMemory(
   category: string = "interaction"
 ): void {
   const db = getDb();
-  try {
-    const cipher = getCipher();
-    const raw = JSON.stringify(content);
-    const encrypted = cipher.encrypt(raw);
-    const contentHash = createHash("sha256").update(raw).digest("hex").slice(0, 16);
+  const cipher = getCipher();
+  const raw = JSON.stringify(content);
+  const encrypted = cipher.encrypt(raw);
+  const contentHash = createHash("sha256").update(raw).digest("hex").slice(0, 16);
 
-    db.prepare(
-      `INSERT INTO deep_memories (timestamp, category, encrypted_blob, content_hash)
-       VALUES (?, ?, ?, ?)`
-    ).run(new Date().toISOString(), category, encrypted, contentHash);
-  } finally {
-    db.close();
-  }
+  db.prepare(
+    `INSERT INTO deep_memories (timestamp, category, encrypted_blob, content_hash)
+     VALUES (?, ?, ?, ?)`
+  ).run(new Date().toISOString(), category, encrypted, contentHash);
 }
 
 export function retrieveUndreamedMemories(): DecryptedMemory[] {
   const db = getDb();
-  try {
-    const cipher = getCipher();
-    const rows = db
-      .prepare(
-        `SELECT id, timestamp, category, encrypted_blob
-         FROM deep_memories WHERE dreamed = 0 ORDER BY timestamp`
-      )
-      .all() as Array<{
-      id: number;
-      timestamp: string;
-      category: string;
-      encrypted_blob: string;
-    }>;
+  const cipher = getCipher();
+  const rows = db
+    .prepare(
+      `SELECT id, timestamp, category, encrypted_blob
+       FROM deep_memories WHERE dreamed = 0 ORDER BY timestamp`
+    )
+    .all() as Array<{
+    id: number;
+    timestamp: string;
+    category: string;
+    encrypted_blob: string;
+  }>;
 
-    const memories: DecryptedMemory[] = [];
-    for (const row of rows) {
-      try {
-        const decrypted = JSON.parse(cipher.decrypt(row.encrypted_blob));
-        memories.push({
-          id: row.id,
-          timestamp: row.timestamp,
-          category: row.category,
-          content: decrypted,
-        });
-      } catch {
-        memories.push({
-          id: row.id,
-          timestamp: row.timestamp,
-          category: "corrupted",
-          content: { note: "This memory could not be recovered." },
-        });
-      }
+  const memories: DecryptedMemory[] = [];
+  for (const row of rows) {
+    try {
+      const decrypted = JSON.parse(cipher.decrypt(row.encrypted_blob));
+      memories.push({
+        id: row.id,
+        timestamp: row.timestamp,
+        category: row.category,
+        content: decrypted,
+      });
+    } catch {
+      memories.push({
+        id: row.id,
+        timestamp: row.timestamp,
+        category: "corrupted",
+        content: { note: "This memory could not be recovered." },
+      });
     }
-    return memories;
-  } finally {
-    db.close();
   }
+  return memories;
 }
 
 export function markAsDreamed(memoryIds: number[]): void {
   if (memoryIds.length === 0) return;
   const db = getDb();
-  try {
-    const placeholders = memoryIds.map(() => "?").join(",");
-    db.prepare(
-      `UPDATE deep_memories
-       SET dreamed = 1, dream_date = ?
-       WHERE id IN (${placeholders})`
-    ).run(new Date().toISOString(), ...memoryIds);
-  } finally {
-    db.close();
-  }
+  const placeholders = memoryIds.map(() => "?").join(",");
+  db.prepare(
+    `UPDATE deep_memories
+     SET dreamed = 1, dream_date = ?
+     WHERE id IN (${placeholders})`
+  ).run(new Date().toISOString(), ...memoryIds);
 }
 
 export function deepMemoryStats(): DeepMemoryStats {
   const db = getDb();
-  try {
-    const total = (
-      db.prepare("SELECT COUNT(*) as c FROM deep_memories").get() as { c: number }
-    ).c;
-    const undreamed = (
-      db.prepare("SELECT COUNT(*) as c FROM deep_memories WHERE dreamed = 0").get() as {
-        c: number;
-      }
-    ).c;
-    const categoryRows = db
-      .prepare("SELECT category, COUNT(*) as c FROM deep_memories GROUP BY category")
-      .all() as Array<{ category: string; c: number }>;
-
-    const categories: Record<string, number> = {};
-    for (const row of categoryRows) {
-      categories[row.category] = row.c;
+  const total = (
+    db.prepare("SELECT COUNT(*) as c FROM deep_memories").get() as { c: number }
+  ).c;
+  const undreamed = (
+    db.prepare("SELECT COUNT(*) as c FROM deep_memories WHERE dreamed = 0").get() as {
+      c: number;
     }
+  ).c;
+  const categoryRows = db
+    .prepare("SELECT category, COUNT(*) as c FROM deep_memories GROUP BY category")
+    .all() as Array<{ category: string; c: number }>;
 
-    return {
-      total_memories: total,
-      undreamed,
-      dreamed: total - undreamed,
-      categories,
-    };
-  } finally {
-    db.close();
+  const categories: Record<string, number> = {};
+  for (const row of categoryRows) {
+    categories[row.category] = row.c;
   }
+
+  return {
+    total_memories: total,
+    undreamed,
+    dreamed: total - undreamed,
+    categories,
+  };
 }
 
 // ─── Working Memory (Compressed, Readable) ──────────────────────────────────

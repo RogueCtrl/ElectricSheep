@@ -18,6 +18,7 @@ const {
   getWorkingMemoryContext,
   consolidateDreamInsight,
   remember,
+  closeDb,
 } = await import("../src/memory.js");
 
 const { DEEP_MEMORY_DB } = await import("../src/config.js");
@@ -59,7 +60,8 @@ describe("Deep Memory", () => {
   });
 
   it("handles corrupted blobs gracefully", async () => {
-    // Insert a row with garbage encrypted data directly
+    // Close singleton so we can insert garbage data directly
+    closeDb();
     const Database = (await import("better-sqlite3")).default;
     const db = new Database(DEEP_MEMORY_DB);
     db.prepare(
@@ -160,5 +162,6 @@ describe("remember (dual store)", () => {
 });
 
 after(() => {
+  closeDb();
   rmSync(testDir, { recursive: true, force: true });
 });

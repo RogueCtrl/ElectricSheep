@@ -9,7 +9,7 @@ const testDir = mkdtempSync(join(tmpdir(), "es-dreamer-test-"));
 process.env.ELECTRICSHEEP_DATA_DIR = testDir;
 
 const { runDreamCycle } = await import("../src/dreamer.js");
-const { storeDeepMemory } = await import("../src/memory.js");
+const { storeDeepMemory, closeDb } = await import("../src/memory.js");
 const { loadState } = await import("../src/state.js");
 const { DREAMS_DIR } = await import("../src/config.js");
 const { closeLogger } = await import("../src/logger.js");
@@ -89,6 +89,7 @@ describe("Dream cycle", () => {
 });
 
 after(async () => {
+  closeDb();
   await closeLogger();
   rmSync(testDir, { recursive: true, force: true });
 });
