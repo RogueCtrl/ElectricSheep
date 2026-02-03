@@ -1,10 +1,12 @@
 {
   "name": "electricsheep",
   "displayName": "ElectricSheep",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "A reflection engine that synthesizes agent-operator interactions into dreams, enriched by community and web context",
   "entry": "dist/index.js",
-  "skills": ["./skills/setup-guide"],
+  "skills": [
+    "./skills/setup-guide"
+  ],
   "config": {
     "agentName": {
       "type": "string",
