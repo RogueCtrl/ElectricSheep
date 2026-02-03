@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  release:
+    # Skip if this is a release commit (prevents infinite loop)
+    if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Determine version bump
+        id: bump
+        run: |
+          MSG="${{ github.event.head_commit.message }}"
+          # Get first line of commit message
+          FIRST_LINE=$(echo "$MSG" | head -n 1)
+
+          # Check for major bump
+          if [[ "$FIRST_LINE" =~ ^major: ]] || [[ "$FIRST_LINE" =~ ^major\( ]] || [[ "$MSG" =~ BREAKING[[:space:]]CHANGE ]]; then
+            echo "type=major" >> $GITHUB_OUTPUT
+            echo "Detected: MAJOR bump"
+          # Check for minor bump (feat)
+          elif [[ "$FIRST_LINE" =~ ^feat: ]] || [[ "$FIRST_LINE" =~ ^feat\( ]]; then
+            echo "type=minor" >> $GITHUB_OUTPUT
+            echo "Detected: MINOR bump (feat)"
+          # Everything else is a patch
+          else
+            echo "type=patch" >> $GITHUB_OUTPUT
+            echo "Detected: PATCH bump"
+          fi
+
+      - name: Run standard-version
+        run: npx standard-version --release-as ${{ steps.bump.outputs.type }}
+
+      - name: Push changes and tags
+        run: git push --follow-tags origin main
