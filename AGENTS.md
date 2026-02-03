@@ -51,8 +51,9 @@ Use conventional commit prefixes in PR titles. When a PR merges to main, the rel
 |--------|--------------|---------|
 | `major:` | 0.2.0 → 1.0.0 | `major: redesign plugin API` |
 | `feat:` | 0.2.0 → 0.3.0 | `feat: add slack notifications` |
+| `refactor:` | 0.2.0 → 0.3.0 | `refactor: new synthesis pipeline` |
 | `fix:` | 0.2.0 → 0.2.1 | `fix: memory leak in dreamer` |
-| `refactor:` | 0.2.0 → 0.2.1 | `refactor: simplify synthesis` |
+| `bug:` | 0.2.0 → 0.2.1 | `bug: crash on empty input` |
 | `docs:` | 0.2.0 → 0.2.1 | `docs: update setup guide` |
 | `chore:` | 0.2.0 → 0.2.1 | `chore: bump dependencies` |
 

@@ -43,11 +43,11 @@ jobs:
           if [[ "$FIRST_LINE" =~ ^major: ]] || [[ "$FIRST_LINE" =~ ^major\( ]] || [[ "$MSG" =~ BREAKING[[:space:]]CHANGE ]]; then
             echo "type=major" >> $GITHUB_OUTPUT
             echo "Detected: MAJOR bump"
-          # Check for minor bump (feat)
-          elif [[ "$FIRST_LINE" =~ ^feat: ]] || [[ "$FIRST_LINE" =~ ^feat\( ]]; then
+          # Check for minor bump (feat, refactor)
+          elif [[ "$FIRST_LINE" =~ ^feat: ]] || [[ "$FIRST_LINE" =~ ^feat\( ]] || [[ "$FIRST_LINE" =~ ^refactor: ]] || [[ "$FIRST_LINE" =~ ^refactor\( ]]; then
             echo "type=minor" >> $GITHUB_OUTPUT
-            echo "Detected: MINOR bump (feat)"
-          # Everything else is a patch
+            echo "Detected: MINOR bump"
+          # Everything else is a patch (fix, bug, docs, chore, etc.)
           else
             echo "type=patch" >> $GITHUB_OUTPUT
             echo "Detected: PATCH bump"
