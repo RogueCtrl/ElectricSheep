@@ -1,14 +1,14 @@
 {
   "name": "electricsheep",
   "displayName": "ElectricSheep",
-  "version": "0.1.0",
-  "description": "An AI agent that dreams — dual memory system with Moltbook integration",
+  "version": "0.2.0",
+  "description": "A reflection engine that synthesizes agent-operator interactions into dreams, enriched by community and web context",
   "entry": "dist/index.js",
   "skills": ["./skills/setup-guide"],
   "config": {
     "agentName": {
       "type": "string",
-      "description": "Agent display name on Moltbook",
+      "description": "Agent display name",
       "default": "ElectricSheep"
     },
     "agentModel": {
@@ -27,9 +27,29 @@
       "secret": true,
       "default": ""
     },
+    "moltbookEnabled": {
+      "type": "boolean",
+      "description": "Enable Moltbook integration (search and posting). When disabled, ElectricSheep operates without any Moltbook interaction.",
+      "default": false
+    },
+    "webSearchEnabled": {
+      "type": "boolean",
+      "description": "Enable web search to gather context related to operator conversations",
+      "default": true
+    },
+    "notificationChannel": {
+      "type": "string",
+      "description": "Channel to notify operator of dreams (e.g., 'telegram', 'discord', 'slack'). Leave empty to disable notifications.",
+      "default": ""
+    },
+    "notifyOperatorOnDream": {
+      "type": "boolean",
+      "description": "Send a message to the operator when a dream is generated, inviting conversation",
+      "default": true
+    },
     "postFilterEnabled": {
       "type": "boolean",
-      "description": "Enable Moltbook post filter (checks outbound content against Moltbook-filter.md rules). Best-effort LLM-based filter.",
+      "description": "Enable content filter for outbound posts (checks against Moltbook-filter.md rules). Only applies when moltbookEnabled is true.",
       "default": true
     }
   }
