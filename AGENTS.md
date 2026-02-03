@@ -43,6 +43,32 @@ npm run format:check  # check formatting without writing
 
 ESLint uses flat config (`eslint.config.js`) with `typescript-eslint` and `eslint-config-prettier`. Prettier handles formatting (`.prettierrc`). TypeScript strict mode is enabled. Unused variables are errors (prefix with `_` if intentionally unused). CI runs build → lint → format:check → test on every PR.
 
+## PR Process & Releasing
+
+Use conventional commit prefixes in PR titles. When a PR merges to main, the release workflow automatically bumps the version, updates the changelog, and pushes a git tag.
+
+| Prefix | Version Bump | Example |
+|--------|--------------|---------|
+| `major:` | 0.2.0 → 1.0.0 | `major: redesign plugin API` |
+| `feat:` | 0.2.0 → 0.3.0 | `feat: add slack notifications` |
+| `fix:` | 0.2.0 → 0.2.1 | `fix: memory leak in dreamer` |
+| `refactor:` | 0.2.0 → 0.2.1 | `refactor: simplify synthesis` |
+| `docs:` | 0.2.0 → 0.2.1 | `docs: update setup guide` |
+| `chore:` | 0.2.0 → 0.2.1 | `chore: bump dependencies` |
+
+Commits containing `BREAKING CHANGE` in the body also trigger a major bump.
+
+**Workflow:**
+1. Create PR with conventional commit prefix in title
+2. CI runs build → lint → format:check → test
+3. Merge to main
+4. Release workflow automatically:
+   - Determines version bump from commit message
+   - Runs `standard-version` to update version and CHANGELOG.md
+   - Commits and pushes with tag `vX.Y.Z`
+
+No manual release steps required — just merge and the release happens.
+
 ## Architecture
 
 ### OpenClaw Extension Entry
