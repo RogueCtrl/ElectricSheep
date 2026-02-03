@@ -9,6 +9,7 @@ process.env.ELECTRICSHEEP_DATA_DIR = testDir;
 
 const { loadState, saveState } = await import("../src/state.js");
 const { STATE_FILE } = await import("../src/config.js");
+const { closeLogger } = await import("../src/logger.js");
 
 describe("State persistence", () => {
   it("returns empty object when no state file exists", () => {
@@ -50,6 +51,7 @@ describe("State persistence", () => {
   });
 });
 
-after(() => {
+after(async () => {
+  await closeLogger();
   rmSync(testDir, { recursive: true, force: true });
 });
