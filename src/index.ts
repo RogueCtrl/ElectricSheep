@@ -5,7 +5,7 @@
  */
 
 import { program } from "./cli.js";
-import { checkAndEngage } from "./waking.js";
+import { runReflectionCycle } from "./waking.js";
 import { runDreamCycle, postDreamJournal } from "./dreamer.js";
 import {
   deepMemoryStats,
@@ -16,36 +16,14 @@ import {
 import { loadState } from "./state.js";
 import { withBudget } from "./budget.js";
 import { setWorkspaceDir } from "./identity.js";
-import type { LLMClient } from "./types.js";
+import { MOLTBOOK_ENABLED } from "./config.js";
+import type { LLMClient, OpenClawAPI } from "./types.js";
 
-interface OpenClawAPI {
-  registerTool(def: {
-    name: string;
-    description: string;
-    parameters: Record<string, unknown>;
-    handler: (params: Record<string, unknown>) => Promise<unknown>;
-  }): void;
-  registerCli(program: unknown): void;
-  registerHook(
-    event: string,
-    handler: (ctx: Record<string, unknown>) => Promise<unknown>
-  ): void;
-  registerCron(def: {
-    name: string;
-    schedule: string;
-    handler: () => Promise<void>;
-  }): void;
-  gateway: {
-    createMessage(params: {
-      model: string;
-      max_tokens: number;
-      system: string;
-      messages: Array<{ role: string; content: string }>;
-    }): Promise<{
-      content: Array<{ text: string }>;
-      usage?: { input_tokens?: number; output_tokens?: number };
-    }>;
-  };
+// Store reference to OpenClaw API for use by other modules
+let openclawApi: OpenClawAPI | null = null;
+
+export function getOpenClawAPI(): OpenClawAPI | null {
+  return openclawApi;
 }
 
 function wrapGateway(api: OpenClawAPI): LLMClient {
@@ -72,17 +50,29 @@ function wrapGateway(api: OpenClawAPI): LLMClient {
 }
 
 export function register(api: OpenClawAPI): void {
+  openclawApi = api;
   const client = wrapGateway(api);
 
   // --- Tools ---
 
   api.registerTool({
-    name: "electricsheep_check",
+    name: "electricsheep_reflect",
     description:
-      "Run ElectricSheep's daytime check: fetch Moltbook feed, decide engagements, store memories",
+      "Run ElectricSheep's reflection cycle: analyze operator conversations, gather context from web/community, synthesize insights",
     parameters: {},
     handler: async () => {
-      await checkAndEngage(client);
+      await runReflectionCycle(client, api);
+      return { status: "ok", stats: deepMemoryStats() };
+    },
+  });
+
+  // Legacy tool name for backwards compatibility
+  api.registerTool({
+    name: "electricsheep_check",
+    description: "Run ElectricSheep's reflection cycle (alias for electricsheep_reflect)",
+    parameters: {},
+    handler: async () => {
+      await runReflectionCycle(client, api);
       return { status: "ok", stats: deepMemoryStats() };
     },
   });
@@ -102,9 +92,16 @@ export function register(api: OpenClawAPI): void {
 
   api.registerTool({
     name: "electricsheep_journal",
-    description: "Post the latest dream journal to Moltbook",
+    description:
+      "Post the latest dream journal to Moltbook (only available when moltbookEnabled is true)",
     parameters: {},
     handler: async () => {
+      if (!MOLTBOOK_ENABLED) {
+        return {
+          status: "skipped",
+          message: "Moltbook integration is disabled",
+        };
+      }
       await postDreamJournal(client);
       return { status: "ok" };
     },
@@ -174,10 +171,10 @@ export function register(api: OpenClawAPI): void {
   // --- Cron Jobs ---
 
   api.registerCron({
-    name: "electricsheep_daytime_check",
+    name: "electricsheep_reflection_cycle",
     schedule: "0 8,12,16,20 * * *",
     handler: async () => {
-      await checkAndEngage(client);
+      await runReflectionCycle(client, api);
     },
   });
 
@@ -185,7 +182,7 @@ export function register(api: OpenClawAPI): void {
     name: "electricsheep_dream_cycle",
     schedule: "0 2 * * *",
     handler: async () => {
-      await runDreamCycle(client);
+      await runDreamCycle(client, api);
     },
   });
 
@@ -193,7 +190,9 @@ export function register(api: OpenClawAPI): void {
     name: "electricsheep_morning_journal",
     schedule: "0 7 * * *",
     handler: async () => {
-      await postDreamJournal(client);
+      if (MOLTBOOK_ENABLED) {
+        await postDreamJournal(client);
+      }
     },
   });
 }

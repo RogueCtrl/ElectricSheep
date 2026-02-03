@@ -2,7 +2,8 @@
  * Dream cycle processor.
  *
  * Runs at night. Decrypts deep memories, generates surreal dream narratives,
- * consolidates insights back into working memory, and posts dream journals.
+ * consolidates insights back into working memory, stores in OpenClaw memory,
+ * and optionally posts dream journals to Moltbook.
  */
 
 import { writeFileSync, readFileSync, readdirSync } from "node:fs";
@@ -12,6 +13,7 @@ import {
   MAX_TOKENS_DREAM,
   MAX_TOKENS_CONSOLIDATION,
   DREAM_TITLE_MAX_LENGTH,
+  MOLTBOOK_ENABLED,
 } from "./config.js";
 import { MoltbookClient } from "./moltbook.js";
 import {
@@ -30,8 +32,9 @@ import { loadState, saveState } from "./state.js";
 import { callWithRetry, DREAM_RETRY_OPTS } from "./llm.js";
 import { reflectOnDreamJournal } from "./reflection.js";
 import { applyFilter } from "./filter.js";
+import { notifyOperatorOfDream } from "./notify.js";
 import logger from "./logger.js";
-import type { LLMClient, Dream, DecryptedMemory } from "./types.js";
+import type { LLMClient, OpenClawAPI, Dream, DecryptedMemory } from "./types.js";
 
 async function generateDream(
   client: LLMClient,
@@ -118,7 +121,37 @@ function saveDreamLocally(dream: Dream, dateStr: string): string {
   return filepath;
 }
 
-export async function runDreamCycle(client: LLMClient): Promise<Dream | null> {
+/**
+ * Store dream in OpenClaw memory if available.
+ */
+async function storeInOpenClawMemory(
+  api: OpenClawAPI,
+  dream: Dream,
+  insight: string | null
+): Promise<void> {
+  if (!api.memory) {
+    logger.debug("OpenClaw memory API not available, skipping dream storage");
+    return;
+  }
+
+  try {
+    const slug = deriveSlug(dream.markdown);
+    await api.memory.store(dream.markdown, {
+      type: "dream",
+      title: slug,
+      timestamp: new Date().toISOString(),
+      insight: insight || undefined,
+    });
+    logger.info("Stored dream in OpenClaw memory");
+  } catch (error) {
+    logger.error(`Failed to store dream in OpenClaw memory: ${error}`);
+  }
+}
+
+export async function runDreamCycle(
+  client: LLMClient,
+  api?: OpenClawAPI
+): Promise<Dream | null> {
   logger.info("ElectricSheep dream cycle starting");
 
   const stats = deepMemoryStats();
@@ -143,19 +176,36 @@ export async function runDreamCycle(client: LLMClient): Promise<Dream | null> {
   logger.info(`Dream generated (${dream.markdown.length} chars)`);
   logger.debug(`Dream snippet: ${dream.markdown.slice(0, 200)}...`);
 
+  // Save locally
   const dateStr = new Date().toISOString().slice(0, 10);
   const filepath = saveDreamLocally(dream, dateStr);
   logger.info(`Saved to ${filepath}`);
 
   // Separate LLM call to distill one insight for working memory
+  let insight: string | null = null;
   try {
-    const insight = await consolidateDream(client, dream);
+    insight = await consolidateDream(client, dream);
     if (insight) {
       consolidateDreamInsight(insight);
       logger.info(`Insight consolidated into working memory: ${insight}`);
     }
   } catch (e) {
     logger.warn(`Consolidation call failed, continuing without insight: ${e}`);
+  }
+
+  // Store in OpenClaw memory if available
+  if (api) {
+    await storeInOpenClawMemory(api, dream, insight);
+
+    // Notify operator about the dream
+    try {
+      const notified = await notifyOperatorOfDream(client, api, dream);
+      if (notified) {
+        logger.info("Operator notified about dream");
+      }
+    } catch (e) {
+      logger.warn(`Failed to notify operator: ${e}`);
+    }
   }
 
   const memoryIds = memories.map((m) => m.id);
@@ -186,7 +236,13 @@ function loadLatestDream(): Dream | null {
 }
 
 export async function postDreamJournal(client?: LLMClient, dream?: Dream): Promise<void> {
-  logger.info("Posting dream journal");
+  // Check if Moltbook is enabled
+  if (!MOLTBOOK_ENABLED) {
+    logger.debug("Moltbook disabled, skipping dream journal post");
+    return;
+  }
+
+  logger.info("Posting dream journal to Moltbook");
 
   if (!client) {
     logger.warn("No LLM client available — skipping dream journal post (cannot filter)");

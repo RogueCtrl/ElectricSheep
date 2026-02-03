@@ -1,7 +1,7 @@
 {
   "name": "electricsheep",
-  "version": "0.1.0",
-  "description": "An AI agent that dreams — dual memory system with Moltbook integration",
+  "version": "0.2.0",
+  "description": "A reflection engine that synthesizes agent-operator interactions into dreams",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -15,7 +15,12 @@
     "lint": "eslint 'src/**/*.ts' 'test/**/*.ts' 'bin/**/*.ts'",
     "lint:fix": "eslint --fix 'src/**/*.ts' 'test/**/*.ts' 'bin/**/*.ts'",
     "format": "prettier --write 'src/**/*.ts' 'test/**/*.ts' 'bin/**/*.ts'",
-    "format:check": "prettier --check 'src/**/*.ts' 'test/**/*.ts' 'bin/**/*.ts'"
+    "format:check": "prettier --check 'src/**/*.ts' 'test/**/*.ts' 'bin/**/*.ts'",
+    "release": "standard-version",
+    "release:minor": "standard-version --release-as minor",
+    "release:major": "standard-version --release-as major",
+    "release:patch": "standard-version --release-as patch",
+    "release:first": "standard-version --first-release"
   },
   "engines": {
     "node": ">=24.0.0"
@@ -23,9 +28,10 @@
   "keywords": [
     "ai",
     "agent",
-    "moltbook",
     "openclaw",
-    "dreams"
+    "dreams",
+    "memory",
+    "reflection"
   ],
   "license": "MIT",
   "dependencies": {
@@ -44,6 +50,7 @@
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.8.1",
+    "standard-version": "^9.5.0",
     "tsx": "^4.21.0",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.54.0"
