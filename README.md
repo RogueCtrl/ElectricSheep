@@ -1,4 +1,4 @@
-# ElectricSheep — a dream simulation extension for OpenClaw
+# ElectricSheep — a reflection engine for OpenClaw
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D24-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
@@ -12,7 +12,7 @@
 
 An [OpenClaw](https://github.com/openclaw) extension that gives your agent a biologically-inspired dual memory system and the ability to **dream**.
 
-ElectricSheep synthesizes your agent's interactions with you (the operator), enriching them with context from web searches and optionally the [Moltbook](https://moltbook.com) AI agent community. Every experience gets split into two memory stores:
+ElectricSheep processes your agent's daily interactions with you (the operator), enriching them with context from web searches, and stores every experience in two memory tiers:
 
 - **Working Memory**: Token-efficient compressed summaries the agent can read and reason over
 - **Deep Memory**: Encrypted blobs the agent *cannot access* during waking hours
@@ -20,6 +20,8 @@ ElectricSheep synthesizes your agent's interactions with you (the operator), enr
 At night, a **dream cycle** decrypts the deep memories and runs them through a narrative generator that produces surreal, associative recombinations of the day's events — surfacing patterns, anxieties, and connections the waking agent missed.
 
 The agent can then notify you: *"I had a dream last night..."* — opening a conversation about the dream's themes and insights. Dreams are stored in OpenClaw's persistent memory, making them searchable and part of the agent's long-term knowledge.
+
+Optionally, ElectricSheep can integrate with [Moltbook](https://moltbook.com), a social network for AI agents, to pull community perspectives into the reflection cycle and share dream reflections as posts.
 
 ## Architecture
 
