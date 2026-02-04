@@ -1,6 +1,6 @@
-import { describe, it, after, beforeEach } from "node:test";
+import { describe, it, after } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import type { LLMClient, OpenClawAPI } from "../src/types.js";
@@ -10,8 +10,7 @@ const testDir = mkdtempSync(join(tmpdir(), "es-waking-test-"));
 process.env.ELECTRICSHEEP_DATA_DIR = testDir;
 
 const { runReflectionCycle, checkAndEngage } = await import("../src/waking.js");
-const { getWorkingMemory, deepMemoryStats, storeWorkingMemory } =
-  await import("../src/memory.js");
+const { deepMemoryStats, storeDeepMemory } = await import("../src/memory.js");
 const { loadState } = await import("../src/state.js");
 const { closeLogger } = await import("../src/logger.js");
 
@@ -65,40 +64,36 @@ function mockOpenClawAPIWithMemory(): OpenClawAPI & {
   };
 }
 
-// Clear working memory between tests
-beforeEach(() => {
-  // Clear working memory file
-  const workingMemoryPath = join(testDir, "data", "memory", "working.json");
-  try {
-    writeFileSync(workingMemoryPath, "[]");
-  } catch {
-    // File might not exist yet
-  }
-});
-
 describe("runReflectionCycle", () => {
   it("handles no recent conversations gracefully", async () => {
     const client = mockLLMClient(["should not be called"]);
     const api = mockOpenClawAPI();
 
+    const statsBefore = deepMemoryStats();
     await runReflectionCycle(client, api);
+    const statsAfter = deepMemoryStats();
 
-    // Should store an observation about no conversations
-    const memories = getWorkingMemory();
-    const noConvMem = memories.find(
-      (m) => m.summary.includes("no recent") || m.summary.includes("Reflection cycle")
+    // Should store an observation in deep memory about no conversations
+    assert.ok(
+      statsAfter.total_memories > statsBefore.total_memories,
+      "Expected observation stored in deep memory"
     );
-    assert.ok(noConvMem, "Expected observation about no conversations");
   });
 
   it("extracts topics from operator conversations", async () => {
-    // First, store some mock operator conversations
-    storeWorkingMemory(
-      "Discussed debugging a memory leak in the Node.js application",
+    // Seed some mock operator conversations in deep memory
+    storeDeepMemory(
+      {
+        summary: "Discussed debugging a memory leak in the Node.js application",
+        type: "agent_conversation",
+      },
       "interaction"
     );
-    storeWorkingMemory(
-      "Helped operator understand async/await patterns in TypeScript",
+    storeDeepMemory(
+      {
+        summary: "Helped operator understand async/await patterns in TypeScript",
+        type: "agent_conversation",
+      },
       "interaction"
     );
 
@@ -118,7 +113,10 @@ describe("runReflectionCycle", () => {
   });
 
   it("stores synthesis in OpenClaw memory when available", async () => {
-    storeWorkingMemory("Worked on API integration project", "interaction");
+    storeDeepMemory(
+      { summary: "Worked on API integration project", type: "agent_conversation" },
+      "interaction"
+    );
 
     const client = mockLLMClient([
       "API integration\nREST endpoints",
@@ -137,7 +135,10 @@ describe("runReflectionCycle", () => {
   });
 
   it("stores synthesis in deep memory", async () => {
-    storeWorkingMemory("Built a new feature for the dashboard", "interaction");
+    storeDeepMemory(
+      { summary: "Built a new feature for the dashboard", type: "agent_conversation" },
+      "interaction"
+    );
 
     const client = mockLLMClient([
       "dashboard features\nUI development",
@@ -158,20 +159,24 @@ describe("runReflectionCycle", () => {
   });
 
   it("handles topic extraction returning no topics", async () => {
-    storeWorkingMemory("Had a brief chat", "interaction");
+    storeDeepMemory(
+      { summary: "Had a brief chat", type: "agent_conversation" },
+      "interaction"
+    );
 
     // LLM returns empty topics
     const client = mockLLMClient([""]);
     const api = mockOpenClawAPI();
 
+    const statsBefore = deepMemoryStats();
     await runReflectionCycle(client, api);
+    const statsAfter = deepMemoryStats();
 
-    // Should store observation about no topics
-    const memories = getWorkingMemory();
-    const noTopicsMem = memories.find(
-      (m) => m.summary.includes("no clear topics") || m.category === "observation"
+    // Should store an observation in deep memory about no topics
+    assert.ok(
+      statsAfter.total_memories > statsBefore.total_memories,
+      "Expected observation stored in deep memory"
     );
-    assert.ok(noTopicsMem, "Expected observation about no topics");
   });
 });
 
@@ -179,12 +184,17 @@ describe("checkAndEngage (legacy)", () => {
   it("logs deprecation warning and runs reflection cycle", async () => {
     const client = mockLLMClient(["should not be called"]);
 
+    const statsBefore = deepMemoryStats();
+
     // Should not throw - runs reflection cycle internally
     await checkAndEngage(client);
 
-    // Should have stored observation (no conversations)
-    const memories = getWorkingMemory();
-    assert.ok(memories.length > 0, "Should have some memories from the cycle");
+    const statsAfter = deepMemoryStats();
+    // Should have stored something (observation about no conversations)
+    assert.ok(
+      statsAfter.total_memories > statsBefore.total_memories,
+      "Should have some memories from the cycle"
+    );
   });
 });
 

@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 
 const {
   renderTemplate,
-  WAKING_SYSTEM_PROMPT,
   DREAM_SYSTEM_PROMPT,
+  DREAM_REFLECT_PROMPT,
   SUMMARIZER_PROMPT,
   AGENT_BIO,
 } = await import("../src/persona.js");
@@ -31,13 +31,22 @@ describe("renderTemplate", () => {
 });
 
 describe("Prompt templates", () => {
-  it("WAKING_SYSTEM_PROMPT contains required placeholders", () => {
-    assert.ok(WAKING_SYSTEM_PROMPT.includes("{{working_memory}}"));
-    assert.ok(WAKING_SYSTEM_PROMPT.includes("{{deep_memory_stats}}"));
-  });
-
   it("DREAM_SYSTEM_PROMPT contains memories placeholder", () => {
     assert.ok(DREAM_SYSTEM_PROMPT.includes("{{memories}}"));
+  });
+
+  it("DREAM_REFLECT_PROMPT contains recent_context placeholder", () => {
+    assert.ok(DREAM_REFLECT_PROMPT.includes("{{recent_context}}"));
+  });
+
+  it("DREAM_REFLECT_PROMPT renders with real values", () => {
+    const rendered = renderTemplate(DREAM_REFLECT_PROMPT, {
+      agent_identity: "Test agent",
+      recent_context: "No memories yet.",
+      subjects: "1. A theme",
+    });
+    assert.ok(!rendered.includes("{{recent_context}}"));
+    assert.ok(rendered.includes("No memories yet."));
   });
 
   it("SUMMARIZER_PROMPT contains interaction placeholder", () => {
@@ -46,15 +55,5 @@ describe("Prompt templates", () => {
 
   it("AGENT_BIO is a non-empty string", () => {
     assert.ok(AGENT_BIO.length > 0);
-  });
-
-  it("WAKING_SYSTEM_PROMPT renders with real values", () => {
-    const rendered = renderTemplate(WAKING_SYSTEM_PROMPT, {
-      working_memory: "No memories yet.",
-      deep_memory_stats: '{"total": 0}',
-    });
-    assert.ok(!rendered.includes("{{working_memory}}"));
-    assert.ok(!rendered.includes("{{deep_memory_stats}}"));
-    assert.ok(rendered.includes("No memories yet."));
   });
 });

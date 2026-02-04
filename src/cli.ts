@@ -7,7 +7,6 @@
  * Usage:
  *   electricsheep register --name "Name" --description "Bio"
  *   electricsheep status       # show agent status and memory stats
- *   electricsheep memories     # show working memory
  *   electricsheep dreams       # list saved dream journals
  */
 
@@ -17,7 +16,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { setVerbose } from "./logger.js";
 import { DREAMS_DIR } from "./config.js";
-import type { AgentState, DeepMemoryStats, WorkingMemoryEntry } from "./types.js";
+import type { AgentState, DeepMemoryStats } from "./types.js";
 
 export const program = new Command();
 
@@ -55,14 +54,13 @@ program
   .command("status")
   .description("Show agent status, memory stats, and recent state")
   .action(async () => {
-    const { deepMemoryStats, getWorkingMemory } = await import("./memory.js");
+    const { deepMemoryStats } = await import("./memory.js");
     const { loadState } = await import("./state.js");
     const { MoltbookClient } = await import("./moltbook.js");
     const { getBudgetStatus } = await import("./budget.js");
 
     const state: AgentState = loadState();
     const memStats: DeepMemoryStats = deepMemoryStats();
-    const working: WorkingMemoryEntry[] = getWorkingMemory();
     const budget = getBudgetStatus();
 
     console.log(chalk.cyan.bold("\nElectricSheep Status\n"));
@@ -89,7 +87,6 @@ program
     }
 
     // Memory stats
-    console.log(`\n${chalk.bold("Working Memory:")} ${working.length} entries`);
     console.log(
       `${chalk.bold("Deep Memory:")} ${memStats.total_memories} total, ${memStats.undreamed} undreamed`
     );
@@ -109,35 +106,6 @@ program
       console.log(`${chalk.bold("Karma:")} ${agent.karma ?? 0}`);
     } catch {
       console.log(chalk.yellow("\nMoltbook: not connected"));
-    }
-  });
-
-program
-  .command("memories")
-  .description("Show working memory entries")
-  .option("--limit <n>", "Number of memories to show", "20")
-  .option("--category <cat>", "Filter by category")
-  .action(async (opts: { limit: string; category?: string }) => {
-    const { getWorkingMemory } = await import("./memory.js");
-    const mems = getWorkingMemory(parseInt(opts.limit, 10), opts.category);
-
-    if (mems.length === 0) {
-      console.log(chalk.dim("No working memories yet."));
-      return;
-    }
-
-    console.log(chalk.cyan.bold(`\nWorking Memory (${mems.length} entries)\n`));
-
-    for (const mem of mems) {
-      const ts = mem.timestamp.slice(0, 16);
-      const cat = mem.category ?? "?";
-      const summary = mem.summary;
-
-      if (cat === "dream_consolidation") {
-        console.log(`  ${chalk.magenta(ts)} ${chalk.magenta.bold("[DREAM]")} ${summary}`);
-      } else {
-        console.log(`  ${chalk.dim(ts)} ${chalk.cyan(`(${cat})`)} ${summary}`);
-      }
     }
   });
 

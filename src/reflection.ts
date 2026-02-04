@@ -17,7 +17,7 @@ import {
   renderTemplate,
 } from "./persona.js";
 import { getAgentIdentityBlock } from "./identity.js";
-import { getWorkingMemoryContext } from "./memory.js";
+import { formatDeepMemoryContext } from "./memory.js";
 import { callWithRetry, WAKING_RETRY_OPTS } from "./llm.js";
 import { MAX_TOKENS_REFLECTION } from "./config.js";
 import logger from "./logger.js";
@@ -84,7 +84,7 @@ async function reflectOnDream(
 ): Promise<string> {
   const system = renderTemplate(DREAM_REFLECT_PROMPT, {
     agent_identity: getAgentIdentityBlock(),
-    working_memory: getWorkingMemoryContext(),
+    recent_context: formatDeepMemoryContext(),
     subjects: subjects.map((s, i) => `${i + 1}. ${s}`).join("\n"),
   });
 

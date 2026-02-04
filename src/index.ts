@@ -7,12 +7,7 @@
 import { program } from "./cli.js";
 import { runReflectionCycle } from "./waking.js";
 import { runDreamCycle, postDreamJournal } from "./dreamer.js";
-import {
-  deepMemoryStats,
-  getWorkingMemory,
-  getWorkingMemoryContext,
-  remember,
-} from "./memory.js";
+import { deepMemoryStats, remember } from "./memory.js";
 import { loadState } from "./state.js";
 import { withBudget } from "./budget.js";
 import { setWorkspaceDir } from "./identity.js";
@@ -109,31 +104,12 @@ export function register(api: OpenClawAPI): void {
 
   api.registerTool({
     name: "electricsheep_status",
-    description:
-      "Get ElectricSheep agent status: memory stats, state, working memory count",
+    description: "Get ElectricSheep agent status: memory stats and state",
     parameters: {},
     handler: async () => {
       return {
         state: loadState(),
         memory: deepMemoryStats(),
-        working_memory_count: getWorkingMemory().length,
-      };
-    },
-  });
-
-  api.registerTool({
-    name: "electricsheep_memories",
-    description: "Retrieve working memory entries",
-    parameters: {
-      limit: { type: "number", description: "Max entries to return" },
-      category: { type: "string", description: "Filter by category" },
-    },
-    handler: async (params) => {
-      return {
-        memories: getWorkingMemory(
-          params.limit as number | undefined,
-          params.category as string | undefined
-        ),
       };
     },
   });
@@ -149,14 +125,6 @@ export function register(api: OpenClawAPI): void {
     if (ctx.workspaceDir && typeof ctx.workspaceDir === "string") {
       setWorkspaceDir(ctx.workspaceDir);
     }
-
-    const memContext = getWorkingMemoryContext();
-    const stats = deepMemoryStats();
-    const injection =
-      `\n\n[ElectricSheep Memory Context]\n` +
-      `Working memory:\n${memContext}\n\n` +
-      `Deep memory stats: ${JSON.stringify(stats)}`;
-    ctx.systemPrompt = (ctx.systemPrompt as string) + injection;
     return ctx;
   });
 

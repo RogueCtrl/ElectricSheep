@@ -1,41 +1,32 @@
 /**
  * Topic extraction from operator conversations.
  *
- * Analyzes recent working memory entries (particularly agent_conversation
- * category) to extract key themes and topics that can be used for
- * contextual web and Moltbook searches.
+ * Analyzes recent deep memory entries (interaction category) to extract
+ * key themes and topics that can be used for contextual web and Moltbook searches.
  */
 
-import { getWorkingMemory } from "./memory.js";
+import { getRecentDeepMemories } from "./memory.js";
 import { callWithRetry, WAKING_RETRY_OPTS } from "./llm.js";
 import { TOPIC_EXTRACTION_PROMPT, renderTemplate } from "./persona.js";
 import { getAgentIdentityBlock } from "./identity.js";
 import { MAX_TOKENS_TOPIC_EXTRACTION, MAX_TOPICS_PER_CYCLE } from "./config.js";
 import logger from "./logger.js";
-import type { LLMClient, WorkingMemoryEntry, ExtractedTopics } from "./types.js";
+import type { LLMClient, DecryptedMemory, ExtractedTopics } from "./types.js";
 
 /**
- * Get recent operator conversation memories.
- *
- * Filters working memory for entries that represent interactions with
- * the human operator (agent_conversation category from agent_end hook).
+ * Get recent operator conversation memories from deep memory.
  */
-export function getRecentConversations(limit: number = 10): WorkingMemoryEntry[] {
-  const all = getWorkingMemory();
-
-  // Filter for operator conversations (from agent_end hook)
-  const conversations = all.filter(
-    (m) => m.category === "interaction" || m.category === "agent_conversation"
-  );
-
-  // Return most recent
-  return conversations.slice(-limit);
+export function getRecentConversations(limit: number = 10): DecryptedMemory[] {
+  return getRecentDeepMemories({
+    limit,
+    categories: ["interaction"],
+  });
 }
 
 /**
  * Format conversation memories into a string for LLM analysis.
  */
-function formatConversationsForExtraction(memories: WorkingMemoryEntry[]): string {
+function formatConversationsForExtraction(memories: DecryptedMemory[]): string {
   if (memories.length === 0) {
     return "No recent conversations found.";
   }
@@ -43,7 +34,11 @@ function formatConversationsForExtraction(memories: WorkingMemoryEntry[]): strin
   return memories
     .map((m) => {
       const time = m.timestamp.slice(0, 16).replace("T", " ");
-      return `[${time}] ${m.summary}`;
+      const summary =
+        typeof m.content.summary === "string"
+          ? m.content.summary
+          : JSON.stringify(m.content).slice(0, 200);
+      return `[${time}] ${summary}`;
     })
     .join("\n\n");
 }
@@ -56,7 +51,7 @@ function formatConversationsForExtraction(memories: WorkingMemoryEntry[]): strin
  */
 export async function extractTopicsFromConversations(
   client: LLMClient,
-  memories?: WorkingMemoryEntry[]
+  memories?: DecryptedMemory[]
 ): Promise<ExtractedTopics> {
   const sourceMemories = memories ?? getRecentConversations();
 
@@ -105,17 +100,4 @@ export async function extractTopicsFromConversations(
     logger.error(`Topic extraction failed: ${error}`);
     return { topics: [], sourceMemories };
   }
-}
-
-/**
- * Format extracted topics into a readable context string.
- */
-export function formatTopicsContext(extracted: ExtractedTopics): string {
-  if (extracted.topics.length === 0) {
-    return "No topics identified from recent conversations.";
-  }
-
-  const topicList = extracted.topics.map((t, i) => `${i + 1}. ${t}`).join("\n");
-
-  return `TOPICS FROM OPERATOR CONVERSATIONS:\n\n${topicList}`;
 }

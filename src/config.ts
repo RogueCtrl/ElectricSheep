@@ -45,9 +45,7 @@ export const NOTIFY_OPERATOR_ON_DREAM =
   (process.env.NOTIFY_OPERATOR_ON_DREAM ?? "true").toLowerCase() !== "false";
 
 // Memory
-export const WORKING_MEMORY_MAX_ENTRIES = 50;
 export const DEEP_MEMORY_DB = resolve(MEMORY_DIR, "deep.db");
-export const WORKING_MEMORY_FILE = resolve(MEMORY_DIR, "working.json");
 export const STATE_FILE = resolve(MEMORY_DIR, "state.json");
 
 // Token budget — $20/day using Opus 4.5 output rate ($25/1M) ≈ 800,000 tokens
@@ -73,10 +71,10 @@ export const FEED_LIMIT = 10; // max posts shown to agent for engagement decisio
 export const FEED_FETCH_LIMIT = 25; // default API fetch limit
 export const CONTENT_PREVIEW_LENGTH = 200; // chars of post content shown in summaries
 
-// ─── Working Memory Context ──────────────────────────────────────────────────
-// Approximate token budget for working memory context injected into prompts.
+// ─── Deep Memory Context ─────────────────────────────────────────────────────
+// Approximate token budget for deep memory context injected into prompts.
 // Multiplied by 4 to estimate character count (1 token ≈ 4 chars).
-export const WORKING_MEMORY_CONTEXT_TOKENS = 2000;
+export const DEEP_MEMORY_CONTEXT_TOKENS = 2000;
 
 // ─── Dream Reflection ───────────────────────────────────────────────────────
 export const MAX_TOKENS_REFLECTION = 1500;

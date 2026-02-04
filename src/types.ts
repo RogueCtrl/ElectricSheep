@@ -2,13 +2,6 @@
  * Shared TypeScript interfaces for ElectricSheep.
  */
 
-export interface WorkingMemoryEntry {
-  timestamp: string;
-  category: string;
-  summary: string;
-  metadata?: Record<string, unknown>;
-}
-
 export interface DeepMemoryRow {
   id: number;
   timestamp: string;
@@ -159,7 +152,7 @@ export interface WebSearchResult {
 
 export interface ExtractedTopics {
   topics: string[];
-  sourceMemories: WorkingMemoryEntry[];
+  sourceMemories: DecryptedMemory[];
 }
 
 export interface SynthesisContext {

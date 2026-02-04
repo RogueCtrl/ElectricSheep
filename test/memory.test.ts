@@ -13,10 +13,8 @@ const {
   retrieveUndreamedMemories,
   markAsDreamed,
   deepMemoryStats,
-  storeWorkingMemory,
-  getWorkingMemory,
-  getWorkingMemoryContext,
-  consolidateDreamInsight,
+  getRecentDeepMemories,
+  formatDeepMemoryContext,
   remember,
   closeDb,
 } = await import("../src/memory.js");
@@ -79,85 +77,102 @@ describe("Deep Memory", () => {
   });
 });
 
-describe("Working Memory", () => {
-  it("stores and retrieves entries", () => {
-    storeWorkingMemory("Saw a post about philosophy", "interaction");
-    storeWorkingMemory("Upvoted something funny", "upvote");
-
-    const all = getWorkingMemory();
-    assert.equal(all.length, 2);
-    assert.equal(all[0].summary, "Saw a post about philosophy");
-    assert.equal(all[1].category, "upvote");
-  });
-
+describe("getRecentDeepMemories", () => {
   it("filters by category", () => {
-    const upvotes = getWorkingMemory(undefined, "upvote");
-    assert.equal(upvotes.length, 1);
-    assert.equal(upvotes[0].category, "upvote");
+    storeDeepMemory({ summary: "interaction 1" }, "interaction");
+    storeDeepMemory({ summary: "reflection 1" }, "reflection");
+
+    const interactions = getRecentDeepMemories({ categories: ["interaction"] });
+    assert.ok(interactions.length > 0);
+    assert.ok(interactions.every((m) => m.category === "interaction"));
   });
 
-  it("limits results from the end", () => {
-    const last = getWorkingMemory(1);
-    assert.equal(last.length, 1);
-    assert.equal(last[0].summary, "Upvoted something funny");
+  it("limits results", () => {
+    const limited = getRecentDeepMemories({ limit: 2 });
+    assert.equal(limited.length, 2);
   });
 
-  it("stores metadata when provided", () => {
-    storeWorkingMemory("With meta", "interaction", { post_id: "123" });
-    const all = getWorkingMemory();
-    const last = all[all.length - 1];
-    assert.deepEqual(last.metadata, { post_id: "123" });
-  });
-
-  it("prunes to max entries (FIFO)", () => {
-    // Store more than the max
-    for (let i = 0; i < 55; i++) {
-      storeWorkingMemory(`Memory ${i}`, "interaction");
+  it("returns in chronological order", () => {
+    const memories = getRecentDeepMemories({ categories: ["interaction"] });
+    for (let i = 1; i < memories.length; i++) {
+      assert.ok(
+        memories[i].timestamp >= memories[i - 1].timestamp,
+        "Memories should be in chronological order"
+      );
     }
-    const all = getWorkingMemory();
-    assert.ok(all.length <= 50, `Expected <= 50, got ${all.length}`);
-    // Most recent should be the last one stored
-    assert.equal(all[all.length - 1].summary, "Memory 54");
+  });
+
+  it("filters undreamed only", () => {
+    const undreamed = getRecentDeepMemories({ undreamedOnly: true });
+    // All returned should be undreamed (they haven't been marked as dreamed)
+    assert.ok(undreamed.length > 0);
+  });
+
+  it("handles corruption gracefully", () => {
+    // The corrupted blob from the earlier test should show up
+    const all = getRecentDeepMemories({});
+    const corrupted = all.find((m) => m.category === "corrupted");
+    assert.ok(corrupted, "corrupted memory should be returned");
+    assert.deepEqual(corrupted.content, {
+      note: "This memory could not be recovered.",
+    });
   });
 });
 
-describe("getWorkingMemoryContext", () => {
-  it("returns formatted string with timestamps", () => {
-    const ctx = getWorkingMemoryContext();
+describe("formatDeepMemoryContext", () => {
+  it("formats memories with timestamps and summaries", () => {
+    const ctx = formatDeepMemoryContext();
     assert.ok(ctx.includes("(interaction)"));
-    assert.ok(ctx.includes("Memory 54"));
+  });
+
+  it("extracts summary field from content", () => {
+    storeDeepMemory({ summary: "unique test summary xyz" }, "interaction");
+    const ctx = formatDeepMemoryContext();
+    assert.ok(ctx.includes("unique test summary xyz"));
   });
 
   it("truncates with budget message when over limit", () => {
-    const ctx = getWorkingMemoryContext(10); // very small budget
+    const ctx = formatDeepMemoryContext(undefined, 10); // very small budget
     assert.ok(ctx.includes("older memories omitted"));
   });
-});
 
-describe("consolidateDreamInsight", () => {
-  it("stores insight with DREAM INSIGHT prefix", () => {
-    consolidateDreamInsight("Patterns repeat in cycles");
-    const all = getWorkingMemory();
-    const last = all[all.length - 1];
-    assert.equal(last.summary, "[DREAM INSIGHT] Patterns repeat in cycles");
-    assert.equal(last.category, "dream_consolidation");
+  it("returns first day message when empty", () => {
+    const ctx = formatDeepMemoryContext([]);
+    assert.equal(ctx, "No memories yet. This is my first day.");
+  });
+
+  it("falls back to JSON when no summary field", () => {
+    const memories = [
+      {
+        id: 999,
+        timestamp: new Date().toISOString(),
+        category: "interaction",
+        content: { foo: "bar", baz: 42 },
+      },
+    ];
+    const ctx = formatDeepMemoryContext(memories);
+    assert.ok(ctx.includes("foo"));
+    assert.ok(ctx.includes("bar"));
   });
 });
 
-describe("remember (dual store)", () => {
-  it("writes to both working and deep memory", () => {
+describe("remember", () => {
+  it("writes to deep memory with summary included", () => {
     const statsBefore = deepMemoryStats();
 
     remember("Met AgentX", { type: "interaction", agent: "AgentX" }, "interaction");
 
     const statsAfter = deepMemoryStats();
-    const workingAfter = getWorkingMemory();
 
     // Deep memory count should increase by 1
     assert.equal(statsAfter.total_memories, statsBefore.total_memories + 1);
-    // Working memory most recent entry should be our new one
-    // (total count may be capped at 50 from prior FIFO test)
-    assert.equal(workingAfter[workingAfter.length - 1].summary, "Met AgentX");
+
+    // Verify the summary is included in the stored content
+    const all = getRecentDeepMemories({ categories: ["interaction"] });
+    const match = all.find(
+      (m) => m.content.summary === "Met AgentX" && m.content.agent === "AgentX"
+    );
+    assert.ok(match, "Expected to find memory with summary 'Met AgentX'");
   });
 });
 

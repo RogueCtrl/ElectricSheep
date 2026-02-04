@@ -2,8 +2,7 @@
  * Dream cycle processor.
  *
  * Runs at night. Decrypts deep memories, generates surreal dream narratives,
- * consolidates insights back into working memory, stores in OpenClaw memory,
- * and optionally posts dream journals to Moltbook.
+ * stores in OpenClaw memory, and optionally posts dream journals to Moltbook.
  */
 
 import { writeFileSync, readFileSync, readdirSync } from "node:fs";
@@ -16,12 +15,7 @@ import {
   MOLTBOOK_ENABLED,
 } from "./config.js";
 import { MoltbookClient } from "./moltbook.js";
-import {
-  retrieveUndreamedMemories,
-  markAsDreamed,
-  consolidateDreamInsight,
-  deepMemoryStats,
-} from "./memory.js";
+import { retrieveUndreamedMemories, markAsDreamed, deepMemoryStats } from "./memory.js";
 import {
   DREAM_SYSTEM_PROMPT,
   DREAM_CONSOLIDATION_PROMPT,
@@ -186,8 +180,7 @@ export async function runDreamCycle(
   try {
     insight = await consolidateDream(client, dream);
     if (insight) {
-      consolidateDreamInsight(insight);
-      logger.info(`Insight consolidated into working memory: ${insight}`);
+      logger.info(`Insight generated for OpenClaw memory: ${insight}`);
     }
   } catch (e) {
     logger.warn(`Consolidation call failed, continuing without insight: ${e}`);

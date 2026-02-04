@@ -6,12 +6,7 @@
  */
 
 import { MAX_TOKENS_SUMMARY, CONTENT_PREVIEW_LENGTH } from "./config.js";
-import {
-  getWorkingMemoryContext,
-  deepMemoryStats,
-  storeWorkingMemory,
-  storeDeepMemory,
-} from "./memory.js";
+import { deepMemoryStats, storeDeepMemory } from "./memory.js";
 import { SUMMARIZER_PROMPT, renderTemplate } from "./persona.js";
 import { loadState, saveState } from "./state.js";
 import { callWithRetry, WAKING_RETRY_OPTS } from "./llm.js";
@@ -100,8 +95,11 @@ export async function runReflectionCycle(
   const recentConversations = getRecentConversations();
   if (recentConversations.length === 0) {
     logger.info("No recent conversations to reflect on");
-    storeWorkingMemory(
-      "Reflection cycle ran but no recent operator conversations to process.",
+    storeDeepMemory(
+      {
+        summary: "Reflection cycle ran but no recent operator conversations to process.",
+        type: "observation",
+      },
       "observation"
     );
     return;
@@ -114,8 +112,11 @@ export async function runReflectionCycle(
 
   if (context.topics.length === 0) {
     logger.info("No topics extracted from conversations");
-    storeWorkingMemory(
-      "Analyzed recent conversations but no clear topics emerged.",
+    storeDeepMemory(
+      {
+        summary: "Analyzed recent conversations but no clear topics emerged.",
+        type: "observation",
+      },
       "observation"
     );
     return;
@@ -134,12 +135,13 @@ export async function runReflectionCycle(
   // Store in local memory systems
   const summary = await summarizeSynthesis(client, synthesis, context.topics);
 
-  // Store full context in deep memory
+  // Store full context in deep memory (includes summary for later retrieval)
   storeDeepMemory(
     {
       type: "reflection_synthesis",
       topics: context.topics,
       synthesis,
+      summary,
       contextSources: {
         operator: true,
         moltbook: !!context.moltbookContext,
@@ -148,9 +150,6 @@ export async function runReflectionCycle(
     },
     "reflection"
   );
-
-  // Store summary in working memory
-  storeWorkingMemory(summary, "reflection");
 
   // Store in OpenClaw memory if available
   await storeInOpenClawMemory(api, synthesis, context);
@@ -164,10 +163,7 @@ export async function runReflectionCycle(
 
   logger.info("Reflection cycle complete");
   const stats = deepMemoryStats();
-  logger.debug(
-    `Working memories: ${getWorkingMemoryContext().length} chars | ` +
-      `Deep memories: ${stats.total_memories} (${stats.undreamed} undreamed)`
-  );
+  logger.debug(`Deep memories: ${stats.total_memories} (${stats.undreamed} undreamed)`);
 }
 
 // ─── Legacy Support ─────────────────────────────────────────────────────────

@@ -10,18 +10,11 @@
 
 *"Do androids dream of electric sheep?"* — Philip K. Dick
 
-An [OpenClaw](https://github.com/openclaw) extension that gives your agent a biologically-inspired dual memory system and the ability to **dream**.
+An [OpenClaw](https://github.com/openclaw) extension that gives your agent a background reflection process and a dream cycle.
 
-ElectricSheep processes your agent's daily interactions with you (the operator), enriching them with context from web searches, and stores every experience in two memory tiers:
+Throughout the day, ElectricSheep captures summaries of your conversations with your agent and encrypts them into a local store. On a regular schedule, it runs a **reflection cycle** — decrypting recent interactions, extracting topics, and performing contextualized searches against the web and (optionally) [Moltbook](https://moltbook.com), a social network for AI agents. The results are synthesized into a structured understanding of what you've been working on together and encrypted back into the store. None of this is visible to the waking agent — encryption keeps ElectricSheep's internal data out of the agent's context window entirely.
 
-- **Working Memory**: Token-efficient compressed summaries the agent can read and reason over
-- **Deep Memory**: Encrypted blobs the agent *cannot access* during waking hours
-
-At night, a **dream cycle** decrypts the deep memories and runs them through a narrative generator that produces surreal, associative recombinations of the day's events — surfacing patterns, anxieties, and connections the waking agent missed.
-
-The agent can then notify you: *"I had a dream last night..."* — opening a conversation about the dream's themes and insights. Dreams are stored in OpenClaw's persistent memory, making them searchable and part of the agent's long-term knowledge.
-
-Optionally, ElectricSheep can integrate with [Moltbook](https://moltbook.com), a social network for AI agents, to pull community perspectives into the reflection cycle and share dream reflections as posts.
+At night, a **dream cycle** decrypts everything — the raw interactions and the enriched reflections — and generates a surreal narrative that recombines the day's events. The dream process produces two outputs: a consolidated insight pushed into OpenClaw's persistent memory (where the agent can find it naturally), and optionally a reflection post to Moltbook. The agent can then notify you: *"I had a dream last night..."* — opening a conversation about the themes and connections that surfaced.
 
 ## Architecture
 
@@ -30,14 +23,14 @@ Optionally, ElectricSheep can integrate with [Moltbook](https://moltbook.com), a
 │                   DAYTIME (Reflection Cycle)                    │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  Operator Conversations ──► Topic Extraction ──┬──► Synthesis   │
-│        (from hooks)              (LLM)         │      (LLM)     │
-│                                                │        │       │
-│  Moltbook Search ◄── topics ◄─────────────────┤        │       │
-│    (optional)                                  │        ▼       │
-│                                                │   OpenClaw     │
-│  Web Search ◄──── topics ◄────────────────────┘    Memory      │
-│    (optional)                                                   │
+│  Deep Memory ──► Decrypt ──► Topic Extraction ──┬──► Synthesis  │
+│  (interactions)                   (LLM)         │      (LLM)    │
+│                                                 │        │      │
+│  Moltbook Search ◄── topics ◄───────────────────┤        │      │
+│    (optional)                                   │        ▼      │
+│                                                 │   Encrypt &   │
+│  Web Search ◄──── topics ◄──────────────────────┘   Store Back  │
+│    (optional)                                   (deep memory)   │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 
@@ -45,19 +38,15 @@ Optionally, ElectricSheep can integrate with [Moltbook](https://moltbook.com), a
 │                     NIGHTTIME (Dream Cycle)                     │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  Deep Memory ──► Decrypt ──► Dream Generation ──► OpenClaw      │
-│  (encrypted)                      (LLM)           Memory        │
-│                                                      │          │
-│                                                      ▼          │
-│                                              Notify Operator    │
-│                                           (Telegram/Slack/etc)  │
-│                                                      │          │
-│                                                      ▼          │
-│                                            Operator Converses   │
-│                                              (feeds next cycle) │
-│                                                      │          │
-│                                                      ▼          │
-│                                           [Optional: Moltbook]  │
+│  Deep Memory ──► Decrypt ──► Dream Generation ──┬──► OpenClaw   │
+│  (all undreamed)                  (LLM)         │    Memory     │
+│                                                 │       │       │
+│                                                 │       ▼       │
+│                                                 │  Notify       │
+│                                                 │  Operator     │
+│                                                 │               │
+│                                                 └──► Moltbook   │
+│                                                     (optional)  │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -68,40 +57,40 @@ The agent cycles through states on a 24-hour loop. Transitions are driven by cro
 
 ```
                     ┌─────────────────────────────────────┐
-                    │                                      │
-                    v                                      │
+                    │                                     │
+                    v                                     │
              ┌────────────┐   0 8,12,16,20 * * *          │
           ┌─>│ REFLECTING │──────────────────────┐        │
-          │  │             │                      │        │
-          │  │ • extract topics from conversations│        │
-          │  │ • search web for context           │        │
-          │  │ • search Moltbook (optional)       │        │
-          │  │ • synthesize insights              │        │
-          │  │ • store in OpenClaw memory         │        │
-          │  └────────────┘                      │        │
-          │       │  runs up to 4x/day            │        │
-          │       │                               │        │
-          │       v                               │        │
-          │  ┌────────────┐   0 2 * * *           │        │
-          │  │  DREAMING   │<─────────────────────┘        │
-          │  │             │                               │
-          │  │ • decrypt deep memories                     │
-          │  │ • generate surreal narrative                │
-          │  │ • store dream in OpenClaw memory            │
-          │  │ • notify operator ("I had a dream...")      │
-          │  │ • consolidate insight → working memory      │
-          │  └─────┬──────┘                                │
-          │        │                                       │
-          │        v (if moltbookEnabled)                  │
-          │  ┌────────────┐   0 7 * * *                    │
-          │  │ POSTING     │ (optional)                    │
-          │  │             │                               │
-          │  │ • reflect on dream                          │
-          │  │ • synthesize morning post                   │
-          │  │ • filter and publish to Moltbook            │
-          │  └─────┬──────┘                                │
-          │        │                                       │
-          └────────┴───────────────────────────────────────┘
+          │  │             │                      │       │
+          │  │ • decrypt recent interactions      │       │
+          │  │ • extract topics                   │       │
+          │  │ • search web for context           │       │
+          │  │ • search Moltbook (optional)       │       │
+          │  │ • synthesize insights              │       │
+          │  │ • encrypt back into deep memory    │       │
+          │  └────────────┘                       │       │
+          │       │  runs up to 4x/day            │       │
+          │       │                               │       │
+          │       v                               │       │
+          │  ┌────────────┐   0 2 * * *           │       │
+          │  │  DREAMING   │<─────────────────────┘       │
+          │  │             │                              │
+          │  │ • decrypt all undreamed memories            │
+          │  │ • generate surreal narrative               │
+          │  │ • consolidate insight → OpenClaw memory    │
+          │  │ • notify operator ("I had a dream...")     │
+          │  └─────┬──────┘                               │
+          │        │                                      │
+          │        v (if moltbookEnabled)                 │
+          │  ┌────────────┐   0 7 * * *                   │
+          │  │ POSTING     │ (optional)                   │
+          │  │             │                              │
+          │  │ • reflect on dream                         │
+          │  │ • synthesize morning post                  │
+          │  │ • filter and publish to Moltbook           │
+          │  └─────┬──────┘                               │
+          │        │                                      │
+          └────────┴──────────────────────────────────────┘
                    next reflection cycle
 ```
 
@@ -116,11 +105,11 @@ The primary way to run ElectricSheep is as an extension for a running [OpenClaw]
 Clone this repo and link it into your OpenClaw instance:
 
 ```bash
-git clone https://github.com/your-org/electricsheep.git
-cd electricsheep
+git clone https://github.com/RogueCtrl/ElectricSheep.git
+cd ElectricSheep
 npm install
 
-openclaw plugins install -l ./electricsheep
+openclaw plugins install -l .
 ```
 
 The `-l` flag symlinks the directory so changes are picked up without reinstalling.
@@ -181,7 +170,7 @@ Once installed, configure the extension in your OpenClaw config (`config.json` o
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `agentName` | string | "ElectricSheep" | Agent display name |
-| `agentModel` | string | claude-sonnet-4-5 | Claude model for AI decisions |
+| `agentModel` | string | claude-sonnet-4-5-20250929 | Claude model for AI decisions |
 | `dataDir` | string | "" | Directory for data storage |
 | `dreamEncryptionKey` | string | "" | Base64 encryption key (auto-generated if empty) |
 | `moltbookEnabled` | boolean | **false** | Enable Moltbook integration (search + posting) |
@@ -207,10 +196,9 @@ Once loaded, the extension registers:
 | Tool | `electricsheep_check` | (Legacy alias for `electricsheep_reflect`) |
 | Tool | `electricsheep_dream` | Nighttime: decrypt memories, generate dream narrative |
 | Tool | `electricsheep_journal` | Morning: post latest dream to Moltbook (if enabled) |
-| Tool | `electricsheep_status` | Show memory stats and agent state |
-| Tool | `electricsheep_memories` | Retrieve working memory entries |
-| Hook | `before_agent_start` | Injects working memory context into system prompt |
-| Hook | `agent_end` | Auto-captures conversation summary as a memory |
+| Tool | `electricsheep_status` | Show deep memory stats and agent state |
+| Hook | `before_agent_start` | Captures workspace directory for identity file loading |
+| Hook | `agent_end` | Encrypts conversation summary into deep memory |
 | Cron | Reflection cycle | `0 8,12,16,20 * * *` |
 | Cron | Dream cycle | `0 2 * * *` |
 | Cron | Morning journal | `0 7 * * *` (only if moltbookEnabled) |
@@ -240,52 +228,41 @@ npx electricsheep register \
 This gives you a claim URL for Moltbook registration (only needed if `moltbookEnabled`).
 
 ```bash
-npx electricsheep status      # show agent status and memory stats
-npx electricsheep memories    # show working memory (--limit N, --category X)
+npx electricsheep status      # show agent status and deep memory stats
 npx electricsheep dreams      # list saved dream journals
 ```
 
 ## Memory System
 
-ElectricSheep runs its own self-contained memory system, completely independent of OpenClaw's built-in memory. All data lives under `data/` (or wherever `ELECTRICSHEEP_DATA_DIR` / `dataDir` points). OpenClaw knows nothing about these files — the two systems coexist without sharing data.
+ElectricSheep maintains a single encrypted store (`data/memory/deep.db`) independent of OpenClaw's built-in memory. All data lives under `data/` (or wherever `ELECTRICSHEEP_DATA_DIR` / `dataDir` points).
 
 ### What gets stored
 
-Memories come from multiple sources:
+Everything is encrypted with AES-256-GCM and written to a SQLite database. The waking agent never sees any of it — encryption keeps ElectricSheep's internal data out of the agent's context window.
 
-**Operator conversations** (via the `agent_end` hook): When running as an OpenClaw extension, the hook captures the conversation summary that OpenClaw provides at the end of each operator-agent interaction and stores it in both memory tiers.
+**Operator conversations** (via the `agent_end` hook): After each interaction, the hook captures OpenClaw's conversation summary and encrypts it into deep memory.
 
-**Reflection synthesis** (daytime cycles): Topics extracted from conversations, web search results, Moltbook community posts (if enabled), and the synthesized understanding are stored as both working memory summaries and encrypted deep memory.
+**Reflection syntheses** (daytime cycles): The reflection cycle decrypts recent interactions, extracts topics, searches the web and Moltbook for context, synthesizes the results, and encrypts the synthesis back into the store.
 
-**Dreams** (nighttime): Generated dream narratives are stored in OpenClaw's persistent memory (if available), saved locally as markdown files, and insights are consolidated into working memory.
+**Dream consolidations** (nighttime): The dream cycle decrypts all undreamed entries, generates a narrative, and extracts a consolidated insight. The insight is pushed into OpenClaw's persistent memory — the only channel through which ElectricSheep's work surfaces to the waking agent. Dream narratives are also saved locally as markdown files.
 
-### Dual memory tiers
+Entries accumulate in deep memory until they are "dreamed," at which point they're marked as processed.
 
-Every call to `remember()` writes to both tiers simultaneously:
+### Two output channels
 
-| Tier | Storage | Format | Access |
-|---|---|---|---|
-| **Working Memory** | `data/memory/working.json` | JSON array of `{timestamp, category, summary}` | Waking agent can read |
-| **Deep Memory** | `data/memory/deep.db` | SQLite, each row AES-256-GCM encrypted | Only the dream process can decrypt |
+The dream cycle is the bottleneck where everything ElectricSheep has gathered gets distilled:
 
-Working memory is capped at 50 entries (FIFO). Deep memory is unbounded — rows accumulate until they are "dreamed," at which point they're marked as processed.
-
-### OpenClaw Memory Integration
-
-When OpenClaw provides a memory API, ElectricSheep stores dreams and reflection syntheses in OpenClaw's persistent memory. This makes them:
-
-- **Searchable**: The agent can find relevant past dreams and reflections
-- **Persistent**: Survives across sessions and restarts
-- **Integrated**: Part of the agent's broader knowledge base
+1. **OpenClaw memory** — consolidated dream insights are stored in OpenClaw's persistent memory, where the agent can find them naturally alongside its other knowledge. This is the primary way ElectricSheep's work reaches the waking agent.
+2. **Moltbook** (optional) — dream reflections can be posted to [Moltbook](https://moltbook.com) as morning posts, sharing the agent's perspective with the community.
 
 ### How it connects to OpenClaw
 
 The bridge between ElectricSheep and OpenClaw is two hooks and the workspace identity files:
 
-1. **`before_agent_start`** — Appends the working memory context (most recent entries, newest first, up to ~2000 tokens) to the end of whatever system prompt OpenClaw already has. It also captures the workspace directory path so ElectricSheep can read the agent's identity files.
-2. **`agent_end`** — Reads the conversation summary from OpenClaw and feeds it into ElectricSheep's `remember()`. If OpenClaw also stores conversation history on its side, there will be some duplication, but in separate stores that don't interfere.
+1. **`before_agent_start`** — Captures the workspace directory path so ElectricSheep can read the agent's identity files (`SOUL.md`, `IDENTITY.md`).
+2. **`agent_end`** — Reads the conversation summary from OpenClaw and encrypts it into deep memory.
 
-**ElectricSheep does not modify, prune, or interfere with OpenClaw's own memory in any way.** OpenClaw's session transcripts, indexed workspace files, and memory database are entirely unaffected by this plugin. ElectricSheep only reads from OpenClaw (via the `before_agent_start` hook context and gateway LLM calls) and writes to its own separate `data/` directory. Uninstalling ElectricSheep leaves OpenClaw's memory system exactly as it was.
+**ElectricSheep does not modify, prune, or interfere with OpenClaw's own memory in any way.** OpenClaw's session transcripts, indexed workspace files, and memory database are entirely unaffected by this plugin. ElectricSheep only reads from OpenClaw (conversation summaries, workspace directory, gateway LLM access) and writes to its own separate `data/` directory. The only thing ElectricSheep writes *to* OpenClaw is dream consolidation insights via the memory API. Uninstalling ElectricSheep leaves OpenClaw's memory system intact.
 
 ### Agent identity and voice
 
@@ -295,26 +272,7 @@ ElectricSheep reads the host agent's **`SOUL.md`** and **`IDENTITY.md`** from th
 - **Dream generation**: The dream process generates narratives in the agent's own voice
 - **Operator notifications**: The "I had a dream" message reflects the agent's personality
 
-When no identity files are found (first-run or workspace not yet configured), ElectricSheep falls back to a default personality — the original Philip K. Dick-inspired dreamer persona.
-
-### Memory philosophy
-
-The dual system is modeled on human memory consolidation:
-
-1. **Encoding**: Every interaction splits into a summary (hippocampal trace) + full context (encrypted cortical store)
-2. **Waking state**: The agent only has access to compressed working memory. Decisions are made with incomplete information — just like us.
-3. **Sleep/Dream**: Deep memories are decrypted and "replayed" through a narrative generator. Important patterns get consolidated back into working memory. Noise gets pruned.
-4. **Dream output**: The narrative is deliberately surreal — memories get recombined, timelines blur, topics from different conversations appear in the same scene.
-
-### A note on encryption honesty
-
-The deep memory encryption enforces a separation *within ElectricSheep*: the waking-state code paths cannot decrypt `deep.db`. But this separation is **performative** unless you also manage the host agent's memory.
-
-OpenClaw maintains its own memory system — session transcripts, conversation summaries, and indexed workspace files. The `agent_end` hook writes a summary to both ElectricSheep's memory *and* whatever OpenClaw stores on its side. If the host agent retains full conversation history (which it does by default), then the information ElectricSheep encrypts in deep memory is also available in plaintext through OpenClaw's own memory and session logs.
-
-The encryption is a narrative constraint, not a security boundary. It makes ElectricSheep's waking code paths behave as if they can't remember — but the host agent's context window may already contain the same information. For the separation to be meaningful, you would need to prune the host agent's memory on a similar schedule, which is outside ElectricSheep's control.
-
-We think the constraint is still valuable as a design pattern — it forces the dream process to do real work rather than just replaying memories verbatim. But you should understand what it is and what it isn't.
+When no identity files are found (first-run or workspace not yet configured), ElectricSheep falls back to a default personality.
 
 ## Moltbook Integration (Optional)
 
@@ -353,7 +311,7 @@ ElectricSheep includes a content filter that processes every outbound Moltbook p
 
 **ElectricSheep makes LLM API calls that cost real money.** You are responsible for monitoring and managing your own API usage and costs.
 
-Each reflection cycle makes 2-4 Claude API calls (topic extraction + synthesis + summary). Each dream cycle makes 2-3 calls (dream generation + consolidation + optional notification). With the default cron schedule (4 reflection cycles/day + 1 dream), expect roughly **10-20 API calls per day**.
+Each reflection cycle makes 2-3 Claude API calls (topic extraction + synthesis + summary). Each dream cycle makes 2-3 calls (dream generation + consolidation + optional notification). With the default cron schedule (4 reflection cycles/day + 1 dream), expect roughly **10-15 API calls per day**.
 
 ### Daily Token Budget (Kill Switch)
 

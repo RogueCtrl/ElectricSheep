@@ -1,21 +1,17 @@
 /**
- * Dual memory system: Working Memory + Encrypted Deep Memory.
+ * Encrypted deep memory system.
  *
- * The waking agent only has access to working memory (compressed summaries).
- * Deep memories are encrypted and can only be read by the dream process.
+ * All memories are encrypted with AES-256-GCM in a SQLite database.
+ * The waking agent writes to deep memory but cannot read it — only
+ * the dream process can decrypt. Context for LLM prompts is formatted
+ * via `formatDeepMemoryContext()`.
  */
 
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import Database from "better-sqlite3";
 import { getCipher } from "./crypto.js";
-import {
-  DEEP_MEMORY_DB,
-  WORKING_MEMORY_FILE,
-  WORKING_MEMORY_MAX_ENTRIES,
-  WORKING_MEMORY_CONTEXT_TOKENS,
-} from "./config.js";
-import type { WorkingMemoryEntry, DecryptedMemory, DeepMemoryStats } from "./types.js";
+import { DEEP_MEMORY_DB, DEEP_MEMORY_CONTEXT_TOKENS } from "./config.js";
+import type { DecryptedMemory, DeepMemoryStats } from "./types.js";
 
 // ─── Deep Memory (Encrypted) ────────────────────────────────────────────────
 
@@ -156,68 +152,89 @@ export function deepMemoryStats(): DeepMemoryStats {
   };
 }
 
-// ─── Working Memory (Compressed, Readable) ──────────────────────────────────
+// ─── Deep Memory Queries ────────────────────────────────────────────────────
 
-function loadWorkingMemory(): WorkingMemoryEntry[] {
-  if (existsSync(WORKING_MEMORY_FILE)) {
-    return JSON.parse(readFileSync(WORKING_MEMORY_FILE, "utf-8"));
-  }
-  return [];
+export interface DeepMemoryQueryOptions {
+  limit?: number;
+  categories?: string[];
+  undreamedOnly?: boolean;
 }
 
-function saveWorkingMemory(memories: WorkingMemoryEntry[]): void {
-  writeFileSync(WORKING_MEMORY_FILE, JSON.stringify(memories, null, 2));
-}
+/**
+ * Query deep memory with optional filters. Decrypts results, handles
+ * corruption gracefully, returns in chronological order.
+ */
+export function getRecentDeepMemories(
+  options?: DeepMemoryQueryOptions
+): DecryptedMemory[] {
+  const db = getDb();
+  const cipher = getCipher();
 
-export function storeWorkingMemory(
-  summary: string,
-  category: string = "interaction",
-  metadata?: Record<string, unknown>
-): void {
-  const memories = loadWorkingMemory();
+  const conditions: string[] = [];
+  const params: unknown[] = [];
 
-  const entry: WorkingMemoryEntry = {
-    timestamp: new Date().toISOString(),
-    category,
-    summary,
-  };
-  if (metadata) {
-    entry.metadata = metadata;
+  if (options?.categories && options.categories.length > 0) {
+    const placeholders = options.categories.map(() => "?").join(",");
+    conditions.push(`category IN (${placeholders})`);
+    params.push(...options.categories);
   }
 
-  memories.push(entry);
-
-  // Prune oldest if over limit
-  const pruned =
-    memories.length > WORKING_MEMORY_MAX_ENTRIES
-      ? memories.slice(-WORKING_MEMORY_MAX_ENTRIES)
-      : memories;
-
-  saveWorkingMemory(pruned);
-}
-
-export function getWorkingMemory(
-  limit?: number,
-  category?: string
-): WorkingMemoryEntry[] {
-  let memories = loadWorkingMemory();
-
-  if (category) {
-    memories = memories.filter((m) => m.category === category);
+  if (options?.undreamedOnly) {
+    conditions.push("dreamed = 0");
   }
 
-  if (limit) {
-    memories = memories.slice(-limit);
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const limitClause = options?.limit ? `LIMIT ?` : "";
+  if (options?.limit) params.push(options.limit);
+
+  const query = `SELECT id, timestamp, category, encrypted_blob
+     FROM deep_memories ${where} ORDER BY timestamp DESC ${limitClause}`;
+
+  const rows = db.prepare(query).all(...params) as Array<{
+    id: number;
+    timestamp: string;
+    category: string;
+    encrypted_blob: string;
+  }>;
+
+  const memories: DecryptedMemory[] = [];
+  for (const row of rows) {
+    try {
+      const decrypted = JSON.parse(cipher.decrypt(row.encrypted_blob));
+      memories.push({
+        id: row.id,
+        timestamp: row.timestamp,
+        category: row.category,
+        content: decrypted,
+      });
+    } catch {
+      memories.push({
+        id: row.id,
+        timestamp: row.timestamp,
+        category: "corrupted",
+        content: { note: "This memory could not be recovered." },
+      });
+    }
   }
 
-  return memories;
+  // Return in chronological order (oldest first)
+  return memories.reverse();
 }
 
-export function getWorkingMemoryContext(
-  maxTokensApprox: number = WORKING_MEMORY_CONTEXT_TOKENS
+/**
+ * Format decrypted memories as a text block for LLM prompts.
+ *
+ * Extracts `content.summary` when available, falls back to truncated JSON.
+ * Respects an approximate token budget (1 token ≈ 4 chars).
+ */
+export function formatDeepMemoryContext(
+  memories?: DecryptedMemory[],
+  maxTokensApprox: number = DEEP_MEMORY_CONTEXT_TOKENS
 ): string {
-  const memories = loadWorkingMemory();
-  if (memories.length === 0) {
+  const mems =
+    memories ?? getRecentDeepMemories({ categories: ["interaction", "reflection"] });
+
+  if (mems.length === 0) {
     return "No memories yet. This is my first day.";
   }
 
@@ -225,11 +242,16 @@ export function getWorkingMemoryContext(
   const charBudget = maxTokensApprox * 4;
   let charCount = 0;
 
-  for (let i = memories.length - 1; i >= 0; i--) {
-    const mem = memories[i];
-    const line = `[${mem.timestamp.slice(0, 16)}] (${mem.category}) ${mem.summary}`;
+  // Iterate from most recent to oldest
+  for (let i = mems.length - 1; i >= 0; i--) {
+    const mem = mems[i];
+    const summary =
+      typeof mem.content.summary === "string"
+        ? mem.content.summary
+        : JSON.stringify(mem.content).slice(0, 200);
+    const line = `[${mem.timestamp.slice(0, 16)}] (${mem.category}) ${summary}`;
     if (charCount + line.length > charBudget) {
-      lines.unshift(`... (${memories.length - lines.length} older memories omitted)`);
+      lines.unshift(`... (${mems.length - lines.length} older memories omitted)`);
       break;
     }
     lines.unshift(line);
@@ -239,20 +261,16 @@ export function getWorkingMemoryContext(
   return lines.join("\n");
 }
 
-export function consolidateDreamInsight(
-  insight: string,
-  sourceCategory: string = "dream_consolidation"
-): void {
-  storeWorkingMemory(`[DREAM INSIGHT] ${insight}`, sourceCategory);
-}
+// ─── Store Helper ───────────────────────────────────────────────────────────
 
-// ─── Dual Store Helper ──────────────────────────────────────────────────────
-
+/**
+ * Store a memory in encrypted deep memory.
+ * The summary is included in the content object for later retrieval.
+ */
 export function remember(
   summary: string,
   fullContext: Record<string, unknown>,
   category: string = "interaction"
 ): void {
-  storeWorkingMemory(summary, category);
-  storeDeepMemory(fullContext, category);
+  storeDeepMemory({ ...fullContext, summary }, category);
 }

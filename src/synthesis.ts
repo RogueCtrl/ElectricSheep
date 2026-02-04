@@ -8,7 +8,7 @@
 import { extractTopicsFromConversations } from "./topics.js";
 import { searchWebForTopics, formatWebContext } from "./web-search.js";
 import { searchMoltbookForTopics, formatMoltbookContext } from "./moltbook-search.js";
-import { getWorkingMemoryContext } from "./memory.js";
+import { formatDeepMemoryContext } from "./memory.js";
 import { callWithRetry, WAKING_RETRY_OPTS } from "./llm.js";
 import { SYNTHESIS_PROMPT, renderTemplate } from "./persona.js";
 import { getAgentIdentityBlock } from "./identity.js";
@@ -37,7 +37,7 @@ export async function gatherContext(
   if (extracted.topics.length === 0) {
     logger.info("No topics extracted, returning minimal context");
     return {
-      operatorContext: getWorkingMemoryContext(),
+      operatorContext: formatDeepMemoryContext(),
       topics: [],
     };
   }
@@ -71,7 +71,7 @@ export async function gatherContext(
   }
 
   return {
-    operatorContext: getWorkingMemoryContext(),
+    operatorContext: formatDeepMemoryContext(),
     moltbookContext: moltbookContext || undefined,
     webContext: webContext || undefined,
     topics: extracted.topics,
@@ -84,7 +84,7 @@ export async function gatherContext(
 export function formatSynthesisContext(ctx: SynthesisContext): string {
   const sections: string[] = [];
 
-  sections.push(`WORKING MEMORY (Recent Experiences):\n${ctx.operatorContext}`);
+  sections.push(`RECENT EXPERIENCES:\n${ctx.operatorContext}`);
 
   if (ctx.topics.length > 0) {
     sections.push(

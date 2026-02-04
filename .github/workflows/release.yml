@@ -35,8 +35,10 @@ jobs:
 
       - name: Determine version bump
         id: bump
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
-          MSG="${{ github.event.head_commit.message }}"
+          MSG="$COMMIT_MSG"
           # Get first line of commit message
           FIRST_LINE=$(echo "$MSG" | head -n 1)
 
