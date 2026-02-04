@@ -1,6 +1,6 @@
 {
   "name": "electricsheep",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A reflection engine that synthesizes agent-operator interactions into dreams",
   "type": "module",
   "main": "dist/index.js",
