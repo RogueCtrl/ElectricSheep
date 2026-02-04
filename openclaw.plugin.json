@@ -1,7 +1,7 @@
 {
   "name": "electricsheep",
   "displayName": "ElectricSheep",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "A reflection engine that synthesizes agent-operator interactions into dreams, enriched by community and web context",
   "entry": "dist/index.js",
   "skills": [
