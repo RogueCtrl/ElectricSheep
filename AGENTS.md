@@ -44,6 +44,8 @@ npm run format:check  # check formatting without writing
 
 ESLint uses flat config (`eslint.config.js`) with `typescript-eslint` and `eslint-config-prettier`. Prettier handles formatting (`.prettierrc`). TypeScript strict mode is enabled. Unused variables are errors (prefix with `_` if intentionally unused). CI runs build → lint → format:check → test on every PR.
 
+**AGENT INSTRUCTION:** Before committing any code changes, you MUST run `npm run lint:fix` and `npm run format` to ensure all linting and format issues are automatically resolved. Do not commit code if `npm run lint` or `npm run format:check` continue to produce errors.
+
 ## PR Process & Releasing
 
 Use conventional commit prefixes in PR titles. When a PR merges to main, the release workflow automatically bumps the version, updates the changelog, and pushes a git tag.
