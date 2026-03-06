@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.7.0](https://github.com/RogueCtrl/OpenClawDreams/compare/v0.6.0...v0.7.0) (2026-03-06)
+
+
+### Features
+
+* **cli:** add dream command and extract shared createDirectClient helper ([6032258](https://github.com/RogueCtrl/OpenClawDreams/commit/603225887ff382fa86c6e4b072de9585710bc1c6))
+
+
+### Bug Fixes
+
+* **cli:** use direct Anthropic API for reflect command instead of nonexistent tools call ([016bc48](https://github.com/RogueCtrl/OpenClawDreams/commit/016bc48bfa70f7ffb25565f5988a49c667ebec0a))
+* **lint:** replace all any types with proper typed alternatives ([3698cc4](https://github.com/RogueCtrl/OpenClawDreams/commit/3698cc4b4a37594b7efdc6e4dc3f01c1cb8cade1))
+* **openclaw:** upgrade plugin to use subagent runtime for reflection ([027679d](https://github.com/RogueCtrl/OpenClawDreams/commit/027679d3566d3a2d5ff410acc7c4e6459c204fd2))
+
 ## [0.6.0](https://github.com/RogueCtrl/OpenClawDreams/compare/v0.5.0...v0.6.0) (2026-03-06)
 
 
