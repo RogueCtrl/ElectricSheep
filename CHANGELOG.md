@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.5.1](https://github.com/RogueCtrl/OpenClawDreams/compare/v0.5.0...v0.5.1) (2026-03-06)
+
+
+### Tests
+
+* fix ENOTEMPTY failures in rmSync due to lingering Winston logger streams ([84f9152](https://github.com/RogueCtrl/OpenClawDreams/commit/84f9152441b8c4299b57475567c2767601e05145))
+* remove temporary environment test files ([fbe76af](https://github.com/RogueCtrl/OpenClawDreams/commit/fbe76af8157f27e0afedb2ce13c841c67a477939))
+
 ## [0.5.0](https://github.com/RogueCtrl/OpenClawDreams/compare/v0.4.0...v0.5.0) (2026-03-06)
 
 
