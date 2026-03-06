@@ -34,9 +34,9 @@ function wrapGateway(api: OpenClawAPI): LLMClient {
         text: resp.content[0].text,
         usage: resp.usage
           ? {
-              input_tokens: resp.usage.input_tokens ?? 0,
-              output_tokens: resp.usage.output_tokens ?? 0,
-            }
+            input_tokens: resp.usage.input_tokens ?? 0,
+            output_tokens: resp.usage.output_tokens ?? 0,
+          }
           : undefined,
       };
     },
@@ -142,29 +142,59 @@ export function register(api: OpenClawAPI): void {
 
   api.registerHook(
     "agent_end",
-    async (ctx) => {
-      api.logger?.info?.(
-        `[ElectricSheep] agent_end hook fired! Context keys: ${Object.keys(ctx).join(", ")}`
-      );
-      const summary = ctx.conversationSummary as string | undefined;
-      const historySummary = ctx.summary as string | undefined;
-      const finalSummary = summary || historySummary;
+    async (event) => {
+      const msgs = (event as Record<string, unknown>).messages;
+      if (!Array.isArray(msgs) || msgs.length === 0) return event;
 
-      if (finalSummary) {
+      const userMsgs = msgs.filter((m) => m.role === "user");
+      if (userMsgs.length === 0) return event;
+
+      try {
+        const conversationText = msgs
+          .map((m) => {
+            let text = "";
+            if (typeof m.content === "string") text = m.content;
+            else if (Array.isArray(m.content)) {
+              const contentObj = m.content.find(
+                (c: unknown) =>
+                  typeof c === "object" && c !== null && (c as Record<string, unknown>).type === "text"
+              ) as Record<string, unknown> | undefined;
+              text = typeof contentObj?.text === "string" ? contentObj.text : "";
+            }
+            return `${m.role.toUpperCase()}: ${text}`;
+          })
+          .join("\\n\\n");
+
         api.logger?.info?.(
-          `[ElectricSheep] Capturing conversation summary: ${finalSummary.slice(0, 50)}...`
+          `[ElectricSheep] Synthesizing summary for conversation ending...`
         );
-        remember(
-          finalSummary,
-          { type: "agent_conversation", summary: finalSummary },
-          "interaction"
-        );
-      } else {
-        api.logger?.warn?.(
-          `[ElectricSheep] No conversation summary found in agent_end context!`
-        );
+        const { AGENT_MODEL } = await import("./config.js");
+
+        const response = await client.createMessage({
+          model: AGENT_MODEL,
+          maxTokens: 500,
+          system:
+            "You are an AI assistant. Summarize the following conversation in 2-3 concise sentences. Focus on the main topics discussed, tasks completed, and any conclusions made by the user or assistant.",
+          messages: [{ role: "user", content: conversationText }],
+        });
+
+        if (response.usage) {
+          const { recordUsage } = await import("./budget.js");
+          recordUsage(response.usage);
+        }
+
+        const summary = response.text.trim();
+        if (summary) {
+          api.logger?.info?.(
+            `[ElectricSheep] Captured summary: ${summary.slice(0, 50)}...`
+          );
+          remember(summary, { type: "agent_conversation", summary }, "interaction");
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        api.logger?.error?.(`[ElectricSheep] Error generating summary: ${msg}`);
       }
-      return ctx;
+      return event;
     },
     { name: "electricsheep_conversation_capture" }
   );
