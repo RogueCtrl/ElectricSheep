@@ -18,16 +18,17 @@ import { setVerbose } from "./logger.js";
 import { DREAMS_DIR } from "./config.js";
 import type { AgentState, DeepMemoryStats } from "./types.js";
 
-export const program = new Command();
-
-program
-  .name("electricsheep")
-  .description("ElectricSheep — an AI agent that dreams.")
-  .option("-v, --verbose", "Enable verbose logging")
-  .hook("preAction", (thisCommand) => {
-    const opts = thisCommand.opts();
-    if (opts.verbose) setVerbose(true);
-  });
+/**
+ * Register all ElectricSheep subcommands onto a parent Command.
+ * Used both by the standalone bin and by api.registerCli().
+ */
+export function registerCommands(parent: Command): void {
+  parent
+    .option("-v, --verbose", "Enable verbose logging")
+    .hook("preAction", (thisCommand) => {
+      const opts = thisCommand.opts();
+      if (opts.verbose) setVerbose(true);
+    });
 
 program
   .command("register")
@@ -139,3 +140,9 @@ program
       console.log(`  ${chalk.dim(stem)} ${firstLine}`);
     }
   });
+} // end registerCommands
+
+// Standalone bin entry point
+export const program = new Command();
+program.name("electricsheep").description("ElectricSheep — an AI agent that dreams.");
+registerCommands(program);

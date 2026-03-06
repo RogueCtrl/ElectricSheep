@@ -114,7 +114,10 @@ export interface OpenClawAPI {
     parameters: Record<string, unknown>;
     handler: (params: Record<string, unknown>) => Promise<unknown>;
   }): void;
-  registerCli(program: unknown): void;
+  registerCli(
+    callback: (ctx: { program: import("commander").Command }) => void,
+    opts?: { commands?: string[] }
+  ): void;
   registerHook(
     event: string,
     handler: (ctx: Record<string, unknown>) => Promise<unknown>

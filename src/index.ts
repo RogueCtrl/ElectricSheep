@@ -4,7 +4,7 @@
  * Registers tools, CLI subcommands, hooks, and cron jobs.
  */
 
-import { program } from "./cli.js";
+import { registerCommands } from "./cli.js";
 import { runReflectionCycle } from "./waking.js";
 import { runDreamCycle, postDreamJournal } from "./dreamer.js";
 import { deepMemoryStats, remember } from "./memory.js";
@@ -116,7 +116,13 @@ export function register(api: OpenClawAPI): void {
 
   // --- CLI ---
 
-  api.registerCli(program);
+  api.registerCli(
+    ({ program }) => {
+      const esCmd = program.command("electricsheep").description("ElectricSheep — an AI agent that dreams.");
+      registerCommands(esCmd);
+    },
+    { commands: ["electricsheep"] },
+  );
 
   // --- Hooks ---
 
