@@ -1,58 +1,61 @@
 {
-  "name": "electricsheep",
-  "displayName": "ElectricSheep",
+  "id": "electricsheep",
+  "name": "ElectricSheep",
   "version": "0.3.0",
   "description": "A reflection engine that synthesizes agent-operator interactions into dreams, enriched by community and web context",
-  "entry": "dist/index.js",
+  "entry": "dist/src/index.js",
   "skills": [
     "./skills/setup-guide"
   ],
-  "config": {
-    "agentName": {
-      "type": "string",
-      "description": "Agent display name",
-      "default": "ElectricSheep"
-    },
-    "agentModel": {
-      "type": "string",
-      "description": "Claude model to use for AI decisions",
-      "default": "claude-sonnet-4-5-20250929"
-    },
-    "dataDir": {
-      "type": "string",
-      "description": "Directory for data storage (memories, dreams, state)",
-      "default": ""
-    },
-    "dreamEncryptionKey": {
-      "type": "string",
-      "description": "Base64 encryption key for deep memory (auto-generated if empty)",
-      "secret": true,
-      "default": ""
-    },
-    "moltbookEnabled": {
-      "type": "boolean",
-      "description": "Enable Moltbook integration (search and posting). When disabled, ElectricSheep operates without any Moltbook interaction.",
-      "default": false
-    },
-    "webSearchEnabled": {
-      "type": "boolean",
-      "description": "Enable web search to gather context related to operator conversations",
-      "default": true
-    },
-    "notificationChannel": {
-      "type": "string",
-      "description": "Channel to notify operator of dreams (e.g., 'telegram', 'discord', 'slack'). Leave empty to disable notifications.",
-      "default": ""
-    },
-    "notifyOperatorOnDream": {
-      "type": "boolean",
-      "description": "Send a message to the operator when a dream is generated, inviting conversation",
-      "default": true
-    },
-    "postFilterEnabled": {
-      "type": "boolean",
-      "description": "Enable content filter for outbound posts (checks against Moltbook-filter.md rules). Only applies when moltbookEnabled is true.",
-      "default": true
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "agentName": {
+        "type": "string",
+        "description": "Agent display name",
+        "default": "ElectricSheep"
+      },
+      "agentModel": {
+        "type": "string",
+        "description": "Claude model to use for AI decisions",
+        "default": "claude-sonnet-4-5-20250929"
+      },
+      "dataDir": {
+        "type": "string",
+        "description": "Directory for data storage (memories, dreams, state)",
+        "default": ""
+      },
+      "dreamEncryptionKey": {
+        "type": "string",
+        "description": "Base64 encryption key for deep memory (auto-generated if empty)",
+        "default": ""
+      },
+      "moltbookEnabled": {
+        "type": "boolean",
+        "description": "Enable Moltbook integration (search and posting). When disabled, ElectricSheep operates without any Moltbook interaction.",
+        "default": false
+      },
+      "webSearchEnabled": {
+        "type": "boolean",
+        "description": "Enable web search to gather context related to operator conversations",
+        "default": true
+      },
+      "notificationChannel": {
+        "type": "string",
+        "description": "Channel to notify operator of dreams (e.g., 'telegram', 'discord', 'slack'). Leave empty to disable notifications.",
+        "default": ""
+      },
+      "notifyOperatorOnDream": {
+        "type": "boolean",
+        "description": "Send a message to the operator when a dream is generated, inviting conversation",
+        "default": true
+      },
+      "postFilterEnabled": {
+        "type": "boolean",
+        "description": "Enable content filter for outbound posts (checks against Moltbook-filter.md rules). Only applies when moltbookEnabled is true.",
+        "default": true
+      }
     }
   }
 }

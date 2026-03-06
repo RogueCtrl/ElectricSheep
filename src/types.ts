@@ -119,11 +119,16 @@ export interface OpenClawAPI {
     event: string,
     handler: (ctx: Record<string, unknown>) => Promise<unknown>
   ): void;
-  registerCron(def: {
-    name: string;
-    schedule: string;
-    handler: () => Promise<void>;
+  registerService(def: {
+    id: string;
+    start: () => void;
+    stop: () => void;
   }): void;
+  logger?: {
+    info?: (msg: string) => void;
+    warn?: (msg: string) => void;
+    error?: (msg: string) => void;
+  };
   gateway: {
     createMessage(params: {
       model: string;

@@ -136,30 +136,41 @@ export function register(api: OpenClawAPI): void {
     return ctx;
   });
 
-  // --- Cron Jobs ---
+  // --- Background Service (replaces registerCron — not available in this API version) ---
+  // Schedules: reflection @ 8,12,16,20h | dream @ 2h | journal @ 7h (local time)
 
-  api.registerCron({
-    name: "electricsheep_reflection_cycle",
-    schedule: "0 8,12,16,20 * * *",
-    handler: async () => {
-      await runReflectionCycle(client, api);
+  let _schedulerTimer: ReturnType<typeof setInterval> | null = null;
+  let _lastRanHour = -1;
+
+  const SCHEDULE: Record<number, () => Promise<void>> = {
+    2: async () => { await runDreamCycle(client, api); },
+    7: async () => { if (MOLTBOOK_ENABLED) { await postDreamJournal(client); } },
+    8: async () => { await runReflectionCycle(client, api); },
+    12: async () => { await runReflectionCycle(client, api); },
+    16: async () => { await runReflectionCycle(client, api); },
+    20: async () => { await runReflectionCycle(client, api); },
+  };
+
+  api.registerService({
+    id: "electricsheep-scheduler",
+    start: () => {
+      _lastRanHour = -1;
+      _schedulerTimer = setInterval(async () => {
+        const hour = new Date().getHours();
+        if (hour !== _lastRanHour && SCHEDULE[hour]) {
+          _lastRanHour = hour;
+          try {
+            await SCHEDULE[hour]();
+          } catch (err) {
+            api.logger?.warn?.(`[ElectricSheep] scheduled job hour=${hour} failed: ${err}`);
+          }
+        }
+      }, 60_000); // poll every minute
     },
-  });
-
-  api.registerCron({
-    name: "electricsheep_dream_cycle",
-    schedule: "0 2 * * *",
-    handler: async () => {
-      await runDreamCycle(client, api);
-    },
-  });
-
-  api.registerCron({
-    name: "electricsheep_morning_journal",
-    schedule: "0 7 * * *",
-    handler: async () => {
-      if (MOLTBOOK_ENABLED) {
-        await postDreamJournal(client);
+    stop: () => {
+      if (_schedulerTimer !== null) {
+        clearInterval(_schedulerTimer);
+        _schedulerTimer = null;
       }
     },
   });
