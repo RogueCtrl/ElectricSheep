@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.4.1](https://github.com/RogueCtrl/OpenClawDreams/compare/v0.4.0...v0.4.1) (2026-03-06)
+
+
+### Features
+
+* Introduce plugin ID in package configuration and export plugin object from index.ts. ([5085020](https://github.com/RogueCtrl/OpenClawDreams/commit/5085020d87b5fb6f85bdbb3c43d67370cb7ce5a7))
+
+
+### Documentation
+
+* clarify hot-reloading mechanism for plugin activation ([6cfda73](https://github.com/RogueCtrl/OpenClawDreams/commit/6cfda73540be85155a730c2734156350ca5b2742))
+* clarify internal scheduler and daemon uptime dependency ([dc0e6a6](https://github.com/RogueCtrl/OpenClawDreams/commit/dc0e6a6a7a160575bd395b133b983e841de78358))
+* remove references to cron in favor of internal node scheduler ([8496605](https://github.com/RogueCtrl/OpenClawDreams/commit/84966051c700d74256ebb05f7a4ba6d88261ecc2))
+
 ## [0.4.0](https://github.com/RogueCtrl/ElectricSheep/compare/v0.3.1...v0.4.0) (2026-03-06)
 
 
