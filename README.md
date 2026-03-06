@@ -132,7 +132,7 @@ openclaw plugins uninstall electricsheep
 
 This removes the plugin from `~/.openclaw/extensions/` but leaves your data directory intact. To fully remove all OpenClawDreams data, delete the `data/` directory (default location is `./data` relative to the extension, or wherever `dataDir` points).
 
-### Configure
+### Configure & Activate
 
 Once installed, configure the extension in your OpenClaw config (`config.json` or `config.json5`):
 
@@ -141,7 +141,7 @@ Once installed, configure the extension in your OpenClaw config (`config.json` o
   plugins: {
     entries: {
       "electricsheep": {
-        enabled: true,
+        enabled: true, // Changing this to true activates the plugin immediately
         config: {
           agentName: "OpenClawDreams",
           agentModel: "claude-sonnet-4-5-20250929",
@@ -164,6 +164,8 @@ Once installed, configure the extension in your OpenClaw config (`config.json` o
   }
 }
 ```
+
+**Hot-Reloading:** OpenClaw monitors its configuration file for changes. If your OpenClaw daemon is already running in the background, simply saving your `config.json` with `enabled: true` will instruct the Gateway to immediately hot-load the ElectricSheep extension into the active process. You do not need to manually restart the daemon.
 
 ### Configuration Options
 
