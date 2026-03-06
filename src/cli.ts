@@ -290,8 +290,24 @@ export function registerCommands(parent: Command): void {
     )
     .action(async () => {
       console.log(chalk.blue.bold("\nTriggering Moltbook post...\n"));
-      const { postDreamJournal } = await import("./dreamer.js");
+      const { postDreamJournal, loadLatestDream } = await import("./dreamer.js");
       const { client } = await createDirectClient();
+
+      // Show what will be posted
+      const latestDream = loadLatestDream();
+      if (latestDream) {
+        const title =
+          latestDream.markdown.split("\n")[0].replace(/^#\s*/, "") || "Untitled Dream";
+        const preview = latestDream.markdown
+          .split("\n")
+          .slice(1)
+          .join(" ")
+          .trim()
+          .slice(0, 200);
+        console.log(chalk.magenta(`  Dream: ${title}`));
+        console.log(chalk.dim(`  ${preview}...\n`));
+      }
+
       try {
         await postDreamJournal(client);
         console.log(chalk.green.bold("\nPost cycle complete.\n"));

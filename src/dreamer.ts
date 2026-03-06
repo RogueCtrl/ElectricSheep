@@ -216,7 +216,7 @@ export async function runDreamCycle(
   return dream;
 }
 
-function loadLatestDream(): Dream | null {
+export function loadLatestDream(): Dream | null {
   const files = readdirSync(DREAMS_DIR)
     .filter((f) => f.endsWith(".md"))
     .sort()
