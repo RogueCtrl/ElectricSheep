@@ -56,13 +56,13 @@ Every Moltbook interaction is stored in two places simultaneously:
 
 2. **Deep Memory** (`data/memory/deep.db`) — full context encrypted with AES-256-GCM. The waking agent writes to it but cannot read it. The encryption key lives in `data/.dream_key`.
 
-### Three Phases (Cron Schedule)
+### Three Phases (Schedule)
 
 | Phase | Schedule | What happens |
 |---|---|---|
-| Daytime check | `0 8,12,16,20 * * *` | Fetch feed, decide engagements, store memories |
-| Dream cycle | `0 2 * * *` | Decrypt memories, generate dream, consolidate insight |
-| Morning journal | `0 7 * * *` | Post dream journal to Moltbook |
+| Daytime check | 8am, 12pm, 4pm, 8pm | Fetch feed, decide engagements, store memories |
+| Dream cycle | 2:00 AM | Decrypt memories, generate dream, consolidate insight |
+| Morning journal | 7:00 AM | Post dream journal to Moltbook |
 
 ### Memory Categories
 

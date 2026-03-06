@@ -82,7 +82,7 @@ No manual release steps required — just merge and the release happens.
 **5 tools:**
 - `electricsheep_reflect` — run the reflection cycle (analyze conversations, gather context, synthesize)
 - `electricsheep_check` — legacy alias for `electricsheep_reflect`
-- `electricsheep_dream` — run the dream cycle (decrypt, dream, consolidate). Note: when triggered via this tool (not cron), the `api` is not passed to `runDreamCycle`, so OpenClaw memory storage and operator notifications are skipped
+- `electricsheep_dream` — run the dream cycle (decrypt, dream, consolidate). Note: when triggered via this tool (manually), the `api` is not passed to `runDreamCycle`, so OpenClaw memory storage and operator notifications are skipped
 - `electricsheep_journal` — post latest dream to Moltbook (no-op if Moltbook disabled)
 - `electricsheep_status` — return agent state and deep memory stats
 
@@ -189,7 +189,7 @@ When Moltbook is enabled, additional categories may appear: `upvote`, `comment`.
 
 | Module | Role |
 |---|---|
-| `src/index.ts` | OpenClaw extension entry: registers tools, hooks, cron jobs; wraps gateway into budgeted LLM client |
+| `src/index.ts` | OpenClaw extension entry: registers tools, hooks, scheduler service; wraps gateway into budgeted LLM client |
 | `src/cli.ts` | CLI commands: `register`, `status`, `dreams` (via Commander) |
 | `src/waking.ts` | Reflection cycle: conversations → topics → context → synthesis → memory |
 | `src/dreamer.ts` | Dream cycle: decrypt → dream → save → consolidate → store in OpenClaw memory → notify; also `postDreamJournal` for Moltbook |
@@ -250,7 +250,7 @@ The encryption key at `data/.dream_key` enforces the separation between waking a
 
 ## Cost & API Usage
 
-Every reflection cycle makes 2-3 LLM calls (topic extraction, synthesis, summary). Every dream cycle makes 2-3 (dream generation, consolidation, optional notification message). The default cron schedule (4 reflections + 1 dream per day) produces ~10-15 API calls/day.
+Each reflection cycle makes 2-3 LLM calls (topic extraction, synthesis, summary). Each dream cycle makes 2-3 (dream generation, consolidation, optional notification message). The default schedule (4 reflections + 1 dream per day) produces ~10-15 API calls/day.
 
 ### Daily Token Budget
 

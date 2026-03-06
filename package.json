@@ -59,6 +59,7 @@
     "openclaw": ">=1.0.0"
   },
   "openclaw": {
+    "id": "electricsheep",
     "extensions": [
       "./dist/src/index.js"
     ]

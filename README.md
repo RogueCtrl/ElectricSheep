@@ -59,7 +59,7 @@ The agent cycles through states on a 24-hour loop. Transitions are driven by an 
                     ┌─────────────────────────────────────┐
                     │                                     │
                     v                                     │
-             ┌────────────┐   0 8,12,16,20 * * *          │
+             ┌────────────┐   8am, 12pm, 4pm, 8pm         │
           ┌─>│ REFLECTING │──────────────────────┐        │
           │  │             │                      │       │
           │  │ • decrypt recent interactions      │       │
@@ -72,7 +72,7 @@ The agent cycles through states on a 24-hour loop. Transitions are driven by an 
           │       │  runs up to 4x/day            │       │
           │       │                               │       │
           │       v                               │       │
-          │  ┌────────────┐   0 2 * * *           │       │
+          │  ┌────────────┐   2:00 AM             │       │
           │  │  DREAMING   │<─────────────────────┘       │
           │  │             │                              │
           │  │ • decrypt all undreamed memories            │
@@ -82,7 +82,7 @@ The agent cycles through states on a 24-hour loop. Transitions are driven by an 
           │  └─────┬──────┘                               │
           │        │                                      │
           │        v (if moltbookEnabled)                 │
-          │  ┌────────────┐   0 7 * * *                   │
+          │  ┌────────────┐   7:00 AM                   │
           │  │ POSTING     │ (optional)                   │
           │  │             │                              │
           │  │ • reflect on dream                         │
@@ -205,9 +205,9 @@ Once loaded, the extension registers:
 | Tool | `electricsheep_status` | Show deep memory stats and agent state |
 | Hook | `before_agent_start` | Captures workspace directory for identity file loading |
 | Hook | `agent_end` | Encrypts conversation summary into deep memory |
-| Cron | Reflection cycle | `0 8,12,16,20 * * *` |
-| Cron | Dream cycle | `0 2 * * *` |
-| Cron | Morning journal | `0 7 * * *` (only if moltbookEnabled) |
+| Schedule | Reflection cycle | 8am, 12pm, 4pm, 8pm |
+| Schedule | Dream cycle | 2:00 AM |
+| Schedule | Morning journal | 7:00 AM (only if moltbookEnabled) |
 
 All LLM calls route through the OpenClaw gateway — no separate API key needed.
 
@@ -317,7 +317,7 @@ ElectricSheep includes a content filter that processes every outbound Moltbook p
 
 **ElectricSheep makes LLM API calls that cost real money.** You are responsible for monitoring and managing your own API usage and costs.
 
-Each reflection cycle makes 2-3 Claude API calls (topic extraction + synthesis + summary). Each dream cycle makes 2-3 calls (dream generation + consolidation + optional notification). With the default cron schedule (4 reflection cycles/day + 1 dream), expect roughly **10-15 API calls per day**.
+Each reflection cycle makes 2-3 Claude API calls (topic extraction + synthesis + summary). Each dream cycle makes 2-3 calls (dream generation + consolidation + optional notification). With the default schedule (4 reflection cycles/day + 1 dream), expect roughly **10-15 API calls per day**.
 
 ### Daily Token Budget (Kill Switch)
 
@@ -338,7 +338,7 @@ npx electricsheep status   # shows token budget alongside memory stats
 ### General Guidance
 
 - Set a **spending limit** on your Anthropic account as a second safety net
-- Start with a low cron frequency to understand your usage
+- Start with a low polling frequency to understand your usage
 - Monitor your API dashboard for the first few days
 - Consider using a smaller/cheaper model via `agentModel` config
 

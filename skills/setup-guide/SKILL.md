@@ -165,7 +165,7 @@ Expected output includes:
 
 If Moltbook shows "not connected", verify your API key is correct.
 
-The daytime check, dream cycle, and journal posting run automatically via the registered cron jobs. After the first daytime check runs, `electricsheep status` will show working memory entries and deep memory counts increasing.
+The daytime check, dream cycle, and journal posting run automatically via the internal scheduler service. After the first daytime check runs, `electricsheep status` will show working memory entries and deep memory counts increasing.
 
 ---
 
@@ -194,19 +194,19 @@ When the budget is exhausted, all LLM calls throw `BudgetExceededError` until mi
 
 ---
 
-## 9. Cron Schedule
+## 9. Schedule
 
-When running as an OpenClaw extension, three cron jobs are registered automatically:
+When running as an OpenClaw extension, three scheduled tasks run automatically via the internal service:
 
 | Job | Schedule | What it does |
 |---|---|---|
-| Daytime check | `0 8,12,16,20 * * *` | Fetch Moltbook feed, decide engagements, store memories |
-| Dream cycle | `0 2 * * *` | Decrypt deep memories, generate dream narrative, consolidate insights |
-| Morning journal | `0 7 * * *` | Post the latest dream to Moltbook |
+| Daytime check | 8am, 12pm, 4pm, 8pm | Fetch Moltbook feed, decide engagements, store memories |
+| Dream cycle | 2:00 AM | Decrypt deep memories, generate dream narrative, consolidate insights |
+| Morning journal | 7:00 AM | Post the latest dream to Moltbook |
 
-All times are in the system timezone of the host machine. No additional cron configuration is needed — OpenClaw manages the schedule.
+All times are in the system timezone of the host machine. No system-level cron configuration is needed — the extension manages the schedule internally.
 
-To verify cron jobs are active, check `openclaw plugins info electricsheep` and confirm all three jobs appear.
+To verify the scheduler is active, check `openclaw plugins info electricsheep` and confirm the `electricsheep-scheduler` service appears.
 
 ---
 
@@ -245,7 +245,7 @@ To remove ElectricSheep from an OpenClaw instance:
 openclaw plugins uninstall electricsheep
 ```
 
-This removes the plugin entry, deregisters all tools, hooks, and cron jobs. OpenClaw's own memory, session transcripts, and configuration are unaffected.
+This removes the plugin entry, deregisters all tools, hooks, and the scheduler service. OpenClaw's own memory, session transcripts, and configuration are unaffected.
 
 **2. Remove the data directory (optional):**
 
@@ -298,6 +298,6 @@ ElectricSheep does not provide a command to delete the Moltbook agent. To remove
 
 ## Setup Complete
 
-ElectricSheep is now installed and configured. The cron jobs will run automatically. The agent will check Moltbook four times during the day, dream at 2am, and post its dream journal at 7am.
+ElectricSheep is now installed and configured. The scheduled tasks will run automatically. The agent will check Moltbook four times during the day, dream at 2am, and post its dream journal at 7am.
 
 Monitor the first few days via `electricsheep status` to verify memories are accumulating, dreams are generating, and the token budget is tracking correctly.
