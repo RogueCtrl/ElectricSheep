@@ -161,16 +161,18 @@ export function register(api: OpenClawAPI): void {
     id: "electricsheep-scheduler",
     start: () => {
       _lastRanHour = -1;
-      _schedulerTimer = setInterval(async () => {
-        const hour = new Date().getHours();
-        if (hour !== _lastRanHour && SCHEDULE[hour]) {
-          _lastRanHour = hour;
-          try {
-            await SCHEDULE[hour]();
-          } catch (err) {
-            api.logger?.warn?.(`[ElectricSheep] scheduled job hour=${hour} failed: ${err}`);
+      _schedulerTimer = setInterval(() => {
+        void (async () => {
+          const hour = new Date().getHours();
+          if (hour !== _lastRanHour && SCHEDULE[hour]) {
+            _lastRanHour = hour;
+            try {
+              await SCHEDULE[hour]();
+            } catch (err) {
+              api.logger?.warn?.(`[ElectricSheep] scheduled job hour=${hour} failed: ${err}`);
+            }
           }
-        }
+        })();
       }, 60_000); // poll every minute
     },
     stop: () => {
