@@ -36,7 +36,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/RogueCtrl/OpenClawDreams.git"
+    "url": "git+https://github.com/RogueCtrl/OpenClawDreams.git"
   },
   "homepage": "https://github.com/RogueCtrl/OpenClawDreams#readme",
   "dependencies": {
