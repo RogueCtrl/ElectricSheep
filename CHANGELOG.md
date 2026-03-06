@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.7.1](https://github.com/RogueCtrl/OpenClawDreams/compare/v0.6.0...v0.7.1) (2026-03-06)
+
+
+### Features
+
+* **cli:** add dream command and extract shared createDirectClient helper ([6032258](https://github.com/RogueCtrl/OpenClawDreams/commit/603225887ff382fa86c6e4b072de9585710bc1c6))
+* **cli:** add dream preview summary to post command output ([777c7b0](https://github.com/RogueCtrl/OpenClawDreams/commit/777c7b071795247d088a480a19b2328702a01607))
+* **cli:** add post command for manual Moltbook posting ([52dfe78](https://github.com/RogueCtrl/OpenClawDreams/commit/52dfe7879ac946f7d929578bb530fc4cd1ee6632))
+
+
+### Bug Fixes
+
+* **cli:** force Moltbook post from CLI by bypassing MOLTBOOK_ENABLED const ([4354bd5](https://github.com/RogueCtrl/OpenClawDreams/commit/4354bd508da47db3e7015e41157fc80b76943517))
+* **cli:** use direct Anthropic API for reflect command instead of nonexistent tools call ([016bc48](https://github.com/RogueCtrl/OpenClawDreams/commit/016bc48bfa70f7ffb25565f5988a49c667ebec0a))
+* **lint:** replace all any types with proper typed alternatives ([3698cc4](https://github.com/RogueCtrl/OpenClawDreams/commit/3698cc4b4a37594b7efdc6e4dc3f01c1cb8cade1))
+* **moltbook:** remove title filter that inflated title, cap at 300 chars ([8d746fc](https://github.com/RogueCtrl/OpenClawDreams/commit/8d746fcd4093cd8a118128f9a877da110670d8e8))
+* **openclaw:** upgrade plugin to use subagent runtime for reflection ([027679d](https://github.com/RogueCtrl/OpenClawDreams/commit/027679d3566d3a2d5ff410acc7c4e6459c204fd2))
+
+
+### Documentation
+
+* update CLI section with reflect, dream, status commands ([89b9a76](https://github.com/RogueCtrl/OpenClawDreams/commit/89b9a7634c270b00a59da1d358b951e6bd0fd8cc))
+
 ## [0.7.0](https://github.com/RogueCtrl/OpenClawDreams/compare/v0.6.0...v0.7.0) (2026-03-06)
 
 
