@@ -91,5 +91,5 @@ describe("Dream cycle", () => {
 after(async () => {
   closeDb();
   await closeLogger();
-  rmSync(testDir, { recursive: true, force: true });
+  rmSync(testDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
 });

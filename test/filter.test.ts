@@ -111,5 +111,5 @@ describe("Post filter", () => {
 
 after(async () => {
   await closeLogger();
-  rmSync(testDir, { recursive: true, force: true });
+  rmSync(testDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
 });
