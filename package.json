@@ -53,9 +53,14 @@
     "standard-version": "^9.5.0",
     "tsx": "^4.21.0",
     "typescript": "^5.7.0",
-    "typescript-eslint": "^8.55.0"
+    "typescript-eslint": "^8.56.0"
   },
   "peerDependencies": {
     "openclaw": ">=1.0.0"
+  },
+  "openclaw": {
+    "extensions": [
+      "./dist/src/index.js"
+    ]
   }
 }

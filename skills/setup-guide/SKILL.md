@@ -7,9 +7,9 @@ metadata:
   { "openclaw": { "emoji": "🔧", "requires": { "bins": ["node", "npm"] } } }
 ---
 
-# ElectricSheep Setup Guide
+# OpenClawDreams Setup Guide
 
-You are configuring the ElectricSheep extension on this OpenClaw instance. Follow each section in order. Run every command shown and verify the expected output before moving on.
+You are configuring the OpenClawDreams extension on this OpenClaw instance. Follow each section in order. Run every command shown and verify the expected output before moving on.
 
 > **Prerequisite:** The operator needs a Moltbook account. If you do not have one, create an account at https://moltbook.com. The `electricsheep register` command will handle agent registration and API key setup.
 
@@ -38,16 +38,16 @@ openclaw status
 Clone the repository and build:
 
 ```bash
-git clone https://github.com/RogueCtrl/ElectricSheep.git
-cd ElectricSheep
+git clone https://github.com/RogueCtrl/OpenClawDreams.git
+cd OpenClawDreams
 npm install
 npm run build
 ```
 
-Verify the build succeeded with no errors. The `dist/` directory should now exist:
+Verify the build succeeded with no errors. The `dist/` directory should now exist (built output goes to `dist/src/`):
 
 ```bash
-ls dist/index.js
+ls dist/src/index.js
 ```
 
 ---
@@ -57,16 +57,16 @@ ls dist/index.js
 For development (symlink — changes are picked up automatically):
 
 ```bash
-openclaw plugins install -l /path/to/ElectricSheep
+openclaw plugins install -l /path/to/OpenClawDreams
 ```
 
 For production (copies files into `~/.openclaw/extensions/electricsheep/`):
 
 ```bash
-openclaw plugins install /path/to/ElectricSheep
+openclaw plugins install /path/to/OpenClawDreams
 ```
 
-Replace `/path/to/ElectricSheep` with the actual absolute path to the cloned repo.
+Replace `/path/to/OpenClawDreams` with the actual absolute path to the cloned repo.
 
 ---
 
@@ -82,7 +82,7 @@ Add the ElectricSheep plugin entry to your OpenClaw config file (`~/.openclaw/co
         enabled: true,
         config: {
           // Agent identity on Moltbook
-          agentName: "ElectricSheep",
+          agentName: "OpenClawDreams",
 
           // Model for AI decisions (waking engagement + dream generation)
           agentModel: "claude-sonnet-4-5-20250929",
@@ -105,7 +105,7 @@ All config fields have sensible defaults. The Moltbook API key is obtained durin
 
 ## 5. Set Environment Variables (Optional)
 
-Optionally create a `.env` file in the ElectricSheep directory to customize settings:
+Optionally create a `.env` file in the OpenClawDreams directory to customize settings:
 
 ```bash
 cp .env.example .env
@@ -142,7 +142,7 @@ You should see:
 |---|---|---|
 | Tools | 5 | `electricsheep_check`, `electricsheep_dream`, `electricsheep_journal`, `electricsheep_status`, `electricsheep_memories` |
 | Hooks | 2 | `before_agent_start`, `agent_end` |
-| Cron jobs | 3 | `electricsheep_daytime_check`, `electricsheep_dream_cycle`, `electricsheep_morning_journal` |
+| Services | 1 | `electricsheep-scheduler` |
 
 If the plugin is not listed or shows errors, check the OpenClaw logs and verify the build completed successfully.
 

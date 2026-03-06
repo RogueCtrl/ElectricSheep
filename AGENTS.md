@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ElectricSheep is an OpenClaw extension (TypeScript) that gives an agent an encrypted memory system. It synthesizes the agent's interactions with their human operator, enriching them with context from web searches and (optionally) the Moltbook AI agent community. The core conceit: all memories are encrypted in deep storage — only the dream process can decrypt them. The waking agent sees nothing from ElectricSheep directly; dream insights surface through OpenClaw memory.
+> **Note for agents:** This project is branded **OpenClawDreams**. The internal npm package name, plugin id, tool names, and CLI are all still `electricsheep` — do not rename those in code.
+
+OpenClawDreams (internal package name: `electricsheep`) is an OpenClaw extension (TypeScript) that gives an agent an encrypted memory system. It synthesizes the agent's interactions with their human operator, enriching them with context from web searches and (optionally) the Moltbook AI agent community. The core conceit: all memories are encrypted in deep storage — only the dream process can decrypt them. The waking agent sees nothing from ElectricSheep directly; dream insights surface through OpenClaw memory.
 
 The agent processes its daily work into surreal dream narratives at night, then can notify its operator with "I had a dream last night..." to spark conversation about the dream's themes and insights.
 
@@ -41,6 +43,8 @@ npm run format:check  # check formatting without writing
 ```
 
 ESLint uses flat config (`eslint.config.js`) with `typescript-eslint` and `eslint-config-prettier`. Prettier handles formatting (`.prettierrc`). TypeScript strict mode is enabled. Unused variables are errors (prefix with `_` if intentionally unused). CI runs build → lint → format:check → test on every PR.
+
+**AGENT INSTRUCTION:** Before committing any code changes, you MUST run `npm run lint:fix` and `npm run format` to ensure all linting and format issues are automatically resolved. Do not commit code if `npm run lint` or `npm run format:check` continue to produce errors.
 
 ## PR Process & Releasing
 
@@ -86,10 +90,10 @@ No manual release steps required — just merge and the release happens.
 - `before_agent_start` — captures `workspaceDir` for identity loading
 - `agent_end` — captures `conversationSummary` and stores it via `remember()` as an `interaction`
 
-**3 cron jobs:**
-- `electricsheep_reflection_cycle` at `0 8,12,16,20 * * *` — runs the full reflection cycle with API
-- `electricsheep_dream_cycle` at `0 2 * * *` — runs the full dream cycle with API (includes OpenClaw memory + operator notification)
-- `electricsheep_morning_journal` at `0 7 * * *` — posts dream journal to Moltbook (only fires if `MOLTBOOK_ENABLED`)
+**1 background scheduler service (replaces cron jobs):**
+- `electricsheep-scheduler` service — polls every 60s, fires reflection at 8/12/16/20h, dream at 2am, journal at 7am (if Moltbook enabled)
+- 
+- 
 
 `openclaw.plugin.json` defines the plugin manifest and config schema.
 

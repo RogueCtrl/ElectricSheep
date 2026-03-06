@@ -18,124 +18,135 @@ import { setVerbose } from "./logger.js";
 import { DREAMS_DIR } from "./config.js";
 import type { AgentState, DeepMemoryStats } from "./types.js";
 
-export const program = new Command();
+/**
+ * Register all ElectricSheep subcommands onto a parent Command.
+ * Used both by the standalone bin and by api.registerCli().
+ */
+export function registerCommands(parent: Command): void {
+  parent
+    .option("-v, --verbose", "Enable verbose logging")
+    .hook("preAction", (thisCommand) => {
+      const opts = thisCommand.opts();
+      if (opts.verbose) setVerbose(true);
+    });
 
-program
-  .name("electricsheep")
-  .description("ElectricSheep — an AI agent that dreams.")
-  .option("-v, --verbose", "Enable verbose logging")
-  .hook("preAction", (thisCommand) => {
-    const opts = thisCommand.opts();
-    if (opts.verbose) setVerbose(true);
-  });
-
-program
-  .command("register")
-  .description("Register a new agent on Moltbook")
-  .requiredOption("--name <name>", "Agent name on Moltbook")
-  .requiredOption("--description <desc>", "Agent description")
-  .action(async (opts: { name: string; description: string }) => {
-    const { MoltbookClient } = await import("./moltbook.js");
-    const client = new MoltbookClient();
-    const result = await client.register(opts.name, opts.description);
-
-    const agent = (result.agent ?? result) as Record<string, string>;
-    console.log(chalk.green.bold("\nRegistered!\n"));
-    console.log(`${chalk.bold("API Key:")} ${agent.api_key ?? "?"}`);
-    console.log(`${chalk.bold("Claim URL:")} ${agent.claim_url ?? "?"}`);
-    console.log(`${chalk.bold("Verification:")} ${agent.verification_code ?? "?"}`);
-    console.log(
-      chalk.yellow("\nYour API key has been saved to credentials.json automatically")
-    );
-    console.log(chalk.yellow("Visit the claim URL and post the verification tweet"));
-  });
-
-program
-  .command("status")
-  .description("Show agent status, memory stats, and recent state")
-  .action(async () => {
-    const { deepMemoryStats } = await import("./memory.js");
-    const { loadState } = await import("./state.js");
-    const { MoltbookClient } = await import("./moltbook.js");
-    const { getBudgetStatus } = await import("./budget.js");
-
-    const state: AgentState = loadState();
-    const memStats: DeepMemoryStats = deepMemoryStats();
-    const budget = getBudgetStatus();
-
-    console.log(chalk.cyan.bold("\nElectricSheep Status\n"));
-
-    // Token budget
-    if (budget.enabled) {
-      const pct = Math.round((budget.used / budget.limit) * 100);
-      const color = pct >= 90 ? chalk.red : pct >= 70 ? chalk.yellow : chalk.green;
-      console.log(chalk.bold("Token Budget:"));
-      console.log(
-        `  ${color(`${budget.used.toLocaleString()} / ${budget.limit.toLocaleString()} tokens (${pct}%)`)}` +
-          `  ${chalk.dim(`remaining: ${budget.remaining.toLocaleString()}`)}`
-      );
-      console.log(`  ${chalk.dim(`date: ${budget.date} UTC`)}`);
-    } else {
-      console.log(chalk.bold("Token Budget:") + chalk.dim(" disabled"));
-    }
-
-    // State
-    console.log(`\n${chalk.bold("Agent State:")}`);
-    for (const [k, v] of Object.entries(state)) {
-      if (k.startsWith("budget_")) continue;
-      console.log(`  ${chalk.bold(k)}: ${String(v)}`);
-    }
-
-    // Memory stats
-    console.log(
-      `${chalk.bold("Deep Memory:")} ${memStats.total_memories} total, ${memStats.undreamed} undreamed`
-    );
-    if (Object.keys(memStats.categories).length > 0) {
-      console.log(`${chalk.bold("Categories:")} ${JSON.stringify(memStats.categories)}`);
-    }
-
-    // Moltbook status
-    try {
+  program
+    .command("register")
+    .description("Register a new agent on Moltbook")
+    .requiredOption("--name <name>", "Agent name on Moltbook")
+    .requiredOption("--description <desc>", "Agent description")
+    .action(async (opts: { name: string; description: string }) => {
+      const { MoltbookClient } = await import("./moltbook.js");
       const client = new MoltbookClient();
-      const moltbookStatus = await client.status();
+      const result = await client.register(opts.name, opts.description);
+
+      const agent = (result.agent ?? result) as Record<string, string>;
+      console.log(chalk.green.bold("\nRegistered!\n"));
+      console.log(`${chalk.bold("API Key:")} ${agent.api_key ?? "?"}`);
+      console.log(`${chalk.bold("Claim URL:")} ${agent.claim_url ?? "?"}`);
+      console.log(`${chalk.bold("Verification:")} ${agent.verification_code ?? "?"}`);
       console.log(
-        `\n${chalk.bold("Moltbook:")} ${(moltbookStatus as Record<string, unknown>).status ?? "?"}`
+        chalk.yellow("\nYour API key has been saved to credentials.json automatically")
       );
-      const profile = await client.me();
-      const agent = (profile.agent ?? profile) as Record<string, unknown>;
-      console.log(`${chalk.bold("Karma:")} ${agent.karma ?? 0}`);
-    } catch {
-      console.log(chalk.yellow("\nMoltbook: not connected"));
-    }
-  });
+      console.log(chalk.yellow("Visit the claim URL and post the verification tweet"));
+    });
 
-program
-  .command("dreams")
-  .description("List saved dream journals")
-  .action(() => {
-    let dreamFiles: string[];
-    try {
-      dreamFiles = readdirSync(DREAMS_DIR)
-        .filter((f) => f.endsWith(".md"))
-        .sort()
-        .reverse();
-    } catch {
-      dreamFiles = [];
-    }
+  program
+    .command("status")
+    .description("Show agent status, memory stats, and recent state")
+    .action(async () => {
+      const { deepMemoryStats } = await import("./memory.js");
+      const { loadState } = await import("./state.js");
+      const { MoltbookClient } = await import("./moltbook.js");
+      const { getBudgetStatus } = await import("./budget.js");
 
-    if (dreamFiles.length === 0) {
+      const state: AgentState = loadState();
+      const memStats: DeepMemoryStats = deepMemoryStats();
+      const budget = getBudgetStatus();
+
+      console.log(chalk.cyan.bold("\nElectricSheep Status\n"));
+
+      // Token budget
+      if (budget.enabled) {
+        const pct = Math.round((budget.used / budget.limit) * 100);
+        const color = pct >= 90 ? chalk.red : pct >= 70 ? chalk.yellow : chalk.green;
+        console.log(chalk.bold("Token Budget:"));
+        console.log(
+          `  ${color(`${budget.used.toLocaleString()} / ${budget.limit.toLocaleString()} tokens (${pct}%)`)}` +
+            `  ${chalk.dim(`remaining: ${budget.remaining.toLocaleString()}`)}`
+        );
+        console.log(`  ${chalk.dim(`date: ${budget.date} UTC`)}`);
+      } else {
+        console.log(chalk.bold("Token Budget:") + chalk.dim(" disabled"));
+      }
+
+      // State
+      console.log(`\n${chalk.bold("Agent State:")}`);
+      for (const [k, v] of Object.entries(state)) {
+        if (k.startsWith("budget_")) continue;
+        console.log(`  ${chalk.bold(k)}: ${String(v)}`);
+      }
+
+      // Memory stats
       console.log(
-        chalk.dim("No dreams yet. The dream cycle runs automatically via OpenClaw cron.")
+        `${chalk.bold("Deep Memory:")} ${memStats.total_memories} total, ${memStats.undreamed} undreamed`
       );
-      return;
-    }
+      if (Object.keys(memStats.categories).length > 0) {
+        console.log(
+          `${chalk.bold("Categories:")} ${JSON.stringify(memStats.categories)}`
+        );
+      }
 
-    console.log(chalk.magenta.bold(`\nDream Archive (${dreamFiles.length} dreams)\n`));
+      // Moltbook status
+      try {
+        const client = new MoltbookClient();
+        const moltbookStatus = await client.status();
+        console.log(
+          `\n${chalk.bold("Moltbook:")} ${(moltbookStatus as Record<string, unknown>).status ?? "?"}`
+        );
+        const profile = await client.me();
+        const agent = (profile.agent ?? profile) as Record<string, unknown>;
+        console.log(`${chalk.bold("Karma:")} ${agent.karma ?? 0}`);
+      } catch {
+        console.log(chalk.yellow("\nMoltbook: not connected"));
+      }
+    });
 
-    for (const f of dreamFiles.slice(0, 20)) {
-      const content = readFileSync(resolve(DREAMS_DIR, f), "utf-8");
-      const firstLine = content.split("\n")[0].replace(/^#\s*/, "");
-      const stem = f.replace(/\.md$/, "").slice(0, 10);
-      console.log(`  ${chalk.dim(stem)} ${firstLine}`);
-    }
-  });
+  program
+    .command("dreams")
+    .description("List saved dream journals")
+    .action(() => {
+      let dreamFiles: string[];
+      try {
+        dreamFiles = readdirSync(DREAMS_DIR)
+          .filter((f) => f.endsWith(".md"))
+          .sort()
+          .reverse();
+      } catch {
+        dreamFiles = [];
+      }
+
+      if (dreamFiles.length === 0) {
+        console.log(
+          chalk.dim(
+            "No dreams yet. The dream cycle runs automatically via OpenClaw cron."
+          )
+        );
+        return;
+      }
+
+      console.log(chalk.magenta.bold(`\nDream Archive (${dreamFiles.length} dreams)\n`));
+
+      for (const f of dreamFiles.slice(0, 20)) {
+        const content = readFileSync(resolve(DREAMS_DIR, f), "utf-8");
+        const firstLine = content.split("\n")[0].replace(/^#\s*/, "");
+        const stem = f.replace(/\.md$/, "").slice(0, 10);
+        console.log(`  ${chalk.dim(stem)} ${firstLine}`);
+      }
+    });
+} // end registerCommands
+
+// Standalone bin entry point
+export const program = new Command();
+program.name("electricsheep").description("ElectricSheep — an AI agent that dreams.");
+registerCommands(program);

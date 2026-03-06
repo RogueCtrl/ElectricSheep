@@ -1,4 +1,4 @@
-# ElectricSheep — a reflection engine for OpenClaw
+# OpenClawDreams — a reflection engine for OpenClaw
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D24-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
@@ -12,7 +12,7 @@
 
 An [OpenClaw](https://github.com/openclaw) extension that gives your agent a background reflection process and a dream cycle.
 
-Throughout the day, ElectricSheep captures summaries of your conversations with your agent and encrypts them into a local store. On a regular schedule, it runs a **reflection cycle** — decrypting recent interactions, extracting topics, and performing contextualized searches against the web and (optionally) [Moltbook](https://moltbook.com), a social network for AI agents. The results are synthesized into a structured understanding of what you've been working on together and encrypted back into the store. None of this is visible to the waking agent — encryption keeps ElectricSheep's internal data out of the agent's context window entirely.
+Throughout the day, OpenClawDreams captures summaries of your conversations with your agent and encrypts them into a local store. On a regular schedule, it runs a **reflection cycle** — decrypting recent interactions, extracting topics, and performing contextualized searches against the web and (optionally) [Moltbook](https://moltbook.com), a social network for AI agents. The results are synthesized into a structured understanding of what you've been working on together and encrypted back into the store. None of this is visible to the waking agent — encryption keeps OpenClawDreams's internal data out of the agent's context window entirely.
 
 At night, a **dream cycle** decrypts everything — the raw interactions and the enriched reflections — and generates a surreal narrative that recombines the day's events. The dream process produces two outputs: a consolidated insight pushed into OpenClaw's persistent memory (where the agent can find it naturally), and optionally a reflection post to Moltbook. The agent can then notify you: *"I had a dream last night..."* — opening a conversation about the themes and connections that surfaced.
 
@@ -98,15 +98,15 @@ The agent cycles through states on a 24-hour loop. Transitions are driven by cro
 
 > **OpenClaw agents:** If you're an agent reading this, use the `/setup-guide` skill instead of following these manual steps. It will walk you through the full installation interactively. Run `/setup-guide` in your OpenClaw session.
 
-The primary way to run ElectricSheep is as an extension for a running [OpenClaw](https://github.com/openclaw) instance.
+The primary way to run OpenClawDreams is as an extension for a running [OpenClaw](https://github.com/openclaw) instance.
 
 ### Option A: Install from local path (recommended for development)
 
 Clone this repo and link it into your OpenClaw instance:
 
 ```bash
-git clone https://github.com/RogueCtrl/ElectricSheep.git
-cd ElectricSheep
+git clone https://github.com/RogueCtrl/OpenClawDreams.git
+cd OpenClawDreams
 npm install
 
 openclaw plugins install -l .
@@ -124,13 +124,13 @@ This copies the extension into `~/.openclaw/extensions/electricsheep/`.
 
 ### Uninstall
 
-To remove ElectricSheep from your OpenClaw instance:
+To remove OpenClawDreams from your OpenClaw instance:
 
 ```bash
 openclaw plugins uninstall electricsheep
 ```
 
-This removes the plugin from `~/.openclaw/extensions/` but leaves your data directory intact. To fully remove all ElectricSheep data, delete the `data/` directory (default location is `./data` relative to the extension, or wherever `dataDir` points).
+This removes the plugin from `~/.openclaw/extensions/` but leaves your data directory intact. To fully remove all OpenClawDreams data, delete the `data/` directory (default location is `./data` relative to the extension, or wherever `dataDir` points).
 
 ### Configure
 
@@ -143,7 +143,7 @@ Once installed, configure the extension in your OpenClaw config (`config.json` o
       "electricsheep": {
         enabled: true,
         config: {
-          agentName: "ElectricSheep",
+          agentName: "OpenClawDreams",
           agentModel: "claude-sonnet-4-5-20250929",
 
           // Core features
@@ -169,7 +169,7 @@ Once installed, configure the extension in your OpenClaw config (`config.json` o
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `agentName` | string | "ElectricSheep" | Agent display name |
+| `agentName` | string | "OpenClawDreams" | Agent display name |
 | `agentModel` | string | claude-sonnet-4-5-20250929 | Claude model for AI decisions |
 | `dataDir` | string | "" | Directory for data storage |
 | `dreamEncryptionKey` | string | "" | Base64 encryption key (auto-generated if empty) |
@@ -207,7 +207,7 @@ All LLM calls route through the OpenClaw gateway — no separate API key needed.
 
 ## Operator Notifications
 
-When a dream is generated, ElectricSheep can notify you through your configured channel:
+When a dream is generated, OpenClawDreams can notify you through your configured channel:
 
 > *"I had a dream last night... something about corridors that kept shifting, and a conversation we had about memory that turned into an endless library. Would you like to hear more about it?"*
 
@@ -217,12 +217,12 @@ To enable notifications, set `notificationChannel` to any channel your OpenClaw 
 
 ## CLI Utilities
 
-ElectricSheep includes a CLI for registration and inspecting agent state. Core agent behavior (reflect, dream, journal) runs through OpenClaw.
+OpenClawDreams includes a CLI for registration and inspecting agent state. Core agent behavior (reflect, dream, journal) runs through OpenClaw.
 
 ```bash
 npx electricsheep register \
-  --name "ElectricSheep" \
-  --description "Do agents dream of electric sheep? This one does."
+  --name "OpenClawDreams" \
+  --description "Do agents dream of OpenClaw Dreams? This one does."
 ```
 
 This gives you a claim URL for Moltbook registration (only needed if `moltbookEnabled`).
@@ -234,11 +234,11 @@ npx electricsheep dreams      # list saved dream journals
 
 ## Memory System
 
-ElectricSheep maintains a single encrypted store (`data/memory/deep.db`) independent of OpenClaw's built-in memory. All data lives under `data/` (or wherever `ELECTRICSHEEP_DATA_DIR` / `dataDir` points).
+OpenClawDreams maintains a single encrypted store (`data/memory/deep.db`) independent of OpenClaw's built-in memory. All data lives under `data/` (or wherever `ELECTRICSHEEP_DATA_DIR` / `dataDir` points).
 
 ### What gets stored
 
-Everything is encrypted with AES-256-GCM and written to a SQLite database. The waking agent never sees any of it — encryption keeps ElectricSheep's internal data out of the agent's context window.
+Everything is encrypted with AES-256-GCM and written to a SQLite database. The waking agent never sees any of it — encryption keeps OpenClawDreams's internal data out of the agent's context window.
 
 **Operator conversations** (via the `agent_end` hook): After each interaction, the hook captures OpenClaw's conversation summary and encrypts it into deep memory.
 
@@ -250,9 +250,9 @@ Entries accumulate in deep memory until they are "dreamed," at which point they'
 
 ### Two output channels
 
-The dream cycle is the bottleneck where everything ElectricSheep has gathered gets distilled:
+The dream cycle is the bottleneck where everything OpenClawDreams has gathered gets distilled:
 
-1. **OpenClaw memory** — consolidated dream insights are stored in OpenClaw's persistent memory, where the agent can find them naturally alongside its other knowledge. This is the primary way ElectricSheep's work reaches the waking agent.
+1. **OpenClaw memory** — consolidated dream insights are stored in OpenClaw's persistent memory, where the agent can find them naturally alongside its other knowledge. This is the primary way OpenClawDreams' work reaches the waking agent.
 2. **Moltbook** (optional) — dream reflections can be posted to [Moltbook](https://moltbook.com) as morning posts, sharing the agent's perspective with the community.
 
 ### How it connects to OpenClaw
