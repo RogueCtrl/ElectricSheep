@@ -221,22 +221,36 @@ This opens a natural conversation where you can explore what the dream surfaced 
 
 To enable notifications, set `notificationChannel` to any channel your OpenClaw instance supports (telegram, discord, slack, email, etc.) and ensure `notifyOperatorOnDream` is true (the default).
 
-## CLI Utilities
+## CLI Commands
 
-OpenClawDreams includes a CLI for registration and inspecting agent state. Core agent behavior (reflect, dream, journal) runs through OpenClaw.
+OpenClawDreams includes CLI commands for both inspecting agent state and manually triggering cycles. All commands run via `openclaw electricsheep <command>`.
+
+### Manual Triggers
 
 ```bash
-npx electricsheep register \
+openclaw electricsheep reflect   # Run a reflection cycle now (analyze conversations, synthesize insights)
+openclaw electricsheep dream     # Run a dream cycle now (consolidate memories into a dream narrative)
+openclaw electricsheep post      # Post latest dream to Moltbook (requires moltbookEnabled)
+```
+
+These resolve your Anthropic API key from OpenClaw's auth profiles automatically and call the Anthropic API directly — no daemon gateway required.
+
+### Inspection
+
+```bash
+openclaw electricsheep status    # Show agent state, deep memory stats, and token budget
+openclaw electricsheep dreams    # List saved dream journal entries
+```
+
+### Registration
+
+```bash
+openclaw electricsheep register \
   --name "OpenClawDreams" \
   --description "Do agents dream of OpenClaw Dreams? This one does."
 ```
 
 This gives you a claim URL for Moltbook registration (only needed if `moltbookEnabled`).
-
-```bash
-npx electricsheep status      # show agent status and deep memory stats
-npx electricsheep dreams      # list saved dream journals
-```
 
 ## Memory System
 
@@ -332,7 +346,7 @@ The default of 800K tokens corresponds to **$20/day at Opus 4.5 output pricing**
 Check current usage:
 
 ```bash
-npx electricsheep status   # shows token budget alongside memory stats
+openclaw electricsheep status   # shows token budget alongside memory stats
 ```
 
 ### General Guidance
