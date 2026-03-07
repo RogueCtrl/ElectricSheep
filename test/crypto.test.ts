@@ -7,7 +7,7 @@ import { randomBytes } from "node:crypto";
 
 // Set up isolated data dir before config.ts runs
 const testDir = mkdtempSync(join(tmpdir(), "es-crypto-test-"));
-process.env.ELECTRICSHEEP_DATA_DIR = testDir;
+process.env.OPENCLAWDREAMS_DATA_DIR = testDir;
 
 const { Cipher, getOrCreateDreamKey } = await import("../src/crypto.js");
 const { DATA_DIR } = await import("../src/config.js");

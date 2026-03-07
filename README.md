@@ -117,17 +117,17 @@ The `-l` flag symlinks the directory so changes are picked up without reinstalli
 ### Option B: Install by path
 
 ```bash
-openclaw plugins install /path/to/electricsheep
+openclaw plugins install /path/to/openclawdreams
 ```
 
-This copies the extension into `~/.openclaw/extensions/electricsheep/`.
+This copies the extension into `~/.openclaw/extensions/openclawdreams/`.
 
 ### Uninstall
 
 To remove OpenClawDreams from your OpenClaw instance:
 
 ```bash
-openclaw plugins uninstall electricsheep
+openclaw plugins uninstall openclawdreams
 ```
 
 This removes the plugin from `~/.openclaw/extensions/` but leaves your data directory intact. To fully remove all OpenClawDreams data, delete the `data/` directory (default location is `./data` relative to the extension, or wherever `dataDir` points).
@@ -140,7 +140,7 @@ Once installed, configure the extension in your OpenClaw config (`config.json` o
 {
   plugins: {
     entries: {
-      "electricsheep": {
+      "openclawdreams": {
         enabled: true, // Changing this to true activates the plugin immediately
         config: {
           agentName: "OpenClawDreams",
@@ -184,8 +184,8 @@ Once installed, configure the extension in your OpenClaw config (`config.json` o
 ### Verify
 
 ```bash
-openclaw plugins list              # should show electricsheep as enabled
-openclaw plugins info electricsheep  # show config schema and status
+openclaw plugins list              # should show openclawdreams as enabled
+openclaw plugins info openclawdreams  # show config schema and status
 ```
 
 ### Service Requirement
@@ -198,11 +198,11 @@ Once loaded, the extension registers:
 
 | Type | Name | Description |
 |---|---|---|
-| Tool | `electricsheep_reflect` | Daytime: analyze conversations, gather context, synthesize insights |
-| Tool | `electricsheep_check` | (Legacy alias for `electricsheep_reflect`) |
-| Tool | `electricsheep_dream` | Nighttime: decrypt memories, generate dream narrative |
-| Tool | `electricsheep_journal` | Morning: post latest dream to Moltbook (if enabled) |
-| Tool | `electricsheep_status` | Show deep memory stats and agent state |
+| Tool | `openclawdreams_reflect` | Daytime: analyze conversations, gather context, synthesize insights |
+| Tool | `openclawdreams_check` | (Legacy alias for `openclawdreams_reflect`) |
+| Tool | `openclawdreams_dream` | Nighttime: decrypt memories, generate dream narrative |
+| Tool | `openclawdreams_journal` | Morning: post latest dream to Moltbook (if enabled) |
+| Tool | `openclawdreams_status` | Show deep memory stats and agent state |
 | Hook | `before_agent_start` | Captures workspace directory for identity file loading |
 | Hook | `agent_end` | Encrypts conversation summary into deep memory |
 | Schedule | Reflection cycle | 8am, 12pm, 4pm, 8pm |
@@ -223,14 +223,14 @@ To enable notifications, set `notificationChannel` to any channel your OpenClaw 
 
 ## CLI Commands
 
-OpenClawDreams includes CLI commands for both inspecting agent state and manually triggering cycles. All commands run via `openclaw electricsheep <command>`.
+OpenClawDreams includes CLI commands for both inspecting agent state and manually triggering cycles. All commands run via `openclaw openclawdreams <command>`.
 
 ### Manual Triggers
 
 ```bash
-openclaw electricsheep reflect   # Run a reflection cycle now (analyze conversations, synthesize insights)
-openclaw electricsheep dream     # Run a dream cycle now (consolidate memories into a dream narrative)
-openclaw electricsheep post      # Post latest dream to Moltbook (requires moltbookEnabled)
+openclaw openclawdreams reflect   # Run a reflection cycle now (analyze conversations, synthesize insights)
+openclaw openclawdreams dream     # Run a dream cycle now (consolidate memories into a dream narrative)
+openclaw openclawdreams post      # Post latest dream to Moltbook (requires moltbookEnabled)
 ```
 
 These resolve your Anthropic API key from OpenClaw's auth profiles automatically and call the Anthropic API directly — no daemon gateway required.
@@ -238,14 +238,14 @@ These resolve your Anthropic API key from OpenClaw's auth profiles automatically
 ### Inspection
 
 ```bash
-openclaw electricsheep status    # Show agent state, deep memory stats, and token budget
-openclaw electricsheep dreams    # List saved dream journal entries
+openclaw openclawdreams status    # Show agent state, deep memory stats, and token budget
+openclaw openclawdreams dreams    # List saved dream journal entries
 ```
 
 ### Registration
 
 ```bash
-openclaw electricsheep register \
+openclaw openclawdreams register \
   --name "OpenClawDreams" \
   --description "Do agents dream of OpenClaw Dreams? This one does."
 ```
@@ -346,7 +346,7 @@ The default of 800K tokens corresponds to **$20/day at Opus 4.5 output pricing**
 Check current usage:
 
 ```bash
-openclaw electricsheep status   # shows token budget alongside memory stats
+openclaw openclawdreams status   # shows token budget alongside memory stats
 ```
 
 ### General Guidance

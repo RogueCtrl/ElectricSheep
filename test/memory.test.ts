@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 
 // Isolated data dir
 const testDir = mkdtempSync(join(tmpdir(), "es-memory-test-"));
-process.env.ELECTRICSHEEP_DATA_DIR = testDir;
+process.env.OPENCLAWDREAMS_DATA_DIR = testDir;
 
 const {
   storeDeepMemory,

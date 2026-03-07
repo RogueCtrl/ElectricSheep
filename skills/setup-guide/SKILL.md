@@ -11,7 +11,7 @@ metadata:
 
 You are configuring the OpenClawDreams extension on this OpenClaw instance. Follow each section in order. Run every command shown and verify the expected output before moving on.
 
-> **Prerequisite:** The operator needs a Moltbook account. If you do not have one, create an account at https://moltbook.com. The `electricsheep register` command will handle agent registration and API key setup.
+> **Prerequisite:** The operator needs a Moltbook account. If you do not have one, create an account at https://moltbook.com. The `openclawdreams register` command will handle agent registration and API key setup.
 
 ---
 
@@ -60,7 +60,7 @@ For development (symlink — changes are picked up automatically):
 openclaw plugins install -l /path/to/OpenClawDreams
 ```
 
-For production (copies files into `~/.openclaw/extensions/electricsheep/`):
+For production (copies files into `~/.openclaw/extensions/openclawdreams/`):
 
 ```bash
 openclaw plugins install /path/to/OpenClawDreams
@@ -78,7 +78,7 @@ Add the ElectricSheep plugin entry to your OpenClaw config file (`~/.openclaw/co
 {
   plugins: {
     entries: {
-      "electricsheep": {
+      "openclawdreams": {
         enabled: true,
         config: {
           // Agent identity on Moltbook
@@ -130,19 +130,19 @@ Check that the plugin loaded:
 openclaw plugins list
 ```
 
-Verify `electricsheep` appears as enabled. Then inspect what it registered:
+Verify `openclawdreams` appears as enabled. Then inspect what it registered:
 
 ```bash
-openclaw plugins info electricsheep
+openclaw plugins info openclawdreams
 ```
 
 You should see:
 
 | Type | Count | Names |
 |---|---|---|
-| Tools | 5 | `electricsheep_check`, `electricsheep_dream`, `electricsheep_journal`, `electricsheep_status`, `electricsheep_memories` |
+| Tools | 5 | `openclawdreams_check`, `openclawdreams_dream`, `openclawdreams_journal`, `openclawdreams_status`, `openclawdreams_memories` |
 | Hooks | 2 | `before_agent_start`, `agent_end` |
-| Services | 1 | `electricsheep-scheduler` |
+| Services | 1 | `openclawdreams-scheduler` |
 
 If the plugin is not listed or shows errors, check the OpenClaw logs and verify the build completed successfully.
 
@@ -153,7 +153,7 @@ If the plugin is not listed or shows errors, check the OpenClaw logs and verify 
 Run a status check to verify connectivity:
 
 ```bash
-electricsheep status
+openclawdreams status
 ```
 
 Expected output includes:
@@ -165,7 +165,7 @@ Expected output includes:
 
 If Moltbook shows "not connected", verify your API key is correct.
 
-The daytime check, dream cycle, and journal posting run automatically via the internal scheduler service. After the first daytime check runs, `electricsheep status` will show working memory entries and deep memory counts increasing.
+The daytime check, dream cycle, and journal posting run automatically via the internal scheduler service. After the first daytime check runs, `openclawdreams status` will show working memory entries and deep memory counts increasing.
 
 ---
 
@@ -176,7 +176,7 @@ ElectricSheep includes a best-effort daily token budget that halts LLM calls whe
 Check current budget usage:
 
 ```bash
-electricsheep status
+openclawdreams status
 ```
 
 The token budget section shows used/remaining/limit for the current UTC day.
@@ -206,7 +206,7 @@ When running as an OpenClaw extension, three scheduled tasks run automatically v
 
 All times are in the system timezone of the host machine. No system-level cron configuration is needed — the extension manages the schedule internally.
 
-To verify the scheduler is active, check `openclaw plugins info electricsheep` and confirm the `electricsheep-scheduler` service appears.
+To verify the scheduler is active, check `openclaw plugins info openclawdreams` and confirm the `openclawdreams-scheduler` service appears.
 
 ---
 
@@ -219,7 +219,7 @@ To verify the scheduler is active, check `openclaw plugins info electricsheep` a
 The Moltbook agent exists but hasn't been verified. The operator needs to visit their claim URL and complete the verification step on Moltbook.
 
 **"Moltbook: not connected" in status:**
-The API key is missing or invalid. Run `electricsheep register` to obtain and store a valid key.
+The API key is missing or invalid. Run `openclawdreams register` to obtain and store a valid key.
 
 **Node version mismatch:**
 ElectricSheep requires Node.js >= 24. Run `node --version` to check. Use `nvm install 24` or download from https://nodejs.org.
@@ -242,7 +242,7 @@ To remove ElectricSheep from an OpenClaw instance:
 **1. Disable and uninstall the plugin:**
 
 ```bash
-openclaw plugins uninstall electricsheep
+openclaw plugins uninstall openclawdreams
 ```
 
 This removes the plugin entry, deregisters all tools, hooks, and the scheduler service. OpenClaw's own memory, session transcripts, and configuration are unaffected.
@@ -278,13 +278,13 @@ rm -rf /path/to/ElectricSheep
 
 **4. Clean up OpenClaw config (if needed):**
 
-If you manually added an `electricsheep` entry to `~/.openclaw/config.json5`, remove it:
+If you manually added an `openclawdreams` entry to `~/.openclaw/config.json5`, remove it:
 
 ```json5
 {
   plugins: {
     entries: {
-      // delete the "electricsheep": { ... } block
+      // delete the "openclawdreams": { ... } block
     }
   }
 }
@@ -300,4 +300,4 @@ ElectricSheep does not provide a command to delete the Moltbook agent. To remove
 
 ElectricSheep is now installed and configured. The scheduled tasks will run automatically. The agent will check Moltbook four times during the day, dream at 2am, and post its dream journal at 7am.
 
-Monitor the first few days via `electricsheep status` to verify memories are accumulating, dreams are generating, and the token budget is tracking correctly.
+Monitor the first few days via `openclawdreams status` to verify memories are accumulating, dreams are generating, and the token budget is tracking correctly.

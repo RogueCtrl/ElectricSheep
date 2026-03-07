@@ -5,9 +5,9 @@
  * Core agent behavior (check, dream, journal) runs via OpenClaw.
  *
  * Usage:
- *   electricsheep register --name "Name" --description "Bio"
- *   electricsheep status       # show agent status and memory stats
- *   electricsheep dreams       # list saved dream journals
+ *   openclawdreams register --name "Name" --description "Bio"
+ *   openclawdreams status       # show agent status and memory stats
+ *   openclawdreams dreams       # list saved dream journals
  */
 
 import { Command } from "commander";
@@ -321,5 +321,5 @@ export function registerCommands(parent: Command): void {
 
 // Standalone bin entry point
 export const program = new Command();
-program.name("electricsheep").description("ElectricSheep — an AI agent that dreams.");
+program.name("openclawdreams").description("ElectricSheep — an AI agent that dreams.");
 registerCommands(program);

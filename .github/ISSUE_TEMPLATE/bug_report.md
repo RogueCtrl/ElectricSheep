@@ -24,4 +24,4 @@ What you expected to happen.
 - OpenClaw version (if applicable):
 
 **Logs**
-Paste relevant output or attach `data/electricsheep.log`.
+Paste relevant output or attach `data/openclawdreams.log`.

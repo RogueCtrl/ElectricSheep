@@ -14,7 +14,7 @@ const logger = createLogger({
   transports: [
     new transports.DailyRotateFile({
       dirname: DATA_DIR,
-      filename: "electricsheep-%DATE%.log",
+      filename: "openclawdreams-%DATE%.log",
       datePattern: "YYYY-MM-DD",
       zippedArchive: true,
       maxSize: "20m",

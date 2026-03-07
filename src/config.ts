@@ -14,7 +14,7 @@ const __dirname = dirname(__filename);
 
 // Paths
 export const BASE_DIR = resolve(
-  process.env.ELECTRICSHEEP_DATA_DIR || resolve(__dirname, "..", "..")
+  process.env.OPENCLAWDREAMS_DATA_DIR || resolve(__dirname, "..", "..")
 );
 export const DATA_DIR = resolve(BASE_DIR, "data");
 export const MEMORY_DIR = resolve(DATA_DIR, "memory");

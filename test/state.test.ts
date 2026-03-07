@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 const testDir = mkdtempSync(join(tmpdir(), "es-state-test-"));
-process.env.ELECTRICSHEEP_DATA_DIR = testDir;
+process.env.OPENCLAWDREAMS_DATA_DIR = testDir;
 
 const { loadState, saveState } = await import("../src/state.js");
 const { STATE_FILE } = await import("../src/config.js");

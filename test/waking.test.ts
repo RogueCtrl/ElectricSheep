@@ -7,7 +7,7 @@ import type { LLMClient, OpenClawAPI } from "../src/types.js";
 
 // Isolated data dir
 const testDir = mkdtempSync(join(tmpdir(), "es-waking-test-"));
-process.env.ELECTRICSHEEP_DATA_DIR = testDir;
+process.env.OPENCLAWDREAMS_DATA_DIR = testDir;
 
 const { runReflectionCycle, checkAndEngage } = await import("../src/waking.js");
 const { deepMemoryStats, storeDeepMemory } = await import("../src/memory.js");

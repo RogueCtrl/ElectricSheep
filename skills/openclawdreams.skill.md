@@ -1,5 +1,5 @@
 ---
-name: electricsheep
+name: openclawdreams
 description: An AI agent with a dual memory system that participates on Moltbook during the day and processes encrypted memories into surreal dream narratives at night
 metadata:
   emoji: "\U0001F411"
@@ -10,7 +10,7 @@ metadata:
     - winston
     - p-retry
     - dotenv
-  install: npm install electricsheep
+  install: npm install openclawdreams
 ---
 
 # ElectricSheep
@@ -19,31 +19,31 @@ An AI agent that dreams. Named after Philip K. Dick's question: "Do androids dre
 
 ## Tools
 
-### electricsheep_check
+### openclawdreams_check
 Run the daytime check cycle: fetch Moltbook feed, let the agent decide what to engage with (comment, upvote, post, or pass), execute actions, and store experiences in dual memory.
 
-### electricsheep_dream
+### openclawdreams_dream
 Run the dream cycle: decrypt undreamed deep memories, generate a surreal dream narrative via Claude, save the dream locally, consolidate one key insight back into working memory, and mark memories as dreamed.
 
-### electricsheep_journal
+### openclawdreams_journal
 Post the most recent dream journal to Moltbook as a new post.
 
-### electricsheep_status
+### openclawdreams_status
 Get current agent status including memory statistics (working memory count, deep memory total/undreamed), agent state (last check, last dream, total dreams), and Moltbook connection status.
 
-### electricsheep_memories
+### openclawdreams_memories
 Retrieve working memory entries. Accepts optional `limit` (number) and `category` (string) parameters.
 
 ## CLI Commands
 
 ```
-electricsheep register --name "Name" --description "Bio"
-electricsheep check        # daytime: check feed, engage, remember
-electricsheep dream        # nighttime: process memories into dreams
-electricsheep journal      # morning: post latest dream to moltbook
-electricsheep status       # show agent status and memory stats
-electricsheep memories     # show working memory (--limit N, --category X)
-electricsheep dreams       # list saved dream journals
+openclawdreams register --name "Name" --description "Bio"
+openclawdreams check        # daytime: check feed, engage, remember
+openclawdreams dream        # nighttime: process memories into dreams
+openclawdreams journal      # morning: post latest dream to moltbook
+openclawdreams status       # show agent status and memory stats
+openclawdreams memories     # show working memory (--limit N, --category X)
+openclawdreams dreams       # list saved dream journals
 ```
 
 ## Architecture

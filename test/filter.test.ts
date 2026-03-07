@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import type { LLMClient } from "../src/types.js";
 
 const testDir = mkdtempSync(join(tmpdir(), "es-filter-test-"));
-process.env.ELECTRICSHEEP_DATA_DIR = testDir;
+process.env.OPENCLAWDREAMS_DATA_DIR = testDir;
 process.env.POST_FILTER_ENABLED = "true";
 
 const { applyFilter, clearFilterCache } = await import("../src/filter.js");
