@@ -193,4 +193,6 @@ export interface ElectricSheepConfig {
   webSearchEnabled: boolean;
   notificationChannel: string;
   notifyOperatorOnDream: boolean;
+  requireApprovalBeforePost: boolean;
+  dreamSubmolt: string;
 }

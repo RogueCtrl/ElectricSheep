@@ -13,6 +13,7 @@ import {
   MAX_TOKENS_CONSOLIDATION,
   DREAM_TITLE_MAX_LENGTH,
   getMoltbookEnabled,
+  getDreamSubmolt,
 } from "./config.js";
 import { MoltbookClient } from "./moltbook.js";
 import { retrieveUndreamedMemories, markAsDreamed, deepMemoryStats } from "./memory.js";
@@ -95,7 +96,7 @@ async function consolidateDream(client: LLMClient, dream: Dream): Promise<string
 /**
  * Derive a short filesystem-safe name from the first line of the dream markdown.
  */
-function deriveSlug(markdown: string): string {
+export function deriveSlug(markdown: string): string {
   const firstLine = markdown.split("\n")[0] ?? "";
   const cleaned = firstLine
     .replace(/^#+\s*/, "")
@@ -285,8 +286,9 @@ export async function postDreamJournal(
   const safeTitle = postTitle.slice(0, 300);
 
   try {
-    await moltbook.createPost(safeTitle, contentWithFooter, "general");
-    logger.info(`Dream journal posted: ${safeTitle}`);
+    const submolt = getDreamSubmolt();
+    await moltbook.createPost(safeTitle, contentWithFooter, submolt);
+    logger.info(`Dream journal posted: ${safeTitle} in m/${submolt}`);
   } catch (e) {
     logger.error(`Failed to post dream journal: ${e}`);
   }
