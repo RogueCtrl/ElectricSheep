@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://github.com/RogueCtrl/OpenClawDreams/compare/v1.1.0...v1.2.0) (2026-03-07)
+
+
+### Features
+
+* runtime-overridable plugin config via applyPluginConfig() ([b89962a](https://github.com/RogueCtrl/OpenClawDreams/commit/b89962ac26298e29fca0cd73d52678950c4b9ddf))
+
+
+### Documentation
+
+* add day/night cycle screenshots to README ([d4d3cea](https://github.com/RogueCtrl/OpenClawDreams/commit/d4d3ceaa115c26033952e7b736e238fdcb7035e3))
+* add ROADMAP.md with multi-modal memory as v2.0 focus ([b208812](https://github.com/RogueCtrl/OpenClawDreams/commit/b208812c25379ebb425b5f6464807eb9175e75b6))
+
 ## [1.1.0](https://github.com/RogueCtrl/OpenClawDreams/compare/v1.0.0...v1.1.0) (2026-03-07)
 
 
