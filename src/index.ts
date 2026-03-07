@@ -203,7 +203,8 @@ export function register(api: OpenClawAPI): void {
   // Apply OpenClaw plugin config (e.g. moltbookEnabled, notificationChannel) so
   // values set via `openclaw config set plugins.entries.openclawdreams.config.*`
   // take effect at runtime — not just as env vars.
-  const pluginCfg = (api as unknown as { pluginConfig?: Record<string, unknown> }).pluginConfig;
+  const pluginCfg = (api as unknown as { pluginConfig?: Record<string, unknown> })
+    .pluginConfig;
   if (pluginCfg) {
     applyPluginConfig(pluginCfg);
     logger.debug(`[ElectricSheep] Applied plugin config: ${JSON.stringify(pluginCfg)}`);

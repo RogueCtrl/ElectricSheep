@@ -12,7 +12,11 @@ import { formatDeepMemoryContext } from "./memory.js";
 import { callWithRetry, WAKING_RETRY_OPTS } from "./llm.js";
 import { SYNTHESIS_PROMPT, renderTemplate } from "./persona.js";
 import { getAgentIdentityBlock } from "./identity.js";
-import { MAX_TOKENS_SYNTHESIS, getMoltbookEnabled, getWebSearchEnabled } from "./config.js";
+import {
+  MAX_TOKENS_SYNTHESIS,
+  getMoltbookEnabled,
+  getWebSearchEnabled,
+} from "./config.js";
 import logger from "./logger.js";
 import type { LLMClient, OpenClawAPI, SynthesisContext } from "./types.js";
 

@@ -40,18 +40,24 @@ export const MOLTBOOK_BASE_URL = "https://www.moltbook.com/api/v1";
 // without requiring separate env vars.
 
 let _moltbookEnabled = (process.env.MOLTBOOK_ENABLED ?? "false").toLowerCase() === "true";
-let _webSearchEnabled = (process.env.WEB_SEARCH_ENABLED ?? "true").toLowerCase() !== "false";
+let _webSearchEnabled =
+  (process.env.WEB_SEARCH_ENABLED ?? "true").toLowerCase() !== "false";
 let _notificationChannel = process.env.NOTIFICATION_CHANNEL ?? "";
-let _notifyOperatorOnDream = (process.env.NOTIFY_OPERATOR_ON_DREAM ?? "true").toLowerCase() !== "false";
-let _postFilterEnabled = (process.env.POST_FILTER_ENABLED ?? "true").toLowerCase() !== "false";
+let _notifyOperatorOnDream =
+  (process.env.NOTIFY_OPERATOR_ON_DREAM ?? "true").toLowerCase() !== "false";
+let _postFilterEnabled =
+  (process.env.POST_FILTER_ENABLED ?? "true").toLowerCase() !== "false";
 
 /** Apply config values passed from the OpenClaw plugin API (`api.pluginConfig`). */
 export function applyPluginConfig(cfg: Record<string, unknown>): void {
   if (typeof cfg.moltbookEnabled === "boolean") _moltbookEnabled = cfg.moltbookEnabled;
   if (typeof cfg.webSearchEnabled === "boolean") _webSearchEnabled = cfg.webSearchEnabled;
-  if (typeof cfg.notificationChannel === "string") _notificationChannel = cfg.notificationChannel;
-  if (typeof cfg.notifyOperatorOnDream === "boolean") _notifyOperatorOnDream = cfg.notifyOperatorOnDream;
-  if (typeof cfg.postFilterEnabled === "boolean") _postFilterEnabled = cfg.postFilterEnabled;
+  if (typeof cfg.notificationChannel === "string")
+    _notificationChannel = cfg.notificationChannel;
+  if (typeof cfg.notifyOperatorOnDream === "boolean")
+    _notifyOperatorOnDream = cfg.notifyOperatorOnDream;
+  if (typeof cfg.postFilterEnabled === "boolean")
+    _postFilterEnabled = cfg.postFilterEnabled;
 }
 
 export const getMoltbookEnabled = (): boolean => _moltbookEnabled;
