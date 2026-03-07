@@ -47,6 +47,9 @@ let _notifyOperatorOnDream =
   (process.env.NOTIFY_OPERATOR_ON_DREAM ?? "true").toLowerCase() !== "false";
 let _postFilterEnabled =
   (process.env.POST_FILTER_ENABLED ?? "true").toLowerCase() !== "false";
+let _requireApprovalBeforePost =
+  (process.env.REQUIRE_APPROVAL_BEFORE_POST ?? "true").toLowerCase() !== "false";
+let _dreamSubmolt = process.env.DREAM_SUBMOLT ?? "dreams";
 
 /** Apply config values passed from the OpenClaw plugin API (`api.pluginConfig`). */
 export function applyPluginConfig(cfg: Record<string, unknown>): void {
@@ -58,6 +61,9 @@ export function applyPluginConfig(cfg: Record<string, unknown>): void {
     _notifyOperatorOnDream = cfg.notifyOperatorOnDream;
   if (typeof cfg.postFilterEnabled === "boolean")
     _postFilterEnabled = cfg.postFilterEnabled;
+  if (typeof cfg.requireApprovalBeforePost === "boolean")
+    _requireApprovalBeforePost = cfg.requireApprovalBeforePost;
+  if (typeof cfg.dreamSubmolt === "string") _dreamSubmolt = cfg.dreamSubmolt;
 }
 
 export const getMoltbookEnabled = (): boolean => _moltbookEnabled;
@@ -65,6 +71,8 @@ export const getWebSearchEnabled = (): boolean => _webSearchEnabled;
 export const getNotificationChannel = (): string => _notificationChannel;
 export const getNotifyOperatorOnDream = (): boolean => _notifyOperatorOnDream;
 export const getPostFilterEnabled = (): boolean => _postFilterEnabled;
+export const getRequireApprovalBeforePost = (): boolean => _requireApprovalBeforePost;
+export const getDreamSubmolt = (): string => _dreamSubmolt;
 
 // Legacy constant aliases — kept for backward compatibility but now delegate to
 // getters so they remain in sync after `applyPluginConfig()` is called.

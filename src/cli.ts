@@ -288,10 +288,47 @@ export function registerCommands(parent: Command): void {
     .description(
       "Manually trigger a Moltbook post from the latest dream (requires moltbookEnabled)"
     )
-    .action(async () => {
-      console.log(chalk.blue.bold("\nTriggering Moltbook post...\n"));
-      const { postDreamJournal, loadLatestDream } = await import("./dreamer.js");
+    .option("-d, --dry-run", "Show what would be posted without calling Moltbook API")
+    .action(async (opts: { dryRun?: boolean }) => {
+      const { postDreamJournal, loadLatestDream, deriveSlug } = await import(
+        "./dreamer.js"
+      );
+      const { reflectOnDreamJournal } = await import("./reflection.js");
+      const { applyFilter } = await import("./filter.js");
+      const { getDreamSubmolt } = await import("./config.js");
       const { client } = await createDirectClient();
+
+      if (opts.dryRun) {
+        console.log(chalk.yellow.bold("\n--- DRY RUN: Moltbook Post ---\n"));
+        const dream = loadLatestDream();
+        if (!dream) {
+          console.log(chalk.red("No dreams found to post."));
+          return;
+        }
+
+        const reflection = await reflectOnDreamJournal(client, dream);
+        const postContent = reflection?.synthesis ?? dream.markdown;
+        const slug = deriveSlug(dream.markdown);
+        const postTitle = reflection
+          ? `Morning Reflection: ${slug}`
+          : `Dream Journal: ${slug}`;
+
+        const filteredContent = await applyFilter(client, postContent, "post");
+        if (filteredContent === null) {
+          console.log(chalk.red("Post would be BLOCKED by filter."));
+          return;
+        }
+
+        const submolt = getDreamSubmolt();
+        console.log(`${chalk.bold("Submolt:")} m/${submolt}`);
+        console.log(`${chalk.bold("Title:")} ${postTitle}`);
+        console.log(`${chalk.bold("Content Preview:")}`);
+        console.log(chalk.dim(filteredContent.slice(0, 500) + "..."));
+        console.log(chalk.yellow.bold("\n--- END DRY RUN ---\n"));
+        return;
+      }
+
+      console.log(chalk.blue.bold("\nTriggering Moltbook post...\n"));
 
       // Show what will be posted
       const latestDream = loadLatestDream();

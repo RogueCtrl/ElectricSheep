@@ -6,14 +6,19 @@
 
 import { registerCommands } from "./cli.js";
 import { runReflectionCycle } from "./waking.js";
-import { runDreamCycle, postDreamJournal } from "./dreamer.js";
+import { runDreamCycle, postDreamJournal, loadLatestDream, deriveSlug } from "./dreamer.js";
 import { deepMemoryStats, remember } from "./memory.js";
 import { loadState } from "./state.js";
 import { withBudget } from "./budget.js";
 import { setWorkspaceDir } from "./identity.js";
-import { getMoltbookEnabled, applyPluginConfig } from "./config.js";
+import {
+  getMoltbookEnabled,
+  applyPluginConfig,
+  getRequireApprovalBeforePost,
+} from "./config.js";
 import logger from "./logger.js";
 import type { LLMClient, OpenClawAPI } from "./types.js";
+import { execSync } from "node:child_process";
 
 // Store reference to OpenClaw API for use by other modules
 let openclawApi: OpenClawAPI | null = null;
@@ -423,7 +428,21 @@ export function register(api: OpenClawAPI): void {
     },
     7: async () => {
       if (getMoltbookEnabled()) {
-        await postDreamJournal(client);
+        if (getRequireApprovalBeforePost()) {
+          const dream = loadLatestDream();
+          const title = dream ? deriveSlug(dream.markdown) : "Latest Dream";
+          const msg = `Dream ready to post: ${title} — run 'openclawdreams post' to publish or 'openclawdreams post --dry-run' to preview`;
+          try {
+            execSync(`openclaw system event --text "${msg}" --mode now`, {
+              stdio: "inherit",
+            });
+            logger.info(`[ElectricSheep] Posted system event: ${msg}`);
+          } catch (err) {
+            logger.error(`[ElectricSheep] Failed to post system event: ${err}`);
+          }
+        } else {
+          await postDreamJournal(client);
+        }
       }
     },
     8: async () => {

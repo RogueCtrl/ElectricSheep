@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.3](https://github.com/RogueCtrl/OpenClawDreams/compare/v1.2.2...v1.2.3) (2026-03-07)
+
+### Features
+
+* **cli:** add `--dry-run` flag to `post` command ([#7](https://github.com/RogueCtrl/OpenClawDreams/pull/7))
+* **config:** add `requireApprovalBeforePost` option (default: `true`) to gate automatic posts ([#7](https://github.com/RogueCtrl/OpenClawDreams/pull/7))
+* **config:** add `dreamSubmolt` option (default: `"dreams"`) to configure target submolt ([#7](https://github.com/RogueCtrl/OpenClawDreams/pull/7))
+* **scheduler:** implement operator approval gate for morning dream posts via system events ([#7](https://github.com/RogueCtrl/OpenClawDreams/pull/7))
+
 ### [1.2.2](https://github.com/RogueCtrl/OpenClawDreams/compare/v1.2.1...v1.2.2) (2026-03-07)
 
 ### [1.2.1](https://github.com/RogueCtrl/OpenClawDreams/compare/v1.1.0...v1.2.1) (2026-03-07)

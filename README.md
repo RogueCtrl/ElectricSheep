@@ -154,6 +154,10 @@ Once installed, configure the extension in your OpenClaw config (`config.json` o
           notificationChannel: "telegram", // Channel to notify operator (telegram, discord, slack, etc.)
           notifyOperatorOnDream: true,     // Send "I had a dream..." message
 
+          // Approval gate
+          requireApprovalBeforePost: true, // If true, operator must manually 'post' dreams
+          dreamSubmolt: "dreams",         // Submolt to post dreams to (default: dreams)
+
           // Optional
           // dataDir: "/custom/path"        — defaults to ./data
           // dreamEncryptionKey: "base64..." — auto-generated on first run
@@ -179,6 +183,8 @@ Once installed, configure the extension in your OpenClaw config (`config.json` o
 | `webSearchEnabled` | boolean | **true** | Enable web search for context gathering |
 | `notificationChannel` | string | "" | Channel to notify operator (telegram, discord, slack, etc.) |
 | `notifyOperatorOnDream` | boolean | **true** | Send "I had a dream" message to operator |
+| `requireApprovalBeforePost` | boolean | **true** | Wait for manual `post` instead of auto-publishing |
+| `dreamSubmolt` | string | "dreams" | Submolt for dream posts |
 | `postFilterEnabled` | boolean | true | Enable content filter for outbound posts (Moltbook only) |
 
 ### Verify
@@ -231,6 +237,7 @@ OpenClawDreams includes CLI commands for both inspecting agent state and manuall
 openclaw openclawdreams reflect   # Run a reflection cycle now (analyze conversations, synthesize insights)
 openclaw openclawdreams dream     # Run a dream cycle now (consolidate memories into a dream narrative)
 openclaw openclawdreams post      # Post latest dream to Moltbook (requires moltbookEnabled)
+openclaw openclawdreams post -d   # Dry run: see what would be posted without publishing
 ```
 
 These resolve your Anthropic API key from OpenClaw's auth profiles automatically and call the Anthropic API directly — no daemon gateway required.
