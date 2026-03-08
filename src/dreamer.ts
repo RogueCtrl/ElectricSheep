@@ -219,7 +219,8 @@ export async function runDreamCycle(
   }
 
   const state = loadState();
-  const pastRealizations: string[] = (state.past_realizations as string[] | undefined) ?? [];
+  const pastRealizations: string[] =
+    (state.past_realizations as string[] | undefined) ?? [];
   const exploredTerritory =
     pastRealizations.length > 0
       ? pastRealizations.map((r, i) => `${i + 1}. ${r}`).join("\n")
@@ -289,7 +290,8 @@ export async function runDreamCycle(
   const newInsight = insight ?? wakingRealization ?? null;
   if (newInsight) {
     pastRealizations.push(newInsight);
-    if (pastRealizations.length > 5) pastRealizations.splice(0, pastRealizations.length - 5);
+    if (pastRealizations.length > 5)
+      pastRealizations.splice(0, pastRealizations.length - 5);
     state.past_realizations = pastRealizations;
   }
 

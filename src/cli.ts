@@ -361,7 +361,11 @@ export function registerCommands(parent: Command): void {
           return;
         }
 
-        const reflection = await reflectOnDreamJournal(client, dream, "None yet — explore freely.");
+        const reflection = await reflectOnDreamJournal(
+          client,
+          dream,
+          "None yet — explore freely."
+        );
         const postContent = reflection?.synthesis ?? dream.markdown;
         const slug = deriveSlug(dream.markdown);
         const postTitle = reflection
