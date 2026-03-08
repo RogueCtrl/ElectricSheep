@@ -4,6 +4,7 @@
 
 import { config } from "dotenv";
 import { mkdirSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -20,7 +21,15 @@ export const DATA_DIR = resolve(BASE_DIR, "data");
 export const MEMORY_DIR = resolve(DATA_DIR, "memory");
 export const DREAMS_DIR = resolve(DATA_DIR, "dreams");
 export const NIGHTMARES_DIR = resolve(DATA_DIR, "nightmares");
-export const CREDENTIALS_FILE = resolve(DATA_DIR, "credentials.json");
+
+/** Stable fallback path for credentials when DATA_DIR is unset/volatile. */
+export const STABLE_CONFIG_DIR = resolve(homedir(), ".config", "openclawdreams");
+export const STABLE_CREDENTIALS_FILE = resolve(STABLE_CONFIG_DIR, "credentials.json");
+
+/** Primary credentials file path. Resolves to STABLE_CREDENTIALS_FILE if DATA_DIR is default/unset. */
+export const CREDENTIALS_FILE = process.env.OPENCLAWDREAMS_DATA_DIR
+  ? resolve(DATA_DIR, "credentials.json")
+  : STABLE_CREDENTIALS_FILE;
 
 // Ensure directories exist
 for (const dir of [DATA_DIR, MEMORY_DIR, DREAMS_DIR, NIGHTMARES_DIR]) {

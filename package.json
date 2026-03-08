@@ -11,7 +11,7 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node dist/bin/openclawdreams.js",
-    "test": "node --import tsx --test --test-concurrency=1 'test/**/*.test.ts'",
+    "test": "node --import tsx --test --test-isolation=process --test-concurrency=1 'test/**/*.test.ts'",
     "lint": "eslint 'src/**/*.ts' 'test/**/*.ts' 'bin/**/*.ts'",
     "lint:fix": "eslint --fix 'src/**/*.ts' 'test/**/*.ts' 'bin/**/*.ts'",
     "format": "prettier --write 'src/**/*.ts' 'test/**/*.ts' 'bin/**/*.ts'",

@@ -1,12 +1,23 @@
 import { describe, it, after, mock, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, existsSync, readFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  rmSync,
+  existsSync,
+  readFileSync,
+  mkdirSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 // Isolated data dir
 const testDir = mkdtempSync(join(tmpdir(), "es-moltbook-test-"));
 process.env.OPENCLAWDREAMS_DATA_DIR = testDir;
+
+// Isolated home dir
+const fakeHome = mkdtempSync(join(tmpdir(), "es-moltbook-test-home-"));
+process.env.HOME = fakeHome;
 
 const { MoltbookClient } = await import("../src/moltbook.js");
 const { CREDENTIALS_FILE } = await import("../src/config.js");
@@ -201,9 +212,30 @@ describe("MoltbookClient", () => {
     const headers = init.headers as Record<string, string>;
     assert.equal(headers["Authorization"], "Bearer new-key-456");
   });
+
+  it("loads from stable fallback if primary is missing when DATA_DIR IS set", async () => {
+    // 1. Delete primary credentials file if it exists
+    if (existsSync(CREDENTIALS_FILE)) rmSync(CREDENTIALS_FILE);
+
+    // 2. Prepare fake credentials in the stable location
+    mkdirSync(join(fakeHome, ".config", "openclawdreams"), { recursive: true });
+    const credsFile = join(fakeHome, ".config", "openclawdreams", "credentials.json");
+    writeFileSync(credsFile, JSON.stringify({ api_key: "cross-fallback-key-abc" }));
+
+    // 3. Client should load from stable path
+    const client = new MoltbookClient();
+    globalThis.fetch = mockFetchJson({ status: "ok" });
+    await client.status();
+
+    const calls = (globalThis.fetch as unknown as ReturnType<typeof mock.fn>).mock.calls;
+    const [, init] = calls[0].arguments as [string, RequestInit];
+    const headers = init.headers as Record<string, string>;
+    assert.equal(headers["Authorization"], "Bearer cross-fallback-key-abc");
+  });
 });
 
 after(async () => {
   await closeLogger();
   rmSync(testDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+  rmSync(fakeHome, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
 });
