@@ -19,10 +19,11 @@ export const BASE_DIR = resolve(
 export const DATA_DIR = resolve(BASE_DIR, "data");
 export const MEMORY_DIR = resolve(DATA_DIR, "memory");
 export const DREAMS_DIR = resolve(DATA_DIR, "dreams");
+export const NIGHTMARES_DIR = resolve(DATA_DIR, "nightmares");
 export const CREDENTIALS_FILE = resolve(DATA_DIR, "credentials.json");
 
 // Ensure directories exist
-for (const dir of [DATA_DIR, MEMORY_DIR, DREAMS_DIR]) {
+for (const dir of [DATA_DIR, MEMORY_DIR, DREAMS_DIR, NIGHTMARES_DIR]) {
   mkdirSync(dir, { recursive: true });
 }
 

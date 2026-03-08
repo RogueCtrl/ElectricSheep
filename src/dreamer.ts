@@ -5,10 +5,11 @@
  * stores in OpenClaw memory, and optionally posts dream journals to Moltbook.
  */
 
-import { writeFileSync, readFileSync, readdirSync } from "node:fs";
+import { writeFileSync, readFileSync, readdirSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   DREAMS_DIR,
+  NIGHTMARES_DIR,
   MAX_TOKENS_DREAM,
   MAX_TOKENS_CONSOLIDATION,
   DREAM_TITLE_MAX_LENGTH,
@@ -37,7 +38,9 @@ import { notifyOperatorOfDream } from "./notify.js";
 import logger from "./logger.js";
 import type { LLMClient, OpenClawAPI, Dream, DecryptedMemory } from "./types.js";
 
-async function generateDream(
+const NIGHTMARE_CHANCE = 0.05;
+
+export async function generateDream(
   client: LLMClient,
   memories: DecryptedMemory[]
 ): Promise<Dream> {
@@ -76,7 +79,7 @@ async function generateDream(
 /**
  * Separate LLM call to distill a single insight from the dream for working memory.
  */
-async function consolidateDream(client: LLMClient, dream: Dream): Promise<string> {
+export async function consolidateDream(client: LLMClient, dream: Dream): Promise<string> {
   const system = renderTemplate(DREAM_CONSOLIDATION_PROMPT, {
     agent_identity: getAgentIdentityBlock(),
   });
@@ -102,7 +105,7 @@ async function consolidateDream(client: LLMClient, dream: Dream): Promise<string
 /**
  * Ground the dream: extract a waking realization from the surreal narrative.
  */
-async function groundDream(client: LLMClient, dream: Dream): Promise<string | null> {
+export async function groundDream(client: LLMClient, dream: Dream): Promise<string | null> {
   try {
     const agentIdentity = getAgentIdentityBlock();
     const yesterday = formatDeepMemoryContext();
@@ -141,10 +144,10 @@ export function deriveSlug(markdown: string): string {
   return slug;
 }
 
-function saveDreamLocally(dream: Dream, dateStr: string): string {
+export function saveNarrativeLocally(dream: Dream, dir: string, dateStr: string): string {
   const slug = deriveSlug(dream.markdown);
   const filename = `${dateStr}_${slug}.md`;
-  const filepath = resolve(DREAMS_DIR, filename);
+  const filepath = resolve(dir, filename);
   writeFileSync(filepath, dream.markdown);
   return filepath;
 }
@@ -152,11 +155,12 @@ function saveDreamLocally(dream: Dream, dateStr: string): string {
 /**
  * Store dream in OpenClaw memory if available.
  */
-async function storeInOpenClawMemory(
+export async function storeInOpenClawMemory(
   api: OpenClawAPI,
   dream: Dream,
   insight: string | null,
-  wakingRealization?: string | null
+  wakingRealization?: string | null,
+  type: "dream" | "nightmare" = "dream"
 ): Promise<void> {
   if (!api.memory) {
     logger.debug("OpenClaw memory API not available, skipping dream storage");
@@ -166,15 +170,15 @@ async function storeInOpenClawMemory(
   try {
     const slug = deriveSlug(dream.markdown);
     await api.memory.store(dream.markdown, {
-      type: "dream",
+      type,
       title: slug,
       timestamp: new Date().toISOString(),
       insight: insight || undefined,
       waking_realization: wakingRealization || undefined,
     });
-    logger.info("Stored dream in OpenClaw memory");
+    logger.info(`Stored ${type} in OpenClaw memory`);
   } catch (error) {
-    logger.error(`Failed to store dream in OpenClaw memory: ${error}`);
+    logger.error(`Failed to store ${type} in OpenClaw memory: ${error}`);
   }
 }
 
@@ -201,6 +205,12 @@ export async function runDreamCycle(
 
   logger.debug(`Processing ${memories.length} memories into dream...`);
 
+  if (Math.random() < NIGHTMARE_CHANCE) {
+    logger.info("Tonight is a nightmare (5% trigger fired)");
+    const { runNightmareCycle } = await import("./nightmare.js");
+    return runNightmareCycle(client, api);
+  }
+
   const dream = await generateDream(client, memories);
 
   // Append attribution footer to all dreams
@@ -213,7 +223,7 @@ export async function runDreamCycle(
 
   // Save locally
   const dateStr = new Date().toISOString().slice(0, 10);
-  const filepath = saveDreamLocally(dream, dateStr);
+  const filepath = saveNarrativeLocally(dream, DREAMS_DIR, dateStr);
   logger.info(`Saved to ${filepath}`);
 
   // Separate LLM call to distill one insight for working memory
@@ -273,14 +283,22 @@ export async function runDreamCycle(
 }
 
 export function loadLatestDream(): Dream | null {
-  const files = readdirSync(DREAMS_DIR)
-    .filter((f) => f.endsWith(".md"))
-    .sort()
-    .reverse();
+  const dreamFiles = existsSync(DREAMS_DIR)
+    ? readdirSync(DREAMS_DIR).filter((f) => f.endsWith(".md"))
+    : [];
+  const nightmareFiles = existsSync(NIGHTMARES_DIR)
+    ? readdirSync(NIGHTMARES_DIR).filter((f) => f.endsWith(".md"))
+    : [];
 
-  if (files.length === 0) return null;
+  const allFiles = [
+    ...dreamFiles.map((f) => ({ name: f, dir: DREAMS_DIR })),
+    ...nightmareFiles.map((f) => ({ name: f, dir: NIGHTMARES_DIR })),
+  ].sort((a, b) => b.name.localeCompare(a.name));
 
-  const markdown = readFileSync(resolve(DREAMS_DIR, files[0]), "utf-8");
+  if (allFiles.length === 0) return null;
+
+  const latest = allFiles[0];
+  const markdown = readFileSync(resolve(latest.dir, latest.name), "utf-8");
   return { markdown };
 }
 

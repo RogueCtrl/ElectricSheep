@@ -15,7 +15,7 @@ import chalk from "chalk";
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { setVerbose } from "./logger.js";
-import { DREAMS_DIR } from "./config.js";
+import { DREAMS_DIR, NIGHTMARES_DIR } from "./config.js";
 import type { AgentState, DeepMemoryStats, OpenClawAPI } from "./types.js";
 
 /**
@@ -139,6 +139,41 @@ export function registerCommands(parent: Command): void {
 
       for (const f of dreamFiles.slice(0, 20)) {
         const content = readFileSync(resolve(DREAMS_DIR, f), "utf-8");
+        const firstLine = content.split("\n")[0].replace(/^#\s*/, "");
+        const stem = f.replace(/\.md$/, "").slice(0, 10);
+        console.log(`  ${chalk.dim(stem)} ${firstLine}`);
+      }
+    });
+
+  parent
+    .command("nightmares")
+    .description("List saved nightmare journals")
+    .action(() => {
+      let nightmareFiles: string[];
+      try {
+        nightmareFiles = readdirSync(NIGHTMARES_DIR)
+          .filter((f) => f.endsWith(".md"))
+          .sort()
+          .reverse();
+      } catch {
+        nightmareFiles = [];
+      }
+
+      if (nightmareFiles.length === 0) {
+        console.log(
+          chalk.dim(
+            "No nightmares yet. A nightmare has a 5% chance of occurring during the dream cycle."
+          )
+        );
+        return;
+      }
+
+      console.log(
+        chalk.red.bold(`\nNightmare Archive (${nightmareFiles.length} nightmares)\n`)
+      );
+
+      for (const f of nightmareFiles.slice(0, 20)) {
+        const content = readFileSync(resolve(NIGHTMARES_DIR, f), "utf-8");
         const firstLine = content.split("\n")[0].replace(/^#\s*/, "");
         const stem = f.replace(/\.md$/, "").slice(0, 10);
         console.log(`  ${chalk.dim(stem)} ${firstLine}`);
@@ -279,6 +314,27 @@ export function registerCommands(parent: Command): void {
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error(chalk.red(`\nDream cycle failed: ${msg}\n`));
+        process.exit(1);
+      }
+    });
+
+  parent
+    .command("nightmare")
+    .description("Manually trigger a nightmare cycle")
+    .action(async () => {
+      console.log(chalk.red.bold("\nTriggering nightmare cycle...\n"));
+      const { runNightmareCycle } = await import("./nightmare.js");
+      const { client } = await createDirectClient();
+      try {
+        const nightmare = await runNightmareCycle(client);
+        if (nightmare) {
+          console.log(chalk.green.bold("\nNightmare cycle complete.\n"));
+        } else {
+          console.log(chalk.yellow("\nNo undreamed memories. Sleepless night.\n"));
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(chalk.red(`\nNightmare cycle failed: ${msg}\n`));
         process.exit(1);
       }
     });
