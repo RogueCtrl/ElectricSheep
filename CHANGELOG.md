@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.3.0](https://github.com/RogueCtrl/OpenClawDreams/compare/v1.2.2...v1.3.0) (2026-03-08)
+
+
+### Features
+
+* dream pipeline v1.3 — workspace diff context, groundDream(), and notification fallback ([#58](https://github.com/RogueCtrl/OpenClawDreams/issues/58)) ([c683fb6](https://github.com/RogueCtrl/OpenClawDreams/commit/c683fb6fa2ce96e5c0e88e9c671e832aa44be69a))
+
+
+### Bug Fixes
+
+* DST-safe scheduler with catch-up window ([#54](https://github.com/RogueCtrl/OpenClawDreams/issues/54)) ([230a943](https://github.com/RogueCtrl/OpenClawDreams/commit/230a9436eadf4e374595a772d2b2de3ee910b6f6))
+* prettier formatting — cli.ts and index.ts ([#52](https://github.com/RogueCtrl/OpenClawDreams/issues/52)) ([93df3d8](https://github.com/RogueCtrl/OpenClawDreams/commit/93df3d8e44a62ae79135eef765604786815d4f91))
+
+
+### Documentation
+
+* remove roadmap from README and ROADMAP.md (tracked externally) ([9e8620d](https://github.com/RogueCtrl/OpenClawDreams/commit/9e8620dcc2e9bb176cef624a5c7bdfae026d2ced))
+
 ### [1.2.4](https://github.com/RogueCtrl/OpenClawDreams/compare/v1.2.2...v1.2.4) (2026-03-08)
 
 
