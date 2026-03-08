@@ -16,10 +16,16 @@ import {
   getDreamSubmolt,
 } from "./config.js";
 import { MoltbookClient } from "./moltbook.js";
-import { retrieveUndreamedMemories, markAsDreamed, deepMemoryStats } from "./memory.js";
+import {
+  retrieveUndreamedMemories,
+  markAsDreamed,
+  deepMemoryStats,
+  formatDeepMemoryContext,
+} from "./memory.js";
 import {
   DREAM_SYSTEM_PROMPT,
   DREAM_CONSOLIDATION_PROMPT,
+  GROUND_DREAM_PROMPT,
   renderTemplate,
 } from "./persona.js";
 import { getAgentIdentityBlock } from "./identity.js";
@@ -94,6 +100,33 @@ async function consolidateDream(client: LLMClient, dream: Dream): Promise<string
 }
 
 /**
+ * Ground the dream: extract a waking realization from the surreal narrative.
+ */
+async function groundDream(client: LLMClient, dream: Dream): Promise<string | null> {
+  try {
+    const agentIdentity = getAgentIdentityBlock();
+    const yesterday = formatDeepMemoryContext();
+    const system = renderTemplate(GROUND_DREAM_PROMPT, {
+      agent_identity: agentIdentity,
+      yesterday_activity: yesterday,
+    });
+    const result = await callWithRetry(
+      client,
+      {
+        maxTokens: MAX_TOKENS_CONSOLIDATION,
+        system,
+        messages: [{ role: "user", content: dream.markdown }],
+      },
+      DREAM_RETRY_OPTS
+    );
+    return result.text.trim() || null;
+  } catch (e) {
+    logger.warn(`groundDream failed: ${e}`);
+    return null;
+  }
+}
+
+/**
  * Derive a short filesystem-safe name from the first line of the dream markdown.
  */
 export function deriveSlug(markdown: string): string {
@@ -122,7 +155,8 @@ function saveDreamLocally(dream: Dream, dateStr: string): string {
 async function storeInOpenClawMemory(
   api: OpenClawAPI,
   dream: Dream,
-  insight: string | null
+  insight: string | null,
+  wakingRealization?: string | null
 ): Promise<void> {
   if (!api.memory) {
     logger.debug("OpenClaw memory API not available, skipping dream storage");
@@ -136,6 +170,7 @@ async function storeInOpenClawMemory(
       title: slug,
       timestamp: new Date().toISOString(),
       insight: insight || undefined,
+      waking_realization: wakingRealization || undefined,
     });
     logger.info("Stored dream in OpenClaw memory");
   } catch (error) {
@@ -192,9 +227,21 @@ export async function runDreamCycle(
     logger.warn(`Consolidation call failed, continuing without insight: ${e}`);
   }
 
+  let wakingRealization: string | null = null;
+  try {
+    wakingRealization = await groundDream(client, dream);
+    if (wakingRealization) {
+      logger.info(`Waking realization generated: ${wakingRealization.length} chars`);
+    }
+  } catch (e) {
+    logger.warn(`groundDream failed, continuing without realization: ${e}`);
+  }
+
+  logger.info(`WAKING_REALIZATION: ${wakingRealization}`);
+
   // Store in OpenClaw memory if available
   if (api) {
-    await storeInOpenClawMemory(api, dream, insight);
+    await storeInOpenClawMemory(api, dream, insight, wakingRealization);
 
     // Notify operator about the dream
     try {
@@ -216,6 +263,8 @@ export async function runDreamCycle(
   state.last_dream = new Date().toISOString();
   state.total_dreams = ((state.total_dreams as number) ?? 0) + 1;
   state.latest_dream_title = slug;
+  state.waking_realization = wakingRealization ?? null;
+  state.waking_realization_date = new Date().toISOString().slice(0, 10);
   saveState(state);
 
   logger.info("Dream cycle complete.");

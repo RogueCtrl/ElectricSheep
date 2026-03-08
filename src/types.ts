@@ -45,6 +45,8 @@ export interface AgentState {
   last_dream?: string;
   total_dreams?: number;
   latest_dream_title?: string;
+  waking_realization?: string | null;
+  waking_realization_date?: string | null;
   [key: string]: unknown;
 }
 
