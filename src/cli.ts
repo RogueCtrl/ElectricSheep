@@ -281,12 +281,18 @@ export function registerCommands(parent: Command): void {
   parent
     .command("reflect")
     .description("Manually trigger the reflection and synthesis cycle")
-    .action(async () => {
-      console.log(chalk.cyan.bold("\nTriggering reflection cycle...\n"));
+    .option("--dry-run", "Print synthesis output without storing to memory")
+    .action(async (opts: { dryRun?: boolean }) => {
+      const dryRun = opts.dryRun ?? false;
+      if (dryRun) {
+        console.log(chalk.cyan.bold("\nTriggering reflection cycle (dry run)...\n"));
+      } else {
+        console.log(chalk.cyan.bold("\nTriggering reflection cycle...\n"));
+      }
       const { runReflectionCycle } = await import("./waking.js");
       const { client, api } = await createDirectClient();
       try {
-        await runReflectionCycle(client, api);
+        await runReflectionCycle(client, api, { dryRun });
         console.log(chalk.green.bold("\nReflection cycle complete.\n"));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);

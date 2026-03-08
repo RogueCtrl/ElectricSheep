@@ -87,21 +87,26 @@ async function storeInOpenClawMemory(
  */
 export async function runReflectionCycle(
   client: LLMClient,
-  api: OpenClawAPI
+  api: OpenClawAPI,
+  options?: { dryRun?: boolean }
 ): Promise<void> {
+  const dryRun = options?.dryRun ?? false;
   logger.info("ElectricSheep reflection cycle starting");
 
   // Check if we have any conversations to reflect on
   const recentConversations = getRecentConversations();
   if (recentConversations.length === 0) {
     logger.info("No recent conversations to reflect on");
-    storeDeepMemory(
-      {
-        summary: "Reflection cycle ran but no recent operator conversations to process.",
-        type: "observation",
-      },
-      "observation"
-    );
+    if (!dryRun) {
+      storeDeepMemory(
+        {
+          summary:
+            "Reflection cycle ran but no recent operator conversations to process.",
+          type: "observation",
+        },
+        "observation"
+      );
+    }
     return;
   }
 
@@ -112,13 +117,15 @@ export async function runReflectionCycle(
 
   if (context.topics.length === 0) {
     logger.info("No topics extracted from conversations");
-    storeDeepMemory(
-      {
-        summary: "Analyzed recent conversations but no clear topics emerged.",
-        type: "observation",
-      },
-      "observation"
-    );
+    if (!dryRun) {
+      storeDeepMemory(
+        {
+          summary: "Analyzed recent conversations but no clear topics emerged.",
+          type: "observation",
+        },
+        "observation"
+      );
+    }
     return;
   }
 
@@ -134,6 +141,16 @@ export async function runReflectionCycle(
 
   // Store in local memory systems
   const summary = await summarizeSynthesis(client, synthesis, context.topics);
+
+  if (dryRun) {
+    // Print synthesis output instead of storing
+    console.log("\n--- DRY RUN: Reflection Synthesis ---\n");
+    console.log(`Topics: ${context.topics.join(", ")}\n`);
+    console.log(synthesis);
+    console.log(`\nSummary: ${summary}`);
+    console.log("\n--- End Dry Run ---\n");
+    return;
+  }
 
   // Store full context in deep memory (includes summary for later retrieval)
   storeDeepMemory(
