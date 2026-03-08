@@ -38,7 +38,7 @@ import { notifyOperatorOfDream } from "./notify.js";
 import logger from "./logger.js";
 import type { LLMClient, OpenClawAPI, Dream, DecryptedMemory } from "./types.js";
 
-const NIGHTMARE_CHANCE = 0.05;
+const NIGHTMARE_CHANCE = parseFloat(process.env.NIGHTMARE_CHANCE ?? "0.05");
 
 export async function generateDream(
   client: LLMClient,

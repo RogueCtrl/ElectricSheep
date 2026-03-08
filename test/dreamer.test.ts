@@ -7,6 +7,7 @@ import type { LLMClient } from "../src/types.js";
 
 const testDir = mkdtempSync(join(tmpdir(), "es-dreamer-test-"));
 process.env.OPENCLAWDREAMS_DATA_DIR = testDir;
+process.env.NIGHTMARE_CHANCE = "0";
 
 const { runDreamCycle } = await import("../src/dreamer.js");
 const { storeDeepMemory, closeDb } = await import("../src/memory.js");
