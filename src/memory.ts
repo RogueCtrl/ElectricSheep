@@ -249,7 +249,11 @@ export function formatDeepMemoryContext(
       typeof mem.content.summary === "string"
         ? mem.content.summary
         : JSON.stringify(mem.content).slice(0, 200);
-    const line = `[${mem.timestamp.slice(0, 16)}] (${mem.category}) ${summary}`;
+    const diffSuffix =
+      typeof mem.content.file_diffs === "string"
+        ? `\n  Files changed: ${mem.content.file_diffs}`
+        : "";
+    const line = `[${mem.timestamp.slice(0, 16)}] (${mem.category}) ${summary}${diffSuffix}`;
     if (charCount + line.length > charBudget) {
       lines.unshift(`... (${mems.length - lines.length} older memories omitted)`);
       break;

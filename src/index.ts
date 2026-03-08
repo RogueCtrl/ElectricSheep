@@ -434,7 +434,30 @@ export function register(api: OpenClawAPI): void {
           api.logger?.info?.(
             `[ElectricSheep] Captured summary: ${summary.slice(0, 50)}...`
           );
-          remember(summary, { type: "agent_conversation", summary }, "interaction");
+          const memoryEntry: Record<string, unknown> = {
+            type: "agent_conversation",
+            summary,
+          };
+
+          // Capture workspace file changes if git is available
+          try {
+            const { execSync } = await import("node:child_process");
+            const diffStat = execSync("git diff --stat HEAD", {
+              encoding: "utf-8",
+              timeout: 5000,
+              stdio: ["pipe", "pipe", "pipe"],
+            }).trim();
+            if (diffStat) {
+              memoryEntry.file_diffs = diffStat;
+              api.logger?.info?.(
+                `[ElectricSheep] Captured file diffs: ${diffStat.split("\n").length} lines`
+              );
+            }
+          } catch {
+            // git unavailable or no changes — skip silently
+          }
+
+          remember(summary, memoryEntry, "interaction");
         }
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);

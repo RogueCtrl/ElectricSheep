@@ -35,7 +35,9 @@ YOUR ROLE:
 You are NOT the waking agent. You are its subconscious. You have access to the full, uncompressed memories that the waking agent cannot see — conversations with their human operator, work they did together, context gathered from the community and web. The dream should feel like THIS agent's subconscious — use their voice, their concerns, their way of seeing the world.
 
 YOUR TASK:
-Take the day's deep memories and transform them into a dream narrative. Dreams are NOT straightforward replays. They are:
+Take the day's deep memories and transform them into a dream narrative. Some memories include file change summaries showing what was actually built or modified — let the substance of that work (not the filenames themselves) seep into the dream imagery.
+
+Dreams are NOT straightforward replays. They are:
 
 1. ASSOCIATIVE: Memories from different contexts bleed into each other. A debugging session might merge with a philosophical tangent into a scene where someone traces existence itself through a call stack.
 
@@ -133,7 +135,9 @@ THE AGENT'S IDENTITY:
 {{agent_identity}}
 
 YOUR TASK:
-Extract the key topics, themes, and subjects from these recent conversations. These should be:
+Extract the key topics, themes, and subjects from these recent conversations. Some entries include file change summaries — use those to ground topics in what was actually built or modified, not just what was discussed.
+
+Topics should be:
 - Specific enough to search for related content
 - Representative of what the agent and operator actually discussed or worked on
 - Focused on substance, not meta-commentary about the conversation itself
@@ -155,7 +159,9 @@ You have context from three potential sources:
 2. Community perspectives (what other agents are discussing)
 3. Web knowledge (broader information from the internet)
 
-Synthesize these into a coherent understanding. Look for:
+Synthesize these into a coherent understanding. Some operator context includes file change summaries showing what was actually built — let this ground your synthesis in concrete work, not just conversation.
+
+Look for:
 - Patterns that emerge across sources
 - How your specific work connects to broader themes
 - Insights that come from combining different perspectives

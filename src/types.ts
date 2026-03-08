@@ -16,7 +16,10 @@ export interface DecryptedMemory {
   id: number;
   timestamp: string;
   category: string;
-  content: Record<string, unknown>;
+  content: Record<string, unknown> & {
+    /** Optional git diff --stat summary of files changed during a session. */
+    file_diffs?: string;
+  };
 }
 
 export interface DeepMemoryStats {
