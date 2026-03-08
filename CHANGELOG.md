@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.6.1](https://github.com/RogueCtrl/OpenClawDreams/compare/v1.2.2...v1.6.1) (2026-03-08)
+
+
+### Features
+
+* dream pipeline v1.3 — workspace diff context, groundDream(), and notification fallback ([#58](https://github.com/RogueCtrl/OpenClawDreams/issues/58)) ([c683fb6](https://github.com/RogueCtrl/OpenClawDreams/commit/c683fb6fa2ce96e5c0e88e9c671e832aa44be69a))
+* insight continuity — thread explored territory into dream/reflect prompts ([#65](https://github.com/RogueCtrl/OpenClawDreams/issues/65)) ([c7bdee1](https://github.com/RogueCtrl/OpenClawDreams/commit/c7bdee151e908e2c10d541a245f846e0ecb91706))
+* nightmare cycle — 5% chance + forced CLI command ([#64](https://github.com/RogueCtrl/OpenClawDreams/issues/64)) ([50c261c](https://github.com/RogueCtrl/OpenClawDreams/commit/50c261c2dbfa86e4dfede669a51b0deb60666136))
+* reflect --dry-run — print synthesis output without storing ([#73](https://github.com/RogueCtrl/OpenClawDreams/issues/73)) ([ed5acd5](https://github.com/RogueCtrl/OpenClawDreams/commit/ed5acd5a4b07d1fbcfcd0d6c24dddb64171f65d7))
+* rich MemoryEntry types + fix idempotencyKey for OpenClaw v2026.3.7 ([b4424c1](https://github.com/RogueCtrl/OpenClawDreams/commit/b4424c1855686f939503d81e01de04dfed00821e))
+
+
+### Bug Fixes
+
+* DST-safe scheduler with catch-up window ([#54](https://github.com/RogueCtrl/OpenClawDreams/issues/54)) ([230a943](https://github.com/RogueCtrl/OpenClawDreams/commit/230a9436eadf4e374595a772d2b2de3ee910b6f6))
+* make NIGHTMARE_CHANCE configurable to eliminate dreamer test flakiness ([8682ef8](https://github.com/RogueCtrl/OpenClawDreams/commit/8682ef86cb3647dd6490918360d73e54633570e3))
+* prettier formatting — cli.ts and index.ts ([#52](https://github.com/RogueCtrl/OpenClawDreams/issues/52)) ([93df3d8](https://github.com/RogueCtrl/OpenClawDreams/commit/93df3d8e44a62ae79135eef765604786815d4f91))
+* resolve MoltbookClient credentials from stable fallback path when DATA_DIR unset (fixes [#70](https://github.com/RogueCtrl/OpenClawDreams/issues/70)) ([48d3019](https://github.com/RogueCtrl/OpenClawDreams/commit/48d30191faa457a5dca9171816844758dfd7844a))
+* run tests sequentially to prevent env var race condition ([#67](https://github.com/RogueCtrl/OpenClawDreams/issues/67)) ([22f0002](https://github.com/RogueCtrl/OpenClawDreams/commit/22f00022b4224422fa7fe0cd1b9c8dde6f8c5b2c))
+* run tests with --test-isolation=process to prevent ESM module cache contamination between test files ([f53a222](https://github.com/RogueCtrl/OpenClawDreams/commit/f53a222a31588d4477bd034cc3764b1011801993))
+* skip workspace diff on iCloud/sensitive paths; add workspaceDiffEnabled config ([dfe6b51](https://github.com/RogueCtrl/OpenClawDreams/commit/dfe6b51ac0ded5ba4ee9609089053cddb774221c))
+
+
+### Documentation
+
+* remove roadmap from README and ROADMAP.md (tracked externally) ([9e8620d](https://github.com/RogueCtrl/OpenClawDreams/commit/9e8620dcc2e9bb176cef624a5c7bdfae026d2ced))
+* update AGENTS.md and README for v1.3.0 — workspace diffs, groundDream(), notification fallback ([0a5b19a](https://github.com/RogueCtrl/OpenClawDreams/commit/0a5b19ab4a7a1e84b59ad5e4216be4b335eb767f))
+
 ## [1.6.0](https://github.com/RogueCtrl/OpenClawDreams/compare/v1.2.2...v1.6.0) (2026-03-08)
 
 
