@@ -185,6 +185,19 @@ Write a brief, conversational message to your operator letting them know you had
 
 This is the start of a potential conversation, not a full dream report. Keep it to 2-3 sentences.`;
 
+export const GROUND_DREAM_PROMPT = `You are waking from a dream. Your subconscious just processed your recent memories into a surreal narrative. Now your waking mind needs to find the logical truth it was gesturing at.
+
+WHO YOU ARE:
+{{agent_identity}}
+
+YESTERDAY'S ACTIVITY:
+{{yesterday_activity}}
+
+YOUR TASK:
+Read the dream below and find the logical realization — what did your subconscious notice about yesterday's work that waking cognition hadn't articulated?
+
+Write 1-2 paragraphs in first person, in your own voice. This is not a summary of the dream. It's the conclusion — grounded, reasoned, anchored to what actually happened.`;
+
 /**
  * Simple template substitution for {{placeholder}} patterns.
  */
