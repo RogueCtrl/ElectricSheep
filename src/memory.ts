@@ -11,7 +11,67 @@ import { createHash } from "node:crypto";
 import Database from "better-sqlite3";
 import { getCipher } from "./crypto.js";
 import { DEEP_MEMORY_DB, DEEP_MEMORY_CONTEXT_TOKENS } from "./config.js";
-import type { DecryptedMemory, DeepMemoryStats } from "./types.js";
+import type { DecryptedMemory, DeepMemoryStats, MemoryEntry } from "./types.js";
+
+/**
+ * Normalize a decrypted payload into a MemoryEntry.
+ * Handles backward compatibility with legacy plain-object entries
+ * that have `summary` and `file_diffs` as flat fields.
+ */
+function normalizeMemoryEntry(raw: unknown, rowTimestamp: string): MemoryEntry {
+  // Already a MemoryEntry (has text_summary)
+  if (
+    typeof raw === "object" &&
+    raw !== null &&
+    typeof (raw as Record<string, unknown>).text_summary === "string"
+  ) {
+    return raw as MemoryEntry;
+  }
+
+  // Plain string (very old format)
+  if (typeof raw === "string") {
+    return { text_summary: raw, timestamp: Date.parse(rowTimestamp) || Date.now() };
+  }
+
+  // Legacy object with `summary` field
+  const obj = raw as Record<string, unknown>;
+  const textSummary =
+    typeof obj.summary === "string" ? obj.summary : JSON.stringify(obj).slice(0, 500);
+
+  const entry: MemoryEntry = {
+    text_summary: textSummary,
+    timestamp: Date.parse(rowTimestamp) || Date.now(),
+  };
+
+  // Migrate legacy flat file_diffs string
+  if (typeof obj.file_diffs === "string" && obj.file_diffs) {
+    entry.file_diffs = parseDiffStat(obj.file_diffs);
+  }
+
+  return entry;
+}
+
+/**
+ * Parse `git diff --stat` output into structured FileDiff[].
+ */
+export function parseDiffStat(diffStat: string): import("./types.js").FileDiff[] {
+  const lines = diffStat.split("\n").filter((l) => l.includes("|"));
+  return lines.map((line) => {
+    const match = line.match(/^\s*(.+?)\s*\|\s*(\d+)/);
+    if (!match) return { path: line.trim(), additions: 0, deletions: 0 };
+    const path = match[1].trim();
+    const total = parseInt(match[2], 10);
+    const plusCount = (line.match(/\+/g) || []).length;
+    const minusCount = (line.match(/-/g) || []).length;
+    // Approximate: distribute total changes by + and - symbols in the stat line
+    const ratio = plusCount + minusCount > 0 ? plusCount / (plusCount + minusCount) : 0.5;
+    return {
+      path,
+      additions: Math.round(total * ratio),
+      deletions: Math.round(total * (1 - ratio)),
+    };
+  });
+}
 
 // ─── Deep Memory (Encrypted) ────────────────────────────────────────────────
 
@@ -100,14 +160,17 @@ export function retrieveUndreamedMemories(): DecryptedMemory[] {
         id: row.id,
         timestamp: row.timestamp,
         category: row.category,
-        content: decrypted,
+        content: normalizeMemoryEntry(decrypted, row.timestamp),
       });
     } catch {
       memories.push({
         id: row.id,
         timestamp: row.timestamp,
         category: "corrupted",
-        content: { note: "This memory could not be recovered." },
+        content: {
+          text_summary: "This memory could not be recovered.",
+          timestamp: Date.parse(row.timestamp) || Date.now(),
+        },
       });
     }
   }
@@ -205,14 +268,17 @@ export function getRecentDeepMemories(
         id: row.id,
         timestamp: row.timestamp,
         category: row.category,
-        content: decrypted,
+        content: normalizeMemoryEntry(decrypted, row.timestamp),
       });
     } catch {
       memories.push({
         id: row.id,
         timestamp: row.timestamp,
         category: "corrupted",
-        content: { note: "This memory could not be recovered." },
+        content: {
+          text_summary: "This memory could not be recovered.",
+          timestamp: Date.parse(row.timestamp) || Date.now(),
+        },
       });
     }
   }
@@ -245,15 +311,24 @@ export function formatDeepMemoryContext(
   // Iterate from most recent to oldest
   for (let i = mems.length - 1; i >= 0; i--) {
     const mem = mems[i];
-    const summary =
-      typeof mem.content.summary === "string"
-        ? mem.content.summary
-        : JSON.stringify(mem.content).slice(0, 200);
-    const diffSuffix =
-      typeof mem.content.file_diffs === "string"
-        ? `\n  Files changed: ${mem.content.file_diffs}`
-        : "";
-    const line = `[${mem.timestamp.slice(0, 16)}] (${mem.category}) ${summary}${diffSuffix}`;
+    const entry = mem.content;
+    const summary = entry.text_summary || JSON.stringify(entry).slice(0, 200);
+    const parts: string[] = [];
+    if (entry.file_diffs && entry.file_diffs.length > 0) {
+      const diffStr = entry.file_diffs
+        .map((d) => `${d.path} (+${d.additions}/-${d.deletions})`)
+        .join(", ");
+      parts.push(`Files: ${diffStr}`);
+    }
+    if (entry.topics && entry.topics.length > 0) {
+      parts.push(`Topics: ${entry.topics.join(", ")}`);
+    }
+    if (entry.tool_calls && entry.tool_calls.length > 0) {
+      const toolStr = entry.tool_calls.map((t) => `${t.tool}×${t.count}`).join(", ");
+      parts.push(`Tools: ${toolStr}`);
+    }
+    const suffix = parts.length > 0 ? `\n  ${parts.join(" | ")}` : "";
+    const line = `[${mem.timestamp.slice(0, 16)}] (${mem.category}) ${summary}${suffix}`;
     if (charCount + line.length > charBudget) {
       lines.unshift(`... (${mems.length - lines.length} older memories omitted)`);
       break;
@@ -268,13 +343,27 @@ export function formatDeepMemoryContext(
 // ─── Store Helper ───────────────────────────────────────────────────────────
 
 /**
- * Store a memory in encrypted deep memory.
- * The summary is included in the content object for later retrieval.
+ * Store a structured MemoryEntry in encrypted deep memory.
+ *
+ * Accepts either a MemoryEntry directly, or a legacy (summary, fullContext)
+ * pair for backward compatibility.
  */
 export function remember(
-  summary: string,
-  fullContext: Record<string, unknown>,
+  summaryOrEntry: string | MemoryEntry,
+  fullContextOrCategory?: Record<string, unknown> | string,
   category: string = "interaction"
 ): void {
-  storeDeepMemory({ ...fullContext, summary }, category);
+  if (typeof summaryOrEntry === "object") {
+    // New path: direct MemoryEntry
+    const cat =
+      typeof fullContextOrCategory === "string" ? fullContextOrCategory : category;
+    storeDeepMemory(summaryOrEntry as unknown as Record<string, unknown>, cat);
+  } else {
+    // Legacy path: summary + fullContext
+    const ctx =
+      typeof fullContextOrCategory === "object" && fullContextOrCategory !== null
+        ? fullContextOrCategory
+        : {};
+    storeDeepMemory({ ...ctx, summary: summaryOrEntry }, category);
+  }
 }

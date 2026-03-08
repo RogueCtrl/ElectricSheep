@@ -34,11 +34,12 @@ function formatConversationsForExtraction(memories: DecryptedMemory[]): string {
   return memories
     .map((m) => {
       const time = m.timestamp.slice(0, 16).replace("T", " ");
-      const summary =
-        typeof m.content.summary === "string"
-          ? m.content.summary
-          : JSON.stringify(m.content).slice(0, 200);
-      return `[${time}] ${summary}`;
+      const summary = m.content.text_summary || JSON.stringify(m.content).slice(0, 200);
+      const topicHint =
+        m.content.topics && m.content.topics.length > 0
+          ? ` [topics: ${m.content.topics.join(", ")}]`
+          : "";
+      return `[${time}] ${summary}${topicHint}`;
     })
     .join("\n\n");
 }

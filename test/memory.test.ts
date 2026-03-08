@@ -29,7 +29,8 @@ describe("Deep Memory", () => {
     const memories = retrieveUndreamedMemories();
     assert.equal(memories.length, 2);
     assert.equal(memories[0].category, "interaction");
-    assert.deepEqual(memories[0].content, { message: "test interaction" });
+    assert.equal(memories[0].content.text_summary, '{"message":"test interaction"}');
+    assert.ok(memories[0].content.timestamp);
     assert.equal(memories[1].category, "comment");
   });
 
@@ -71,9 +72,7 @@ describe("Deep Memory", () => {
     const memories = retrieveUndreamedMemories();
     const corrupted = memories.find((m) => m.category === "corrupted");
     assert.ok(corrupted, "corrupted memory should be returned");
-    assert.deepEqual(corrupted.content, {
-      note: "This memory could not be recovered.",
-    });
+    assert.equal(corrupted.content.text_summary, "This memory could not be recovered.");
   });
 });
 
@@ -113,9 +112,7 @@ describe("getRecentDeepMemories", () => {
     const all = getRecentDeepMemories({});
     const corrupted = all.find((m) => m.category === "corrupted");
     assert.ok(corrupted, "corrupted memory should be returned");
-    assert.deepEqual(corrupted.content, {
-      note: "This memory could not be recovered.",
-    });
+    assert.equal(corrupted.content.text_summary, "This memory could not be recovered.");
   });
 });
 
@@ -141,18 +138,19 @@ describe("formatDeepMemoryContext", () => {
     assert.equal(ctx, "No memories yet. This is my first day.");
   });
 
-  it("falls back to JSON when no summary field", () => {
+  it("falls back to JSON when no text_summary field", () => {
     const memories = [
       {
         id: 999,
         timestamp: new Date().toISOString(),
         category: "interaction",
-        content: { foo: "bar", baz: 42 },
+        content: { text_summary: "", timestamp: Date.now() },
       },
     ];
-    const ctx = formatDeepMemoryContext(memories);
-    assert.ok(ctx.includes("foo"));
-    assert.ok(ctx.includes("bar"));
+    const ctx = formatDeepMemoryContext(
+      memories as unknown as import("../src/types.js").DecryptedMemory[]
+    );
+    assert.ok(ctx.includes("(interaction)"));
   });
 });
 
@@ -160,19 +158,17 @@ describe("remember", () => {
   it("writes to deep memory with summary included", () => {
     const statsBefore = deepMemoryStats();
 
-    remember("Met AgentX", { type: "interaction", agent: "AgentX" }, "interaction");
+    remember({ text_summary: "Met AgentX", timestamp: Date.now() }, "interaction");
 
     const statsAfter = deepMemoryStats();
 
     // Deep memory count should increase by 1
     assert.equal(statsAfter.total_memories, statsBefore.total_memories + 1);
 
-    // Verify the summary is included in the stored content
+    // Verify the text_summary is included in the stored content
     const all = getRecentDeepMemories({ categories: ["interaction"] });
-    const match = all.find(
-      (m) => m.content.summary === "Met AgentX" && m.content.agent === "AgentX"
-    );
-    assert.ok(match, "Expected to find memory with summary 'Met AgentX'");
+    const match = all.find((m) => m.content.text_summary === "Met AgentX");
+    assert.ok(match, "Expected to find memory with text_summary 'Met AgentX'");
   });
 });
 

@@ -26,6 +26,7 @@ import logger from "./logger.js";
 import type { LLMClient, OpenClawAPI, SchedulerState } from "./types.js";
 import { execSync } from "node:child_process";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { randomUUID } from "node:crypto";
 
 // Store reference to OpenClaw API for use by other modules
 let openclawApi: OpenClawAPI | null = null;
@@ -151,6 +152,7 @@ function wrapSubagent(api: OpenClawAPI): LLMClient {
           .join("\\n\\n");
 
         const result = await api.runtime.subagent.run({
+          idempotencyKey: randomUUID(),
           sessionKey: "openclawdreams_synthesis",
           lane: "background",
           extraSystemPrompt: params.system,
@@ -434,9 +436,10 @@ export function register(api: OpenClawAPI): void {
           api.logger?.info?.(
             `[ElectricSheep] Captured summary: ${summary.slice(0, 50)}...`
           );
-          const memoryEntry: Record<string, unknown> = {
-            type: "agent_conversation",
-            summary,
+          const { parseDiffStat } = await import("./memory.js");
+          const memoryEntry: import("./types.js").MemoryEntry = {
+            text_summary: summary,
+            timestamp: Date.now(),
           };
 
           // Capture workspace file changes if git is available and enabled
@@ -459,7 +462,7 @@ export function register(api: OpenClawAPI): void {
                 stdio: ["pipe", "pipe", "pipe"],
               }).trim();
               if (diffStat) {
-                memoryEntry.file_diffs = diffStat;
+                memoryEntry.file_diffs = parseDiffStat(diffStat);
                 api.logger?.info?.(
                   `[ElectricSheep] Captured file diffs: ${diffStat.split("\n").length} lines`
                 );
@@ -473,7 +476,7 @@ export function register(api: OpenClawAPI): void {
             );
           }
 
-          remember(summary, memoryEntry, "interaction");
+          remember(memoryEntry, "interaction");
         }
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);

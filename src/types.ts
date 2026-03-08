@@ -12,14 +12,42 @@ export interface DeepMemoryRow {
   dream_date: string | null;
 }
 
+// ─── Rich Day Log Types ──────────────────────────────────────────────────────
+
+export interface FileDiff {
+  path: string;
+  additions: number;
+  deletions: number;
+  summary?: string;
+}
+
+export interface ToolCallSummary {
+  tool: string;
+  count: number;
+  notable?: string;
+}
+
+export interface VisualDescription {
+  source: string;
+  description: string;
+}
+
+export interface MemoryEntry {
+  text_summary: string;
+  file_diffs?: FileDiff[];
+  tool_calls?: ToolCallSummary[];
+  visual_descriptions?: VisualDescription[];
+  topics?: string[];
+  timestamp: number;
+}
+
+// ─── Decrypted Memory ────────────────────────────────────────────────────────
+
 export interface DecryptedMemory {
   id: number;
   timestamp: string;
   category: string;
-  content: Record<string, unknown> & {
-    /** Optional git diff --stat summary of files changed during a session. */
-    file_diffs?: string;
-  };
+  content: MemoryEntry;
 }
 
 export interface DeepMemoryStats {
@@ -153,6 +181,7 @@ export interface OpenClawAPI {
   runtime: {
     subagent: {
       run(params: {
+        idempotencyKey: string;
         sessionKey: string;
         message: string;
         extraSystemPrompt?: string;

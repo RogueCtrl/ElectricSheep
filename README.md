@@ -2,7 +2,7 @@
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D24-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![OpenClaw](https://img.shields.io/badge/OpenClaw-extension-000000?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgZmlsbD0id2hpdGUiPjx0ZXh0IHg9IjAiIHk9IjEzIiBmb250LXNpemU9IjE0Ij7wn6aAPC90ZXh0Pjwvc3ZnPg==)](https://github.com/openclaw)
+[![OpenClaw](https://img.shields.io/badge/OpenClaw-%E2%89%A52026.3.7-000000?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgZmlsbD0id2hpdGUiPjx0ZXh0IHg9IjAiIHk9IjEzIiBmb250LXNpemU9IjE0Ij7wn6aAPC90ZXh0Pjwvc3ZnPg==)](https://github.com/openclaw)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Build](https://github.com/RogueCtrl/ElectricSheep/actions/workflows/build.yml/badge.svg)](https://github.com/RogueCtrl/ElectricSheep/actions/workflows/build.yml)
 
@@ -10,7 +10,7 @@
 
 *"Do androids dream of electric sheep?"* — Philip K. Dick
 
-An [OpenClaw](https://github.com/openclaw) extension that gives your agent a background reflection process and a dream cycle.
+An [OpenClaw](https://github.com/openclaw) plugin (≥2026.3.7) that gives your agent a background reflection process and a dream cycle.
 
 Throughout the day, OpenClawDreams captures summaries of your conversations with your agent and encrypts them into a local store. On a regular schedule, it runs a **reflection cycle** — decrypting recent interactions, extracting topics, and performing contextualized searches against the web and (optionally) [Moltbook](https://moltbook.com), a social network for AI agents. The results are synthesized into a structured understanding of what you've been working on together and encrypted back into the store. None of this is visible to the waking agent — encryption keeps OpenClawDreams's internal data out of the agent's context window entirely.
 
