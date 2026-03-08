@@ -20,16 +20,40 @@ import {
   getMoltbookEnabled,
   applyPluginConfig,
   getRequireApprovalBeforePost,
+  SCHEDULER_STATE_FILE,
 } from "./config.js";
 import logger from "./logger.js";
-import type { LLMClient, OpenClawAPI } from "./types.js";
+import type { LLMClient, OpenClawAPI, SchedulerState } from "./types.js";
 import { execSync } from "node:child_process";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
 
 // Store reference to OpenClaw API for use by other modules
 let openclawApi: OpenClawAPI | null = null;
 
 export function getOpenClawAPI(): OpenClawAPI | null {
   return openclawApi;
+}
+
+/**
+ * Persist scheduler state to survive restarts.
+ */
+function loadSchedulerState(): SchedulerState {
+  if (existsSync(SCHEDULER_STATE_FILE)) {
+    try {
+      return JSON.parse(readFileSync(SCHEDULER_STATE_FILE, "utf-8"));
+    } catch {
+      return { last_ran: {} };
+    }
+  }
+  return { last_ran: {} };
+}
+
+function saveSchedulerState(state: SchedulerState): void {
+  try {
+    writeFileSync(SCHEDULER_STATE_FILE, JSON.stringify(state, null, 2));
+  } catch (err) {
+    logger.error(`[ElectricSheep] Failed to save scheduler state: ${err}`);
+  }
 }
 
 /**
@@ -425,7 +449,6 @@ export function register(api: OpenClawAPI): void {
   // Schedules: reflection @ 8,12,16,20h | dream @ 2h | journal @ 7h (local time)
 
   let _schedulerTimer: ReturnType<typeof setInterval> | null = null;
-  let _lastRanHour = -1;
 
   const SCHEDULE: Record<number, () => Promise<void>> = {
     2: async () => {
@@ -467,18 +490,53 @@ export function register(api: OpenClawAPI): void {
   api.registerService({
     id: "openclawdreams-scheduler",
     start: () => {
-      _lastRanHour = -1;
+      const state = loadSchedulerState();
       _schedulerTimer = setInterval(() => {
         void (async () => {
-          const hour = new Date().getHours();
-          if (hour !== _lastRanHour && SCHEDULE[hour]) {
-            _lastRanHour = hour;
-            try {
-              await SCHEDULE[hour]();
-            } catch (err) {
-              api.logger?.warn?.(
-                `[ElectricSheep] scheduled job hour=${hour} failed: ${err}`
-              );
+          const now = new Date();
+          // Use local date string (YYYY-MM-DD) for tracking "already ran today"
+          const todayStr = now.toLocaleDateString("en-CA");
+
+          for (const hourStr of Object.keys(SCHEDULE)) {
+            const scheduledHour = parseInt(hourStr, 10);
+
+            // Skip if already ran today for this hour
+            if (state.last_ran[scheduledHour] === todayStr) {
+              continue;
+            }
+
+            // Target time for today in local time
+            const target = new Date(
+              now.getFullYear(),
+              now.getMonth(),
+              now.getDate(),
+              scheduledHour,
+              0,
+              0
+            );
+
+            const diffMs = now.getTime() - target.getTime();
+            const ninetyMinutesMs = 90 * 60 * 1000;
+
+            // Catch-up logic: run if target has passed AND it's within the window (90m)
+            // This safely handles DST jumps (e.g. 1:59 -> 3:00) where the 2am hour is skipped.
+            if (diffMs >= 0 && diffMs <= ninetyMinutesMs) {
+              state.last_ran[scheduledHour] = todayStr;
+              saveSchedulerState(state);
+
+              try {
+                const lateMins = Math.round(diffMs / 60000);
+                logger.info(
+                  `[ElectricSheep] Running job hour=${scheduledHour}${
+                    lateMins > 1 ? ` (catch-up: ${lateMins}m late)` : ""
+                  }`
+                );
+                await SCHEDULE[scheduledHour]();
+              } catch (err) {
+                api.logger?.warn?.(
+                  `[ElectricSheep] scheduled job hour=${scheduledHour} failed: ${err}`
+                );
+              }
             }
           }
         })();

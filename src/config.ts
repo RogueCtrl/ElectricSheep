@@ -92,6 +92,7 @@ export const NOTIFY_OPERATOR_ON_DREAM = true; // overridden by getter; prefer ge
 // Memory
 export const DEEP_MEMORY_DB = resolve(MEMORY_DIR, "deep.db");
 export const STATE_FILE = resolve(MEMORY_DIR, "state.json");
+export const SCHEDULER_STATE_FILE = resolve(DATA_DIR, "scheduler-state.json");
 
 // Token budget — $20/day using Opus 4.5 output rate ($25/1M) ≈ 800,000 tokens
 // Input tokens are $5/1M but we count all tokens against the output rate for simplicity.

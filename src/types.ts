@@ -48,6 +48,11 @@ export interface AgentState {
   [key: string]: unknown;
 }
 
+export interface SchedulerState {
+  /** Map of hour (0-23) to ISO date string (YYYY-MM-DD) of the last successful run. */
+  last_ran: Record<number, string>;
+}
+
 export interface TokenUsage {
   input_tokens: number;
   output_tokens: number;
