@@ -80,12 +80,14 @@ async function decomposeThemes(client: LLMClient, dream: Dream): Promise<string[
 async function reflectOnDream(
   client: LLMClient,
   dream: Dream,
-  subjects: string[]
+  subjects: string[],
+  exploredTerritory: string = "None yet — explore freely."
 ): Promise<string> {
   const system = renderTemplate(DREAM_REFLECT_PROMPT, {
     agent_identity: getAgentIdentityBlock(),
     recent_context: formatDeepMemoryContext(),
     subjects: subjects.map((s, i) => `${i + 1}. ${s}`).join("\n"),
+    explored_territory: exploredTerritory,
   });
 
   const { text } = await callWithRetry(
@@ -120,7 +122,8 @@ async function reflectOnDream(
  */
 export async function reflectOnDreamJournal(
   client: LLMClient,
-  dream: Dream
+  dream: Dream,
+  exploredTerritory: string = "None yet — explore freely."
 ): Promise<DreamReflection | null> {
   try {
     logger.info("Starting dream reflection pipeline");
@@ -131,7 +134,7 @@ export async function reflectOnDreamJournal(
       return null;
     }
 
-    const synthesis = await reflectOnDream(client, dream, subjects);
+    const synthesis = await reflectOnDream(client, dream, subjects, exploredTerritory);
     if (!synthesis) {
       logger.warn("Dream reflection returned empty synthesis");
       return null;

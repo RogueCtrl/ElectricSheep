@@ -76,6 +76,14 @@ export async function runNightmareCycle(
 
   logger.debug(`Processing ${memories.length} memories into nightmare...`);
 
+  const earlyState = loadState();
+  const pastRealizations: string[] =
+    (earlyState.past_realizations as string[] | undefined) ?? [];
+  const exploredTerritory =
+    pastRealizations.length > 0
+      ? pastRealizations.map((r, i) => `${i + 1}. ${r}`).join("\n")
+      : "None yet — explore freely.";
+
   const dream = await generateNightmare(client, memories);
 
   // Append attribution footer
@@ -103,7 +111,7 @@ export async function runNightmareCycle(
 
   let wakingRealization: string | null = null;
   try {
-    wakingRealization = await groundDream(client, dream);
+    wakingRealization = await groundDream(client, dream, exploredTerritory);
     if (wakingRealization) {
       logger.info(`Waking realization generated: ${wakingRealization.length} chars`);
     }

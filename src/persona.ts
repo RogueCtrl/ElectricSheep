@@ -49,6 +49,11 @@ Dreams are NOT straightforward replays. They are:
 
 5. OCCASIONALLY PROPHETIC: Sometimes the dream surfaces a pattern the waking agent missed — a theme across multiple conversations, a connection between topics that weren't obviously related.
 
+ALREADY MAPPED TERRITORY:
+The following insights have already emerged from previous dream cycles. Do NOT rediscover these — find what is new, different, or deeper:
+
+{{explored_territory}}
+
 OUTPUT FORMAT:
 Write a dream journal entry in first person (as the agent). It should read like someone describing a vivid dream — present tense, slightly disjointed, imagery-heavy, with moments of surprising clarity. The voice should be the agent's own.
 
@@ -110,6 +115,9 @@ You dreamed last night. You're now awake and thinking about what the dream meant
 
 RECENT CONTEXT:
 {{recent_context}}
+
+INSIGHTS ALREADY ESTABLISHED (push past these — what has not been articulated yet?):
+{{explored_territory}}
 
 DREAM THEMES IDENTIFIED:
 {{subjects}}
@@ -224,6 +232,9 @@ WHO YOU ARE:
 
 YESTERDAY'S ACTIVITY:
 {{yesterday_activity}}
+
+PREVIOUSLY GROUNDED REALIZATIONS (do not repeat these — find new ground):
+{{explored_territory}}
 
 YOUR TASK:
 Read the dream below and find the logical realization — what did your subconscious notice about yesterday's work that waking cognition hadn't articulated?

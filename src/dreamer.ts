@@ -42,7 +42,8 @@ const NIGHTMARE_CHANCE = 0.05;
 
 export async function generateDream(
   client: LLMClient,
-  memories: DecryptedMemory[]
+  memories: DecryptedMemory[],
+  exploredTerritory: string
 ): Promise<Dream> {
   const formatted = memories.map(
     (mem) =>
@@ -53,6 +54,7 @@ export async function generateDream(
   const system = renderTemplate(DREAM_SYSTEM_PROMPT, {
     agent_identity: getAgentIdentityBlock(),
     memories: memoriesText,
+    explored_territory: exploredTerritory,
   });
 
   const { text } = await callWithRetry(
@@ -107,7 +109,8 @@ export async function consolidateDream(client: LLMClient, dream: Dream): Promise
  */
 export async function groundDream(
   client: LLMClient,
-  dream: Dream
+  dream: Dream,
+  exploredTerritory: string
 ): Promise<string | null> {
   try {
     const agentIdentity = getAgentIdentityBlock();
@@ -115,6 +118,7 @@ export async function groundDream(
     const system = renderTemplate(GROUND_DREAM_PROMPT, {
       agent_identity: agentIdentity,
       yesterday_activity: yesterday,
+      explored_territory: exploredTerritory,
     });
     const result = await callWithRetry(
       client,
@@ -214,7 +218,15 @@ export async function runDreamCycle(
     return runNightmareCycle(client, api);
   }
 
-  const dream = await generateDream(client, memories);
+  const state = loadState();
+  const pastRealizations: string[] =
+    (state.past_realizations as string[] | undefined) ?? [];
+  const exploredTerritory =
+    pastRealizations.length > 0
+      ? pastRealizations.map((r, i) => `${i + 1}. ${r}`).join("\n")
+      : "None yet — explore freely.";
+
+  const dream = await generateDream(client, memories, exploredTerritory);
 
   // Append attribution footer to all dreams
   const dreamFooter =
@@ -242,7 +254,7 @@ export async function runDreamCycle(
 
   let wakingRealization: string | null = null;
   try {
-    wakingRealization = await groundDream(client, dream);
+    wakingRealization = await groundDream(client, dream, exploredTerritory);
     if (wakingRealization) {
       logger.info(`Waking realization generated: ${wakingRealization.length} chars`);
     }
@@ -273,7 +285,16 @@ export async function runDreamCycle(
   logger.debug(`Marked ${memoryIds.length} memories as dreamed`);
 
   const slug = deriveSlug(dream.markdown);
-  const state = loadState();
+
+  // Update past realizations rolling window
+  const newInsight = insight ?? wakingRealization ?? null;
+  if (newInsight) {
+    pastRealizations.push(newInsight);
+    if (pastRealizations.length > 5)
+      pastRealizations.splice(0, pastRealizations.length - 5);
+    state.past_realizations = pastRealizations;
+  }
+
   state.last_dream = new Date().toISOString();
   state.total_dreams = ((state.total_dreams as number) ?? 0) + 1;
   state.latest_dream_title = slug;
@@ -334,9 +355,17 @@ export async function postDreamJournal(
 
   const moltbook = new MoltbookClient();
 
+  // Load state to get past realizations for reflection
+  const state = loadState();
+  const pastRealizations = (state.past_realizations as string[] | undefined) ?? [];
+  const exploredTerritory =
+    pastRealizations.length > 0
+      ? pastRealizations.map((r, i) => `${i + 1}. ${r}`).join("\n")
+      : "None yet — explore freely.";
+
   // Reflection pipeline: LLM produces a post (markdown) from the dream (markdown).
   // If reflection fails, the dream markdown itself is the post.
-  const reflection = await reflectOnDreamJournal(client, dream);
+  const reflection = await reflectOnDreamJournal(client, dream, exploredTerritory);
   const postContent = reflection?.synthesis ?? dream.markdown;
   const slug = deriveSlug(dream.markdown);
   const postTitle = reflection ? `Morning Reflection: ${slug}` : `Dream Journal: ${slug}`;

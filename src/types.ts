@@ -53,6 +53,7 @@ export interface AgentState {
   latest_nightmare_title?: string;
   waking_realization?: string | null;
   waking_realization_date?: string | null;
+  past_realizations?: string[]; // rolling window, max 5
   [key: string]: unknown;
 }
 
