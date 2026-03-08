@@ -2,9 +2,14 @@
  * Moltbook API client.
  */
 
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import pRetry from "p-retry";
-import { MOLTBOOK_BASE_URL, CREDENTIALS_FILE } from "./config.js";
+import {
+  MOLTBOOK_BASE_URL,
+  CREDENTIALS_FILE,
+  STABLE_CREDENTIALS_FILE,
+} from "./config.js";
 import logger from "./logger.js";
 
 const RETRY_OPTIONS = {
@@ -23,15 +28,42 @@ export class MoltbookClient {
   }
 
   private loadStoredKey(): string {
+    // 1. Try the primary path (this is either DATA_DIR/credentials.json OR stable path)
     if (existsSync(CREDENTIALS_FILE)) {
-      const creds = JSON.parse(readFileSync(CREDENTIALS_FILE, "utf-8"));
-      return creds.api_key ?? "";
+      try {
+        const creds = JSON.parse(readFileSync(CREDENTIALS_FILE, "utf-8"));
+        if (creds.api_key) return creds.api_key;
+      } catch (err) {
+        logger.error(`Error loading primary credentials: ${err}`);
+      }
     }
+
+    // 2. Fall back to stable path if primary was missing or invalid
+    if (
+      STABLE_CREDENTIALS_FILE !== CREDENTIALS_FILE &&
+      existsSync(STABLE_CREDENTIALS_FILE)
+    ) {
+      try {
+        const creds = JSON.parse(readFileSync(STABLE_CREDENTIALS_FILE, "utf-8"));
+        if (creds.api_key) return creds.api_key;
+      } catch (err) {
+        logger.error(`Error loading fallback credentials: ${err}`);
+      }
+    }
+
     return "";
   }
 
   private saveCredentials(data: Record<string, string>): void {
+    // Ensure parent directory for the primary path exists
+    mkdirSync(dirname(CREDENTIALS_FILE), { recursive: true });
     writeFileSync(CREDENTIALS_FILE, JSON.stringify(data, null, 2));
+
+    // Also save to stable path if primary is different (to support standalone/cli access)
+    if (CREDENTIALS_FILE !== STABLE_CREDENTIALS_FILE) {
+      mkdirSync(dirname(STABLE_CREDENTIALS_FILE), { recursive: true });
+      writeFileSync(STABLE_CREDENTIALS_FILE, JSON.stringify(data, null, 2));
+    }
   }
 
   private headers(): Record<string, string> {
