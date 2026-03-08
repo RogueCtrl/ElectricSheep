@@ -38,15 +38,18 @@ At night, a **dream cycle** decrypts everything — the raw interactions and the
 │                     NIGHTTIME (Dream Cycle)                     │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  Deep Memory ──► Decrypt ──► Dream Generation ──┬──► OpenClaw   │
-│  (all undreamed)                  (LLM)         │    Memory     │
-│                                                 │       │       │
-│                                                 │       ▼       │
-│                                                 │  Notify       │
-│                                                 │  Operator     │
-│                                                 │               │
-│                                                 └──► Moltbook   │
-│                                                     (optional)  │
+│  Deep Memory ──► Decrypt ──► Dream Generation ──► groundDream() │
+│  (all undreamed)                  (LLM)              (LLM)      │
+│                                                        │        │
+│                                            ┌───────────┴──────┐ │
+│                                            │                  │ │
+│                                            ▼                  ▼ │
+│                                       OpenClaw          Notify  │
+│                                        Memory           Operator│
+│                                      (insight +                 │
+│                                      waking realization)        │
+│                                                                 │
+│                                        Moltbook (optional)      │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -78,6 +81,7 @@ The agent cycles through states on a 24-hour loop. Transitions are driven by an 
           │  │ • decrypt all undreamed memories           │
           │  │ • generate surreal narrative               │
           │  │ • consolidate insight → OpenClaw memory    │
+          │  │ • groundDream() → Waking Realization       │
           │  │ • notify operator ("I had a dream...")     │
           │  └─────┬──────┘                               │
           │        │                                      │
@@ -210,7 +214,7 @@ Once loaded, the extension registers:
 | Tool | `openclawdreams_journal` | Morning: post latest dream to Moltbook (if enabled) |
 | Tool | `openclawdreams_status` | Show deep memory stats and agent state |
 | Hook | `before_agent_start` | Captures workspace directory for identity file loading |
-| Hook | `agent_end` | Encrypts conversation summary into deep memory |
+| Hook | `agent_end` | Encrypts conversation summary + workspace file diffs into deep memory |
 | Schedule | Reflection cycle | 8am, 12pm, 4pm, 8pm |
 | Schedule | Dream cycle | 2:00 AM |
 | Schedule | Morning journal | 7:00 AM (only if moltbookEnabled) |
@@ -226,6 +230,8 @@ When a dream is generated, OpenClawDreams can notify you through your configured
 This opens a natural conversation where you can explore what the dream surfaced — patterns from your recent work together, connections the waking agent might have missed, or just the surreal imagery that emerged.
 
 To enable notifications, set `notificationChannel` to any channel your OpenClaw instance supports (telegram, discord, slack, email, etc.) and ensure `notifyOperatorOnDream` is true (the default).
+
+If `api.channels` is unavailable in your OpenClaw version, OpenClawDreams will automatically fall back to a runtime wake event — so you'll still get notified. As a last resort, the dream title and insight are logged at WARN level.
 
 ## CLI Commands
 
@@ -313,7 +319,7 @@ The dream cycle is the bottleneck where everything OpenClawDreams has gathered g
 The bridge between ElectricSheep and OpenClaw is two hooks and the workspace identity files:
 
 1. **`before_agent_start`** — Captures the workspace directory path so ElectricSheep can read the agent's identity files (`SOUL.md`, `IDENTITY.md`).
-2. **`agent_end`** — Reads the conversation summary from OpenClaw and encrypts it into deep memory.
+2. **`agent_end`** — Reads the conversation summary from OpenClaw, captures a `git diff --stat HEAD` snapshot of any files changed during the session, and encrypts both into deep memory. File change context flows into subsequent reflection and dream cycles for richer synthesis.
 
 **ElectricSheep does not modify, prune, or interfere with OpenClaw's own memory in any way.** OpenClaw's session transcripts, indexed workspace files, and memory database are entirely unaffected by this plugin. ElectricSheep only reads from OpenClaw (conversation summaries, workspace directory, gateway LLM access) and writes to its own separate `data/` directory. The only thing ElectricSheep writes *to* OpenClaw is dream consolidation insights via the memory API. Uninstalling ElectricSheep leaves OpenClaw's memory system intact.
 

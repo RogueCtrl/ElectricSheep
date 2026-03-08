@@ -88,7 +88,7 @@ No manual release steps required — just merge and the release happens.
 
 **2 hooks:**
 - `before_agent_start` — captures `workspaceDir` for identity loading
-- `agent_end` — captures `conversationSummary` and stores it via `remember()` as an `interaction`
+- `agent_end` — captures `conversationSummary` and runs `git diff --stat HEAD` to record `file_diffs`; both are encrypted into deep memory as an `interaction`
 
 **1 background scheduler service (replaces cron jobs):**
 - `openclawdreams-scheduler` service — polls every 60s, fires reflection at 8/12/16/20h, dream at 2am, journal at 7am (if Moltbook enabled)
@@ -122,7 +122,8 @@ Configuration is driven by environment variables, loaded in `src/config.ts` via 
 
 The plugin uses these optional OpenClaw APIs when available:
 - `api.memory` — store dreams and reflections in OpenClaw's persistent memory
-- `api.channels` — send dream notifications to operator via configured channels
+- `api.channels` — send dream notifications to operator via configured channels (primary)
+- `api.runtime` — fallback for dream notifications via `wakeEvent` when `api.channels` is unavailable
 - `api.webSearch` — search the web for context related to operator conversations
 
 ### Encrypted Memory System
@@ -182,7 +183,7 @@ When Moltbook is enabled, additional categories may appear: `upvote`, `comment`.
 ```
 
 - **Daytime** (`src/waking.ts`): Queries deep memory for recent interactions → extracts topics via LLM → searches Moltbook (optional) and web (optional) → synthesizes context via LLM → stores reflection in deep memory
-- **Night** (`src/dreamer.ts`): Decrypts all undreamed deep memories → generates surreal dream narrative via LLM → saves markdown locally → consolidates insight via LLM → stores in OpenClaw memory → notifies operator → marks memories as dreamed
+- **Night** (`src/dreamer.ts`): Decrypts all undreamed deep memories → generates surreal dream narrative via LLM → saves markdown locally → consolidates insight via LLM → runs `groundDream()` to extract a logical "Waking Realization" grounded in yesterday's activity → stores insight + realization in OpenClaw memory → notifies operator → marks memories as dreamed
 - **Morning** (`src/reflection.ts`): Decomposes dream into themes → reflects in agent's voice → applies content filter → posts to Moltbook (only if enabled)
 
 ### Module Responsibilities
@@ -192,12 +193,12 @@ When Moltbook is enabled, additional categories may appear: `upvote`, `comment`.
 | `src/index.ts` | OpenClaw extension entry: registers tools, hooks, scheduler service; wraps gateway into budgeted LLM client |
 | `src/cli.ts` | CLI commands: `register`, `status`, `dreams` (via Commander) |
 | `src/waking.ts` | Reflection cycle: conversations → topics → context → synthesis → memory |
-| `src/dreamer.ts` | Dream cycle: decrypt → dream → save → consolidate → store in OpenClaw memory → notify; also `postDreamJournal` for Moltbook |
+| `src/dreamer.ts` | Dream cycle: decrypt → dream → save → consolidate → `groundDream()` → store in OpenClaw memory → notify; also `postDreamJournal` for Moltbook |
 | `src/topics.ts` | Topic extraction from recent interaction deep memories |
 | `src/synthesis.ts` | Context gathering orchestrator: calls topics, web-search, moltbook-search; LLM synthesis |
 | `src/web-search.ts` | Web search per topic via OpenClaw `api.webSearch` |
 | `src/moltbook-search.ts` | Moltbook search per topic via `MoltbookClient.search()` |
-| `src/notify.ts` | Dream notification generation (LLM) and delivery via `api.channels` |
+| `src/notify.ts` | Dream notification generation (LLM) and delivery — primary via `api.channels`, fallback to `api.runtime.wakeEvent`, last resort WARN log with dream title + insight |
 | `src/memory.ts` | Encrypted deep memory system (SQLite); `remember()`, `getRecentDeepMemories()`, `formatDeepMemoryContext()` |
 | `src/crypto.ts` | `Cipher` class (AES-256-GCM); `getOrCreateDreamKey()` for key management |
 | `src/reflection.ts` | Dream reflection: decompose themes, reflect in agent voice, synthesize Moltbook post |
@@ -238,7 +239,7 @@ data/
 │   ├── deep.db                   # Encrypted deep memory (SQLite, WAL mode)
 │   ├── deep.db-wal               # SQLite WAL file
 │   ├── deep.db-shm               # SQLite shared memory
-│   └── state.json                # Agent state (last_check, total_dreams, budget, etc.)
+│   └── state.json                # Agent state (last_check, total_dreams, waking_realization, budget, etc.)
 ├── dreams/
 │   └── YYYY-MM-DD_slug.md        # Dream narrative markdown files
 ├── .dream_key                    # AES-256 key (base64, chmod 600) — security-critical
