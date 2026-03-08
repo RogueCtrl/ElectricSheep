@@ -286,7 +286,7 @@ export async function runDreamCycle(
   const slug = deriveSlug(dream.markdown);
 
   // Update past realizations rolling window
-  const newInsight = wakingRealization ?? insight ?? null;
+  const newInsight = insight ?? wakingRealization ?? null;
   if (newInsight) {
     pastRealizations.push(newInsight);
     if (pastRealizations.length > 5) pastRealizations.splice(0, pastRealizations.length - 5);
