@@ -488,11 +488,14 @@ export function register(api: OpenClawAPI): void {
   );
 
   // --- Background Service (replaces registerCron — not available in this API version) ---
-  // Schedules: reflection @ 8,12,16,20h | dream @ 2h | journal @ 7h (local time)
+  // Schedules: reflection @ 0,8,12,16,20h | dream @ 2h | journal @ 7h (local time)
 
   let _schedulerTimer: ReturnType<typeof setInterval> | null = null;
 
   const SCHEDULE: Record<number, () => Promise<void>> = {
+    0: async () => {
+      await runReflectionCycle(client, api);
+    },
     2: async () => {
       await runDreamCycle(client, api);
     },
