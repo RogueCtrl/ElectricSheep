@@ -5,8 +5,14 @@
  * stores in OpenClaw memory, and optionally posts dream journals to Moltbook.
  */
 
-import { writeFileSync, readFileSync, readdirSync, existsSync } from "node:fs";
-import { resolve } from "node:path";
+import {
+  writeFileSync,
+  readFileSync,
+  readdirSync,
+  existsSync,
+  unlinkSync,
+} from "node:fs";
+import { resolve, basename } from "node:path";
 import {
   DREAMS_DIR,
   NIGHTMARES_DIR,
@@ -22,6 +28,9 @@ import {
   markAsDreamed,
   deepMemoryStats,
   formatDeepMemoryContext,
+  registerDream,
+  incrementRememberCount,
+  selectDreamToRemember,
 } from "./memory.js";
 import {
   DREAM_SYSTEM_PROMPT,
@@ -39,6 +48,30 @@ import logger from "./logger.js";
 import type { LLMClient, OpenClawAPI, Dream, DecryptedMemory } from "./types.js";
 
 const NIGHTMARE_CHANCE = parseFloat(process.env.NIGHTMARE_CHANCE ?? "0.05");
+const REMEMBRANCE_CHANCE = parseFloat(process.env.REMEMBRANCE_CHANCE ?? "0.01");
+
+// ─── Dream Remembrance ───────────────────────────────────────────────────────
+
+/**
+ * Prune dream files older than today.
+ * SQLite records are KEPT — they outlive the files, enabling future
+ * remembrance by title even when file is gone.
+ */
+export function pruneOldDreams(dir: string, today: string): void {
+  if (!existsSync(dir)) return;
+  const files = readdirSync(dir).filter((f) => f.endsWith(".md"));
+  for (const file of files) {
+    const fileDate = file.slice(0, 10); // YYYY-MM-DD prefix
+    if (fileDate < today) {
+      try {
+        unlinkSync(resolve(dir, file));
+        logger.info(`Pruned old dream: ${file}`);
+      } catch (e) {
+        logger.warn(`Failed to prune dream ${file}: ${e}`);
+      }
+    }
+  }
+}
 
 export async function generateDream(
   client: LLMClient,
@@ -212,6 +245,29 @@ export async function runDreamCycle(
 
   logger.debug(`Processing ${memories.length} memories into dream...`);
 
+  // 1% chance to remember a previous dream instead of generating a new one
+  if (Math.random() < REMEMBRANCE_CHANCE) {
+    const today = new Date().toISOString().slice(0, 10);
+    const chosen = selectDreamToRemember(today);
+    if (chosen) {
+      const filepath = resolve(DREAMS_DIR, chosen);
+      if (existsSync(filepath)) {
+        incrementRememberCount(chosen);
+        const markdown = readFileSync(filepath, "utf-8");
+        logger.info(`Remembering past dream: ${chosen}`);
+
+        // Update last_dream in state so reflection cycles know a dream ran.
+        // A remembered dream does NOT write a new file — intentionally.
+        // The journal posts NEW content only.
+        const remState = loadState();
+        remState.last_dream = new Date().toISOString();
+        saveState(remState);
+        return { markdown };
+      }
+      // File pruned — continue to generate new dream
+    }
+  }
+
   if (Math.random() < NIGHTMARE_CHANCE) {
     logger.info("Tonight is a nightmare (5% trigger fired)");
     const { runNightmareCycle } = await import("./nightmare.js");
@@ -240,6 +296,12 @@ export async function runDreamCycle(
   const dateStr = new Date().toISOString().slice(0, 10);
   const filepath = saveNarrativeLocally(dream, DREAMS_DIR, dateStr);
   logger.info(`Saved to ${filepath}`);
+
+  // Register dream in remembrance map and prune files older than today
+  const savedFilename = basename(filepath);
+  const savedSlug = deriveSlug(dream.markdown);
+  registerDream(savedFilename, savedSlug, dateStr);
+  pruneOldDreams(DREAMS_DIR, dateStr);
 
   // Separate LLM call to distill one insight for working memory
   let insight: string | null = null;

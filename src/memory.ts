@@ -94,6 +94,15 @@ function getDb(): Database.Database {
     )
   `);
   db.exec(`
+    CREATE TABLE IF NOT EXISTS dream_remembrances (
+      filename TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      dream_date TEXT NOT NULL,
+      remember_count INTEGER NOT NULL DEFAULT 0,
+      registered_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+    )
+  `);
+  db.exec(`
     CREATE INDEX IF NOT EXISTS idx_deep_dreamed
     ON deep_memories(dreamed, timestamp)
   `);
@@ -338,6 +347,80 @@ export function formatDeepMemoryContext(
   }
 
   return lines.join("\n");
+}
+
+// ─── Dream Remembrance System ───────────────────────────────────────────────
+
+/** Register a new dream. INSERT OR IGNORE (idempotent). */
+export function registerDream(filename: string, title: string, dreamDate: string): void {
+  const db = getDb();
+  db.prepare(
+    `INSERT OR IGNORE INTO dream_remembrances (filename, title, dream_date)
+     VALUES (?, ?, ?)`
+  ).run(filename, title, dreamDate);
+}
+
+/** Increment remember_count for a dream that was selected. */
+export function incrementRememberCount(filename: string): void {
+  const db = getDb();
+  db.prepare(
+    `UPDATE dream_remembrances SET remember_count = remember_count + 1 WHERE filename = ?`
+  ).run(filename);
+}
+
+/**
+ * Weighted random selection: score = 1/(count+1) * max(1, age_days).
+ * Fetch all rows from SQLite, compute scores in JS, do weighted pick.
+ * Returns filename or null if table is empty.
+ */
+export function selectDreamToRemember(today: string): string | null {
+  const db = getDb();
+  const rows = db
+    .prepare("SELECT filename, dream_date, remember_count FROM dream_remembrances")
+    .all() as Array<{ filename: string; dream_date: string; remember_count: number }>;
+
+  if (rows.length === 0) return null;
+
+  const todayMs = new Date(today).getTime();
+  const scoredRows = rows.map((row) => {
+    const dreamDateMs = new Date(row.dream_date).getTime();
+    const ageDays = Math.max(
+      1,
+      Math.ceil((todayMs - dreamDateMs) / (1000 * 60 * 60 * 24))
+    );
+    const score = (1 / (row.remember_count + 1)) * ageDays;
+    return { filename: row.filename, score };
+  });
+
+  const totalScore = scoredRows.reduce((sum, row) => sum + row.score, 0);
+  let random = Math.random() * totalScore;
+
+  for (const row of scoredRows) {
+    random -= row.score;
+    if (random <= 0) return row.filename;
+  }
+
+  return scoredRows[scoredRows.length - 1].filename;
+}
+
+/** For inspection/testing. */
+export function getDreamRemembrances(): Array<{
+  filename: string;
+  title: string;
+  dream_date: string;
+  remember_count: number;
+}> {
+  const db = getDb();
+  return db
+    .prepare(
+      "SELECT filename, title, dream_date, remember_count FROM dream_remembrances ORDER BY dream_date DESC"
+    )
+    .all() as Array<{
+    filename: string;
+    title: string;
+    dream_date: string;
+    remember_count: number;
+  }>;
 }
 
 // ─── Store Helper ───────────────────────────────────────────────────────────
