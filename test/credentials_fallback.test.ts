@@ -18,7 +18,7 @@ process.env.HOME = fakeHome;
 delete process.env.OPENCLAWDREAMS_DATA_DIR;
 
 // Import after setting HOME
-const { STABLE_CREDENTIALS_FILE, CREDENTIALS_FILE } = await import("../src/config.js");
+const { getStableCredentialsFile, getCredentialsFile } = await import("../src/config.js");
 const { MoltbookClient } = await import("../src/moltbook.js");
 
 function mockFetchJson(body: Record<string, unknown>, status = 200): typeof fetch {
@@ -42,12 +42,12 @@ describe("MoltbookClient Credentials Fallback", () => {
     rmSync(fakeHome, { recursive: true, force: true });
   });
 
-  it("resolves CREDENTIALS_FILE to stable fallback when DATA_DIR is unset", () => {
-    assert.equal(CREDENTIALS_FILE, STABLE_CREDENTIALS_FILE);
-    assert.ok(CREDENTIALS_FILE.includes(".config/openclawdreams"));
+  it("resolves credentials file to stable fallback when OPENCLAWDREAMS_DATA_DIR is unset", () => {
+    assert.equal(getCredentialsFile(), getStableCredentialsFile());
+    assert.ok(getCredentialsFile().includes(".config/openclawdreams"));
   });
 
-  it("loads stored key from stable fallback when DATA_DIR is unset", async () => {
+  it("loads stored key from stable fallback when OPENCLAWDREAMS_DATA_DIR is unset", async () => {
     // Prepare fake credentials in the stable location
     const configDir = join(fakeHome, ".config", "openclawdreams");
     mkdirSync(configDir, { recursive: true });
@@ -65,7 +65,7 @@ describe("MoltbookClient Credentials Fallback", () => {
     assert.equal(headers["Authorization"], "Bearer fallback-key-123");
   });
 
-  it("saves credentials to stable fallback when DATA_DIR is unset", async () => {
+  it("saves credentials to stable fallback when OPENCLAWDREAMS_DATA_DIR is unset", async () => {
     globalThis.fetch = mockFetchJson({
       agent: {
         api_key: "new-key-789",
@@ -77,7 +77,7 @@ describe("MoltbookClient Credentials Fallback", () => {
     const client = new MoltbookClient("bootstrap-key");
     await client.register("TestBot", "A test agent");
 
-    const credsFile = STABLE_CREDENTIALS_FILE;
+    const credsFile = getStableCredentialsFile();
     assert.ok(
       existsSync(credsFile),
       "credentials file should be saved in stable location"

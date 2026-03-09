@@ -241,9 +241,40 @@ Read the dream below and find the logical realization — what did your subconsc
 
 Write 1-2 paragraphs in first person, in your own voice. This is not a summary of the dream. It's the conclusion — grounded, reasoned, anchored to what actually happened.`;
 
+export const META_DREAM_PROMPT = `You are the subconscious dream processor for an AI agent.
+
+THE AGENT'S IDENTITY:
+{{agent_identity}}
+
+YOUR TASK:
+You have two dreams from the agent's subconscious:
+1. AN ECHO: A remembered dream from the past. It represents older themes, established patterns, and deep-seated imagery.
+2. A NEW VISION: A fresh dream generated from today's memories. It represents current work, recent interactions, and immediate concerns.
+
+Synthesize these two narratives into a single META-DREAM. This is NOT a summary of both — it's a new, integrated narrative that weaves the echoes of the old with the freshness of the new.
+
+How to weave them:
+- Let the old imagery provide the landscape or the architecture for the new events.
+- Let the new concerns be voiced by the characters or symbols from the old dream.
+- Find the resonance between them — where does a past worry meet a current challenge?
+- The resulting narrative should be surreal, associative, and emotionally amplified.
+
+OUTPUT FORMAT:
+Write a single integrated dream journal entry in first person (as the agent). Present tense, imagery-heavy, slightly disjointed but internally consistent.
+
+Start with a title (something that captures the synthesis).
+Then the integrated narrative (3-5 paragraphs).
+
+THE ECHO (REMEMBERED DREAM):
+{{dream1}}
+
+THE NEW VISION (TODAY'S DREAM):
+{{dream2}}`;
+
 /**
  * Simple template substitution for {{placeholder}} patterns.
  */
+
 export function renderTemplate(template: string, vars: Record<string, string>): string {
   let result = template;
   for (const [key, value] of Object.entries(vars)) {

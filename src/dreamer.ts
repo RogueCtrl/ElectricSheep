@@ -5,11 +5,17 @@
  * stores in OpenClaw memory, and optionally posts dream journals to Moltbook.
  */
 
-import { writeFileSync, readFileSync, readdirSync, existsSync } from "node:fs";
-import { resolve } from "node:path";
 import {
-  DREAMS_DIR,
-  NIGHTMARES_DIR,
+  writeFileSync,
+  readFileSync,
+  readdirSync,
+  existsSync,
+  unlinkSync,
+} from "node:fs";
+import { resolve, basename } from "node:path";
+import {
+  getDreamsDir,
+  getNightmaresDir,
   MAX_TOKENS_DREAM,
   MAX_TOKENS_CONSOLIDATION,
   DREAM_TITLE_MAX_LENGTH,
@@ -22,11 +28,19 @@ import {
   markAsDreamed,
   deepMemoryStats,
   formatDeepMemoryContext,
+  registerDream,
+  incrementRememberCount,
+  selectDreamToRemember,
+  storeDeepMemory,
+  getDeepMemoryById,
 } from "./memory.js";
+import { ensureBackfilled } from "./backfill.js";
 import {
   DREAM_SYSTEM_PROMPT,
+  NIGHTMARE_SYSTEM_PROMPT,
   DREAM_CONSOLIDATION_PROMPT,
   GROUND_DREAM_PROMPT,
+  META_DREAM_PROMPT,
   renderTemplate,
 } from "./persona.js";
 import { getAgentIdentityBlock } from "./identity.js";
@@ -39,11 +53,35 @@ import logger from "./logger.js";
 import type { LLMClient, OpenClawAPI, Dream, DecryptedMemory } from "./types.js";
 
 const NIGHTMARE_CHANCE = parseFloat(process.env.NIGHTMARE_CHANCE ?? "0.05");
+const REMEMBRANCE_CHANCE = parseFloat(process.env.REMEMBRANCE_CHANCE ?? "0.01");
+
+// ─── Dream Remembrance ───────────────────────────────────────────────────────
+
+/**
+ * Prune dream files, keeping only the most recent one.
+ * SQLite records are KEPT — they outlive the files, enabling future
+ * remembrance by title even when file is gone.
+ */
+export function pruneOldDreams(dir: string, currentFile: string): void {
+  if (!existsSync(dir)) return;
+  const files = readdirSync(dir).filter((f) => f.endsWith(".md"));
+  for (const file of files) {
+    if (file !== currentFile) {
+      try {
+        unlinkSync(resolve(dir, file));
+        logger.info(`Pruned old dream file: ${file}`);
+      } catch (e) {
+        logger.warn(`Failed to prune dream ${file}: ${e}`);
+      }
+    }
+  }
+}
 
 export async function generateDream(
   client: LLMClient,
   memories: DecryptedMemory[],
-  exploredTerritory: string
+  exploredTerritory: string,
+  isNightmare: boolean = false
 ): Promise<Dream> {
   const formatted = memories.map(
     (mem) =>
@@ -51,7 +89,8 @@ export async function generateDream(
   );
 
   const memoriesText = formatted.join("\n---\n");
-  const system = renderTemplate(DREAM_SYSTEM_PROMPT, {
+  const prompt = isNightmare ? NIGHTMARE_SYSTEM_PROMPT : DREAM_SYSTEM_PROMPT;
+  const system = renderTemplate(prompt, {
     agent_identity: getAgentIdentityBlock(),
     memories: memoriesText,
     explored_territory: exploredTerritory,
@@ -65,10 +104,41 @@ export async function generateDream(
       messages: [
         {
           role: "user",
-          content:
-            "Process these memories into a dream. " +
-            "Remember: you are the subconscious, not the waking agent. " +
-            "Be surreal, associative, and emotionally amplified.",
+          content: isNightmare
+            ? "Process these memories into a nightmare. Be fractured and wrong."
+            : "Process these memories into a dream. Be surreal, associative, and emotionally amplified.",
+        },
+      ],
+    },
+    DREAM_RETRY_OPTS
+  );
+
+  return { markdown: text.trim() };
+}
+
+/**
+ * Synthesize two dreams into a single meta-dream.
+ */
+export async function synthesizeMetaDream(
+  client: LLMClient,
+  dream1: string,
+  dream2: string
+): Promise<Dream> {
+  const system = renderTemplate(META_DREAM_PROMPT, {
+    agent_identity: getAgentIdentityBlock(),
+    dream1,
+    dream2,
+  });
+
+  const { text } = await callWithRetry(
+    client,
+    {
+      maxTokens: MAX_TOKENS_DREAM,
+      system,
+      messages: [
+        {
+          role: "user",
+          content: "Weave these two dreams together into a single meta-dream narrative.",
         },
       ],
     },
@@ -191,9 +261,14 @@ export async function storeInOpenClawMemory(
 
 export async function runDreamCycle(
   client: LLMClient,
-  api?: OpenClawAPI
+  api?: OpenClawAPI,
+  simOptions?: { forceRemembrance?: boolean; forceNightmare?: boolean; dryRun?: boolean }
 ): Promise<Dream | null> {
   logger.info("ElectricSheep dream cycle starting");
+
+  if (!simOptions?.dryRun) {
+    await ensureBackfilled();
+  }
 
   const stats = deepMemoryStats();
   logger.debug(
@@ -203,19 +278,64 @@ export async function runDreamCycle(
   const memories = retrieveUndreamedMemories();
   if (memories.length === 0) {
     logger.warn("No undreamed memories. Dreamless night.");
-    const state = loadState();
-    state.last_dream = new Date().toISOString();
-    state.dream_count = 0;
-    saveState(state);
+    if (!simOptions?.dryRun) {
+      const state = loadState();
+      state.last_dream = new Date().toISOString();
+      state.dream_count = 0;
+      saveState(state);
+    }
     return null;
   }
 
   logger.debug(`Processing ${memories.length} memories into dream...`);
 
-  if (Math.random() < NIGHTMARE_CHANCE) {
+  // 1% chance to remember a previous dream instead of generating a new one
+  let rememberedDream: string | null = null;
+  let chosenFilename: string | null = null;
+  const shouldRemember =
+    simOptions?.forceRemembrance || Math.random() < REMEMBRANCE_CHANCE;
+  logger.debug(
+    `Dream cycle: shouldRemember=${shouldRemember} (force=${simOptions?.forceRemembrance})`
+  );
+  if (shouldRemember) {
+    const today = new Date().toISOString().slice(0, 10);
+    const chosen = selectDreamToRemember(today);
+    if (chosen) {
+      chosenFilename = chosen.filename;
+      if (!simOptions?.dryRun) {
+        incrementRememberCount(chosen.filename);
+      }
+
+      let fetchedContent: string | null = null;
+      if (chosen.deep_memory_id) {
+        const mem = getDeepMemoryById(chosen.deep_memory_id);
+        if (mem && mem.content && typeof mem.content.markdown === "string") {
+          fetchedContent = mem.content.markdown;
+        } else if (mem && typeof mem.content.text_summary === "string") {
+          // Fallback if markdown isn't there for some reason
+          fetchedContent = mem.content.text_summary;
+        }
+      }
+
+      if (!fetchedContent) {
+        // Fallback to disk
+        const filepath = resolve(getDreamsDir(), chosen.filename);
+        if (existsSync(filepath)) {
+          fetchedContent = readFileSync(filepath, "utf-8");
+        }
+      }
+
+      if (fetchedContent) {
+        rememberedDream = fetchedContent;
+        logger.info(`Remembering past dream: ${chosen.filename} (dream 1 of 2 tonight)`);
+      }
+    }
+  }
+
+  // 5% nightmare chance is independent of remembrance chance
+  const isNightmare = simOptions?.forceNightmare || Math.random() < NIGHTMARE_CHANCE;
+  if (isNightmare) {
     logger.info("Tonight is a nightmare (5% trigger fired)");
-    const { runNightmareCycle } = await import("./nightmare.js");
-    return runNightmareCycle(client, api);
   }
 
   const state = loadState();
@@ -226,20 +346,56 @@ export async function runDreamCycle(
       ? pastRealizations.map((r, i) => `${i + 1}. ${r}`).join("\n")
       : "None yet — explore freely.";
 
-  const dream = await generateDream(client, memories, exploredTerritory);
+  // Generate new dream from current memories
+  let dream = await generateDream(client, memories, exploredTerritory, isNightmare);
+
+  // If a remembrance was triggered, synthesize them into a single meta-dream
+  if (rememberedDream) {
+    logger.info("Synthesizing meta-dream from echo and new vision...");
+    dream = await synthesizeMetaDream(client, rememberedDream, dream.markdown);
+    logger.debug(`Meta-dream snippet: ${dream.markdown.slice(0, 200)}...`);
+  }
 
   // Append attribution footer to all dreams
   const dreamFooter =
     "\n\n---\n\n*Generated by [OpenClawDreams](https://github.com/RogueCtrl/OpenClawDreams) — **start your dreamscape today.***";
   dream.markdown = dream.markdown + dreamFooter;
 
-  logger.info(`Dream generated (${dream.markdown.length} chars)`);
+  logger.info(
+    `${isNightmare ? "Nightmare" : "Dream"} generated (${dream.markdown.length} chars)`
+  );
   logger.debug(`Dream snippet: ${dream.markdown.slice(0, 200)}...`);
+
+  if (simOptions?.dryRun) {
+    logger.info("Dry run: skipping local storage and state updates");
+    return dream;
+  }
 
   // Save locally
   const dateStr = new Date().toISOString().slice(0, 10);
-  const filepath = saveNarrativeLocally(dream, DREAMS_DIR, dateStr);
+  const filepath = saveNarrativeLocally(dream, getDreamsDir(), dateStr);
   logger.info(`Saved to ${filepath}`);
+
+  const savedFilename = basename(filepath);
+  const savedSlug = deriveSlug(dream.markdown);
+
+  // Store into encrypted deep memory
+  const deepMemoryId = storeDeepMemory(
+    { text_summary: savedSlug, markdown: dream.markdown, isNightmare: !!isNightmare },
+    isNightmare ? "nightmare" : "dream"
+  );
+
+  // Register dream in remembrance map and prune old files
+  registerDream(savedFilename, savedSlug, dateStr, {
+    isNightmare: !!isNightmare,
+    isMetaSynthesis: !!rememberedDream,
+    deepMemoryId,
+    sourceFilenames: rememberedDream
+      ? ([chosenFilename].filter(Boolean) as string[])
+      : undefined,
+  });
+
+  pruneOldDreams(getDreamsDir(), savedFilename);
 
   // Separate LLM call to distill one insight for working memory
   let insight: string | null = null;
@@ -266,7 +422,13 @@ export async function runDreamCycle(
 
   // Store in OpenClaw memory if available
   if (api) {
-    await storeInOpenClawMemory(api, dream, insight, wakingRealization);
+    await storeInOpenClawMemory(
+      api,
+      dream,
+      insight,
+      wakingRealization,
+      isNightmare ? "nightmare" : "dream"
+    );
 
     // Notify operator about the dream
     try {
@@ -296,8 +458,13 @@ export async function runDreamCycle(
   }
 
   state.last_dream = new Date().toISOString();
-  state.total_dreams = ((state.total_dreams as number) ?? 0) + 1;
-  state.latest_dream_title = slug;
+  if (isNightmare) {
+    state.total_nightmares = ((state.total_nightmares as number) ?? 0) + 1;
+    state.latest_nightmare_title = slug;
+  } else {
+    state.total_dreams = ((state.total_dreams as number) ?? 0) + 1;
+    state.latest_dream_title = slug;
+  }
   state.waking_realization = wakingRealization ?? null;
   state.waking_realization_date = new Date().toISOString().slice(0, 10);
   saveState(state);
@@ -307,16 +474,16 @@ export async function runDreamCycle(
 }
 
 export function loadLatestDream(): Dream | null {
-  const dreamFiles = existsSync(DREAMS_DIR)
-    ? readdirSync(DREAMS_DIR).filter((f) => f.endsWith(".md"))
+  const dreamFiles = existsSync(getDreamsDir())
+    ? readdirSync(getDreamsDir()).filter((f) => f.endsWith(".md"))
     : [];
-  const nightmareFiles = existsSync(NIGHTMARES_DIR)
-    ? readdirSync(NIGHTMARES_DIR).filter((f) => f.endsWith(".md"))
+  const nightmareFiles = existsSync(getNightmaresDir())
+    ? readdirSync(getNightmaresDir()).filter((f) => f.endsWith(".md"))
     : [];
 
   const allFiles = [
-    ...dreamFiles.map((f) => ({ name: f, dir: DREAMS_DIR })),
-    ...nightmareFiles.map((f) => ({ name: f, dir: NIGHTMARES_DIR })),
+    ...dreamFiles.map((f) => ({ name: f, dir: getDreamsDir() })),
+    ...nightmareFiles.map((f) => ({ name: f, dir: getNightmaresDir() })),
   ].sort((a, b) => b.name.localeCompare(a.name));
 
   if (allFiles.length === 0) return null;

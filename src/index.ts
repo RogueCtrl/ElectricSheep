@@ -20,13 +20,17 @@ import {
   getMoltbookEnabled,
   applyPluginConfig,
   getRequireApprovalBeforePost,
-  SCHEDULER_STATE_FILE,
+  getSchedulerStateFile,
+  ensureDirectoriesExist,
 } from "./config.js";
 import logger from "./logger.js";
 import type { LLMClient, OpenClawAPI, SchedulerState } from "./types.js";
 import { execSync } from "node:child_process";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { randomUUID } from "node:crypto";
+
+// Ensure directories exist on startup
+ensureDirectoriesExist();
 
 // Store reference to OpenClaw API for use by other modules
 let openclawApi: OpenClawAPI | null = null;
@@ -39,9 +43,10 @@ export function getOpenClawAPI(): OpenClawAPI | null {
  * Persist scheduler state to survive restarts.
  */
 function loadSchedulerState(): SchedulerState {
-  if (existsSync(SCHEDULER_STATE_FILE)) {
+  const file = getSchedulerStateFile();
+  if (existsSync(file)) {
     try {
-      return JSON.parse(readFileSync(SCHEDULER_STATE_FILE, "utf-8"));
+      return JSON.parse(readFileSync(file, "utf-8"));
     } catch {
       return { last_ran: {} };
     }
@@ -51,7 +56,7 @@ function loadSchedulerState(): SchedulerState {
 
 function saveSchedulerState(state: SchedulerState): void {
   try {
-    writeFileSync(SCHEDULER_STATE_FILE, JSON.stringify(state, null, 2));
+    writeFileSync(getSchedulerStateFile(), JSON.stringify(state, null, 2));
   } catch (err) {
     logger.error(`[ElectricSheep] Failed to save scheduler state: ${err}`);
   }

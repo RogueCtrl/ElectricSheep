@@ -4,8 +4,16 @@
  * Runs occasionally (5% chance) or via CLI.
  */
 
-import { NIGHTMARES_DIR, MAX_TOKENS_DREAM } from "./config.js";
-import { retrieveUndreamedMemories, markAsDreamed, deepMemoryStats } from "./memory.js";
+import { basename } from "node:path";
+import { getNightmaresDir, MAX_TOKENS_DREAM } from "./config.js";
+import {
+  retrieveUndreamedMemories,
+  markAsDreamed,
+  deepMemoryStats,
+  storeDeepMemory,
+  registerDream,
+} from "./memory.js";
+import { ensureBackfilled } from "./backfill.js";
 import { NIGHTMARE_SYSTEM_PROMPT, renderTemplate } from "./persona.js";
 import { getAgentIdentityBlock } from "./identity.js";
 import { loadState, saveState } from "./state.js";
@@ -19,6 +27,7 @@ import {
   deriveSlug,
   saveNarrativeLocally,
   storeInOpenClawMemory,
+  pruneOldDreams,
 } from "./dreamer.js";
 
 export async function generateNightmare(
@@ -59,9 +68,14 @@ export async function generateNightmare(
 
 export async function runNightmareCycle(
   client: LLMClient,
-  api?: OpenClawAPI
+  api?: OpenClawAPI,
+  simOptions?: { dryRun?: boolean }
 ): Promise<Dream | null> {
   logger.info("ElectricSheep nightmare cycle starting");
+
+  if (!simOptions?.dryRun) {
+    await ensureBackfilled();
+  }
 
   const stats = deepMemoryStats();
   logger.debug(
@@ -93,10 +107,30 @@ export async function runNightmareCycle(
 
   logger.info(`Nightmare generated (${dream.markdown.length} chars)`);
 
+  if (simOptions?.dryRun) {
+    logger.info("Dry run: skipping local storage and state updates");
+    return dream;
+  }
+
   // Save locally
   const dateStr = new Date().toISOString().slice(0, 10);
-  const filepath = saveNarrativeLocally(dream, NIGHTMARES_DIR, dateStr);
+  const filepath = saveNarrativeLocally(dream, getNightmaresDir(), dateStr);
   logger.info(`Saved to ${filepath}`);
+
+  const savedFilename = basename(filepath);
+  const savedSlug = deriveSlug(dream.markdown);
+
+  const deepMemoryId = storeDeepMemory(
+    { text_summary: savedSlug, markdown: dream.markdown, isNightmare: true },
+    "nightmare"
+  );
+
+  registerDream(savedFilename, savedSlug, dateStr, {
+    isNightmare: true,
+    deepMemoryId,
+  });
+
+  pruneOldDreams(getNightmaresDir(), savedFilename);
 
   // Separate LLM call to distill one insight for working memory
   let insight: string | null = null;
@@ -139,11 +173,10 @@ export async function runNightmareCycle(
   markAsDreamed(memoryIds);
   logger.debug(`Marked ${memoryIds.length} memories as dreamed (via nightmare)`);
 
-  const slug = deriveSlug(dream.markdown);
   const state = loadState();
   state.last_nightmare = new Date().toISOString();
   state.total_nightmares = ((state.total_nightmares as number) ?? 0) + 1;
-  state.latest_nightmare_title = slug;
+  state.latest_nightmare_title = savedSlug;
   state.waking_realization = wakingRealization ?? null;
   state.waking_realization_date = new Date().toISOString().slice(0, 10);
   saveState(state);

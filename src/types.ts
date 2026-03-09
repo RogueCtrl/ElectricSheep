@@ -39,6 +39,8 @@ export interface MemoryEntry {
   visual_descriptions?: VisualDescription[];
   topics?: string[];
   timestamp: number;
+  markdown?: string;
+  [key: string]: unknown;
 }
 
 // ─── Decrypted Memory ────────────────────────────────────────────────────────
@@ -82,6 +84,7 @@ export interface AgentState {
   waking_realization?: string | null;
   waking_realization_date?: string | null;
   past_realizations?: string[]; // rolling window, max 5
+  dreams_backfilled?: boolean;
   [key: string]: unknown;
 }
 
