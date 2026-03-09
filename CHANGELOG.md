@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.1.0](https://github.com/RogueCtrl/OpenClawDreams/compare/v2.0.2...v2.1.0) (2026-03-09)
+
+
+### Features
+
+* recursive reflection guard — meta_loop_depth counter + outward steering directive ([856b689](https://github.com/RogueCtrl/OpenClawDreams/commit/856b689b851e1e256c6a5aef6d1decc1cf4fab3c))
+* recursive reflection guard — meta_loop_depth counter + outward steering directive ([6584e82](https://github.com/RogueCtrl/OpenClawDreams/commit/6584e820e89352124ba50e259368defa18f90a66))
+
 ### [2.0.2](https://github.com/RogueCtrl/OpenClawDreams/compare/v2.0.1...v2.0.2) (2026-03-09)
 
 ### [2.0.1](https://github.com/RogueCtrl/OpenClawDreams/compare/v1.7.0...v2.0.1) (2026-03-09)
