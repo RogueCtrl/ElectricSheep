@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.3.0](https://github.com/RogueCtrl/OpenClawDreams/compare/v2.2.0...v2.3.0) (2026-03-09)
+
+
+### Features
+
+* cognitive rhythm report — weekly digest command + generator ([f61bb36](https://github.com/RogueCtrl/OpenClawDreams/commit/f61bb3680408b324dafca085b9dc354be670fb48))
+* cognitive rhythm report — weekly digest command + report generator ([4398709](https://github.com/RogueCtrl/OpenClawDreams/commit/4398709832898a94808ec267e8caf1b399d88574))
+
 ## [2.2.0](https://github.com/RogueCtrl/OpenClawDreams/compare/v2.1.0...v2.2.0) (2026-03-09)
 
 
