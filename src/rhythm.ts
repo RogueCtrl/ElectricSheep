@@ -77,7 +77,8 @@ function computeToneTrajectory(
   const avgOverlap = (texts: string[]) => {
     if (texts.length === 0) return 0;
     const total = texts.reduce(
-      (sum, text) => sum + computeJaccardOverlap(extractConcepts(text), referenceConcepts),
+      (sum, text) =>
+        sum + computeJaccardOverlap(extractConcepts(text), referenceConcepts),
       0
     );
     return total / texts.length;
