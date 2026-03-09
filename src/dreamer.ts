@@ -23,6 +23,7 @@ import {
   getDreamSubmolt,
 } from "./config.js";
 import { MoltbookClient } from "./moltbook.js";
+import { getSteeringDirective } from "./meta-loop.js";
 import {
   retrieveUndreamedMemories,
   markAsDreamed,
@@ -90,11 +91,12 @@ export async function generateDream(
 
   const memoriesText = formatted.join("\n---\n");
   const prompt = isNightmare ? NIGHTMARE_SYSTEM_PROMPT : DREAM_SYSTEM_PROMPT;
-  const system = renderTemplate(prompt, {
-    agent_identity: getAgentIdentityBlock(),
-    memories: memoriesText,
-    explored_territory: exploredTerritory,
-  });
+  const system =
+    renderTemplate(prompt, {
+      agent_identity: getAgentIdentityBlock(),
+      memories: memoriesText,
+      explored_territory: exploredTerritory,
+    }) + getSteeringDirective();
 
   const { text } = await callWithRetry(
     client,
@@ -185,11 +187,12 @@ export async function groundDream(
   try {
     const agentIdentity = getAgentIdentityBlock();
     const yesterday = formatDeepMemoryContext();
-    const system = renderTemplate(GROUND_DREAM_PROMPT, {
-      agent_identity: agentIdentity,
-      yesterday_activity: yesterday,
-      explored_territory: exploredTerritory,
-    });
+    const system =
+      renderTemplate(GROUND_DREAM_PROMPT, {
+        agent_identity: agentIdentity,
+        yesterday_activity: yesterday,
+        explored_territory: exploredTerritory,
+      }) + getSteeringDirective();
     const result = await callWithRetry(
       client,
       {

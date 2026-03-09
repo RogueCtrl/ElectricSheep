@@ -13,6 +13,7 @@ import { callWithRetry, WAKING_RETRY_OPTS } from "./llm.js";
 import { gatherContext, synthesizeContext } from "./synthesis.js";
 import { getRecentConversations } from "./topics.js";
 import logger from "./logger.js";
+import { updateMetaLoopDepth } from "./meta-loop.js";
 import type { LLMClient, OpenClawAPI, SynthesisContext } from "./types.js";
 
 /**
@@ -177,6 +178,9 @@ export async function runReflectionCycle(
   state.checks_today = ((state.checks_today as number) ?? 0) + 1;
   state.last_reflection_topics = context.topics;
   saveState(state);
+
+  // Update recursive reflection guard
+  updateMetaLoopDepth(context.topics);
 
   logger.info("Reflection cycle complete");
   const stats = deepMemoryStats();

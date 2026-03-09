@@ -18,6 +18,7 @@ import {
 } from "./persona.js";
 import { getAgentIdentityBlock } from "./identity.js";
 import { formatDeepMemoryContext } from "./memory.js";
+import { getSteeringDirective } from "./meta-loop.js";
 import { callWithRetry, WAKING_RETRY_OPTS } from "./llm.js";
 import { MAX_TOKENS_REFLECTION } from "./config.js";
 import logger from "./logger.js";
@@ -83,12 +84,13 @@ async function reflectOnDream(
   subjects: string[],
   exploredTerritory: string = "None yet — explore freely."
 ): Promise<string> {
-  const system = renderTemplate(DREAM_REFLECT_PROMPT, {
-    agent_identity: getAgentIdentityBlock(),
-    recent_context: formatDeepMemoryContext(),
-    subjects: subjects.map((s, i) => `${i + 1}. ${s}`).join("\n"),
-    explored_territory: exploredTerritory,
-  });
+  const system =
+    renderTemplate(DREAM_REFLECT_PROMPT, {
+      agent_identity: getAgentIdentityBlock(),
+      recent_context: formatDeepMemoryContext(),
+      subjects: subjects.map((s, i) => `${i + 1}. ${s}`).join("\n"),
+      explored_territory: exploredTerritory,
+    }) + getSteeringDirective();
 
   const { text } = await callWithRetry(
     client,

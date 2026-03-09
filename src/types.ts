@@ -85,6 +85,8 @@ export interface AgentState {
   waking_realization_date?: string | null;
   past_realizations?: string[]; // rolling window, max 5
   dreams_backfilled?: boolean;
+  last_reflection_topics?: string[];
+  meta_loop_depth?: number;
   [key: string]: unknown;
 }
 

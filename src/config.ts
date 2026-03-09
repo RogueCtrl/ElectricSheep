@@ -88,6 +88,7 @@ let _requireApprovalBeforePost =
 let _dreamSubmolt = process.env.DREAM_SUBMOLT ?? "dreams";
 let _workspaceDiffEnabled =
   (process.env.WORKSPACE_DIFF_ENABLED ?? "true").toLowerCase() !== "false";
+let _metaLoopThreshold = parseInt(process.env.META_LOOP_THRESHOLD ?? "3", 10);
 
 /** Apply config values passed from the OpenClaw plugin API (`api.pluginConfig`). */
 export function applyPluginConfig(cfg: Record<string, unknown>): void {
@@ -106,6 +107,8 @@ export function applyPluginConfig(cfg: Record<string, unknown>): void {
   if (typeof cfg.dreamSubmolt === "string") _dreamSubmolt = cfg.dreamSubmolt;
   if (typeof cfg.workspaceDiffEnabled === "boolean")
     _workspaceDiffEnabled = cfg.workspaceDiffEnabled;
+  if (typeof cfg.metaLoopThreshold === "number")
+    _metaLoopThreshold = cfg.metaLoopThreshold;
 }
 
 export const getMoltbookEnabled = (): boolean => _moltbookEnabled;
@@ -116,6 +119,7 @@ export const getPostFilterEnabled = (): boolean => _postFilterEnabled;
 export const getRequireApprovalBeforePost = (): boolean => _requireApprovalBeforePost;
 export const getDreamSubmolt = (): string => _dreamSubmolt;
 export const getWorkspaceDiffEnabled = (): boolean => _workspaceDiffEnabled;
+export const getMetaLoopThreshold = (): number => _metaLoopThreshold;
 
 // Legacy constant aliases — kept for backward compatibility but now delegate to
 // getters so they remain in sync after `applyPluginConfig()` is called.

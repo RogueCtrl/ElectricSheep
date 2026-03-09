@@ -61,6 +61,11 @@
         "type": "boolean",
         "description": "Capture git diff --stat at agent_end for richer reflections. Disable if your workspace is on iCloud Drive or in a sensitive macOS-protected location.",
         "default": true
+      },
+      "metaLoopThreshold": {
+        "type": "number",
+        "description": "Number of consecutive self-referential reflection cycles before injecting an outward steering directive",
+        "default": 3
       }
     }
   }
