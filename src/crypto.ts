@@ -11,9 +11,8 @@
 import { randomBytes, createCipheriv, createDecipheriv } from "node:crypto";
 import { readFileSync, existsSync, openSync, writeSync, closeSync } from "node:fs";
 import { resolve } from "node:path";
-import { DATA_DIR, DREAM_ENCRYPTION_KEY } from "./config.js";
+import { getDataDir, DREAM_ENCRYPTION_KEY } from "./config.js";
 
-const KEY_FILE = resolve(DATA_DIR, ".dream_key");
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 12;
 const AUTH_TAG_LENGTH = 16;
@@ -59,14 +58,15 @@ export function getOrCreateDreamKey(): Buffer {
     return Buffer.from(DREAM_ENCRYPTION_KEY, "base64");
   }
 
-  if (existsSync(KEY_FILE)) {
-    return Buffer.from(readFileSync(KEY_FILE, "utf-8").trim(), "base64");
+  const keyFile = resolve(getDataDir(), ".dream_key");
+  if (existsSync(keyFile)) {
+    return Buffer.from(readFileSync(keyFile, "utf-8").trim(), "base64");
   }
 
   const key = Cipher.generateKey();
   // Open with exclusive create and restrictive permissions atomically
   // to avoid a race window where the file is world-readable.
-  const fd = openSync(KEY_FILE, "wx", 0o600);
+  const fd = openSync(keyFile, "wx", 0o600);
   writeSync(fd, key);
   closeSync(fd);
   return Buffer.from(key, "base64");

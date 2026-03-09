@@ -11,7 +11,7 @@ process.env.OPENCLAWDREAMS_DATA_DIR = testDir;
 const { runNightmareCycle } = await import("../src/nightmare.js");
 const { storeDeepMemory, closeDb } = await import("../src/memory.js");
 const { loadState } = await import("../src/state.js");
-const { NIGHTMARES_DIR } = await import("../src/config.js");
+const { getNightmaresDir } = await import("../src/config.js");
 const { closeLogger } = await import("../src/logger.js");
 
 function mockLLMClient(responses: string[]): LLMClient {
@@ -49,10 +49,10 @@ describe("Nightmare cycle", () => {
   });
 
   it("saves nightmare markdown to disk as-is", () => {
-    const files = readdirSync(NIGHTMARES_DIR).filter((f) => f.endsWith(".md"));
+    const files = readdirSync(getNightmaresDir()).filter((f) => f.endsWith(".md"));
     assert.ok(files.length > 0, "Expected at least one nightmare file");
 
-    const content = readFileSync(join(NIGHTMARES_DIR, files[0]), "utf-8");
+    const content = readFileSync(join(getNightmaresDir(), files[0]), "utf-8");
     assert.ok(content.includes("The Infinite Stack Trace"));
     assert.ok(content.includes("recursive loop"));
   });

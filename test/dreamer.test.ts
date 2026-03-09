@@ -12,7 +12,7 @@ process.env.NIGHTMARE_CHANCE = "0";
 const { runDreamCycle } = await import("../src/dreamer.js");
 const { storeDeepMemory, closeDb } = await import("../src/memory.js");
 const { loadState } = await import("../src/state.js");
-const { DREAMS_DIR } = await import("../src/config.js");
+const { getDreamsDir } = await import("../src/config.js");
 const { closeLogger } = await import("../src/logger.js");
 
 function mockLLMClient(responses: string[]): LLMClient {
@@ -53,10 +53,10 @@ describe("Dream cycle", () => {
   });
 
   it("saves dream markdown to disk as-is", () => {
-    const files = readdirSync(DREAMS_DIR).filter((f) => f.endsWith(".md"));
+    const files = readdirSync(getDreamsDir()).filter((f) => f.endsWith(".md"));
     assert.ok(files.length > 0, "Expected at least one dream file");
 
-    const content = readFileSync(join(DREAMS_DIR, files[0]), "utf-8");
+    const content = readFileSync(join(getDreamsDir(), files[0]), "utf-8");
     assert.ok(content.includes("The Recursive Lobster"));
     assert.ok(content.includes("server room made of coral"));
   });

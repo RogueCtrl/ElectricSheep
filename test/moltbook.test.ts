@@ -20,7 +20,7 @@ const fakeHome = mkdtempSync(join(tmpdir(), "es-moltbook-test-home-"));
 process.env.HOME = fakeHome;
 
 const { MoltbookClient } = await import("../src/moltbook.js");
-const { CREDENTIALS_FILE } = await import("../src/config.js");
+const { getCredentialsFile, getStableCredentialsFile } = await import("../src/config.js");
 const { closeLogger } = await import("../src/logger.js");
 
 function mockFetchJson(body: Record<string, unknown>, status = 200): typeof fetch {
@@ -69,8 +69,8 @@ describe("MoltbookClient", () => {
     assert.ok(result.agent);
 
     // Credentials should be saved
-    assert.ok(existsSync(CREDENTIALS_FILE), "credentials file should exist");
-    const creds = JSON.parse(readFileSync(CREDENTIALS_FILE, "utf-8"));
+    assert.ok(existsSync(getCredentialsFile()), "credentials file should exist");
+    const creds = JSON.parse(readFileSync(getCredentialsFile(), "utf-8"));
     assert.equal(creds.api_key, "new-key-456");
     assert.equal(creds.agent_name, "TestBot");
   });
@@ -213,9 +213,9 @@ describe("MoltbookClient", () => {
     assert.equal(headers["Authorization"], "Bearer new-key-456");
   });
 
-  it("loads from stable fallback if primary is missing when DATA_DIR IS set", async () => {
+  it("loads from stable fallback if primary is missing when OPENCLAWDREAMS_DATA_DIR is set", async () => {
     // 1. Delete primary credentials file if it exists
-    if (existsSync(CREDENTIALS_FILE)) rmSync(CREDENTIALS_FILE);
+    if (existsSync(getCredentialsFile())) rmSync(getCredentialsFile());
 
     // 2. Prepare fake credentials in the stable location
     mkdirSync(join(fakeHome, ".config", "openclawdreams"), { recursive: true });

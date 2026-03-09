@@ -4,7 +4,7 @@
  * Runs occasionally (5% chance) or via CLI.
  */
 
-import { NIGHTMARES_DIR, MAX_TOKENS_DREAM } from "./config.js";
+import { getNightmaresDir, getDreamsDir, MAX_TOKENS_DREAM } from "./config.js";
 import { retrieveUndreamedMemories, markAsDreamed, deepMemoryStats } from "./memory.js";
 import { NIGHTMARE_SYSTEM_PROMPT, renderTemplate } from "./persona.js";
 import { getAgentIdentityBlock } from "./identity.js";
@@ -95,7 +95,7 @@ export async function runNightmareCycle(
 
   // Save locally
   const dateStr = new Date().toISOString().slice(0, 10);
-  const filepath = saveNarrativeLocally(dream, NIGHTMARES_DIR, dateStr);
+  const filepath = saveNarrativeLocally(dream, getNightmaresDir(), dateStr);
   logger.info(`Saved to ${filepath}`);
 
   // Separate LLM call to distill one insight for working memory

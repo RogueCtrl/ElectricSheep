@@ -10,7 +10,7 @@ const testDir = mkdtempSync(join(tmpdir(), "es-crypto-test-"));
 process.env.OPENCLAWDREAMS_DATA_DIR = testDir;
 
 const { Cipher, getOrCreateDreamKey } = await import("../src/crypto.js");
-const { DATA_DIR } = await import("../src/config.js");
+const { getDataDir } = await import("../src/config.js");
 
 describe("Cipher", () => {
   let cipher: InstanceType<typeof Cipher>;
@@ -78,7 +78,7 @@ describe("Cipher", () => {
 
 describe("getOrCreateDreamKey", () => {
   it("creates key file on first call and reuses on second", () => {
-    const keyFile = join(DATA_DIR, ".dream_key");
+    const keyFile = join(getDataDir(), ".dream_key");
     const key1 = getOrCreateDreamKey();
     assert.equal(key1.length, 32);
 

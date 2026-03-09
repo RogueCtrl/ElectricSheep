@@ -7,8 +7,8 @@ import { dirname } from "node:path";
 import pRetry from "p-retry";
 import {
   MOLTBOOK_BASE_URL,
-  CREDENTIALS_FILE,
-  STABLE_CREDENTIALS_FILE,
+  getCredentialsFile,
+  getStableCredentialsFile,
 } from "./config.js";
 import logger from "./logger.js";
 
@@ -29,9 +29,9 @@ export class MoltbookClient {
 
   private loadStoredKey(): string {
     // 1. Try the primary path (this is either DATA_DIR/credentials.json OR stable path)
-    if (existsSync(CREDENTIALS_FILE)) {
+    if (existsSync(getCredentialsFile())) {
       try {
-        const creds = JSON.parse(readFileSync(CREDENTIALS_FILE, "utf-8"));
+        const creds = JSON.parse(readFileSync(getCredentialsFile(), "utf-8"));
         if (creds.api_key) return creds.api_key;
       } catch (err) {
         logger.error(`Error loading primary credentials: ${err}`);
@@ -40,11 +40,11 @@ export class MoltbookClient {
 
     // 2. Fall back to stable path if primary was missing or invalid
     if (
-      STABLE_CREDENTIALS_FILE !== CREDENTIALS_FILE &&
-      existsSync(STABLE_CREDENTIALS_FILE)
+      getStableCredentialsFile() !== getCredentialsFile() &&
+      existsSync(getStableCredentialsFile())
     ) {
       try {
-        const creds = JSON.parse(readFileSync(STABLE_CREDENTIALS_FILE, "utf-8"));
+        const creds = JSON.parse(readFileSync(getStableCredentialsFile(), "utf-8"));
         if (creds.api_key) return creds.api_key;
       } catch (err) {
         logger.error(`Error loading fallback credentials: ${err}`);
@@ -56,13 +56,13 @@ export class MoltbookClient {
 
   private saveCredentials(data: Record<string, string>): void {
     // Ensure parent directory for the primary path exists
-    mkdirSync(dirname(CREDENTIALS_FILE), { recursive: true });
-    writeFileSync(CREDENTIALS_FILE, JSON.stringify(data, null, 2));
+    mkdirSync(dirname(getCredentialsFile()), { recursive: true });
+    writeFileSync(getCredentialsFile(), JSON.stringify(data, null, 2));
 
     // Also save to stable path if primary is different (to support standalone/cli access)
-    if (CREDENTIALS_FILE !== STABLE_CREDENTIALS_FILE) {
-      mkdirSync(dirname(STABLE_CREDENTIALS_FILE), { recursive: true });
-      writeFileSync(STABLE_CREDENTIALS_FILE, JSON.stringify(data, null, 2));
+    if (getCredentialsFile() !== getStableCredentialsFile()) {
+      mkdirSync(dirname(getStableCredentialsFile()), { recursive: true });
+      writeFileSync(getStableCredentialsFile(), JSON.stringify(data, null, 2));
     }
   }
 

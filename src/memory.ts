@@ -10,7 +10,8 @@
 import { createHash } from "node:crypto";
 import Database from "better-sqlite3";
 import { getCipher } from "./crypto.js";
-import { DEEP_MEMORY_DB, DEEP_MEMORY_CONTEXT_TOKENS } from "./config.js";
+import { getMemoryDir, getDeepMemoryDb, DEEP_MEMORY_CONTEXT_TOKENS } from "./config.js";
+import { resolve } from "node:path";
 import type { DecryptedMemory, DeepMemoryStats, MemoryEntry } from "./types.js";
 
 /**
@@ -80,7 +81,8 @@ let _db: Database.Database | null = null;
 function getDb(): Database.Database {
   if (_db) return _db;
 
-  const db = new Database(DEEP_MEMORY_DB);
+  const dbPath = getDeepMemoryDb();
+  const db = new Database(dbPath);
   db.pragma("journal_mode = WAL");
   db.exec(`
     CREATE TABLE IF NOT EXISTS deep_memories (

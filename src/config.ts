@@ -14,27 +14,53 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Paths
-export const BASE_DIR = resolve(
-  process.env.OPENCLAWDREAMS_DATA_DIR || resolve(__dirname, "..", "..")
-);
-export const DATA_DIR = resolve(BASE_DIR, "data");
-export const MEMORY_DIR = resolve(DATA_DIR, "memory");
-export const DREAMS_DIR = resolve(DATA_DIR, "dreams");
-export const NIGHTMARES_DIR = resolve(DATA_DIR, "nightmares");
+export const getBaseDir = () =>
+  resolve(process.env.OPENCLAWDREAMS_DATA_DIR || resolve(__dirname, "..", ".."));
+export const getDataDir = () => resolve(getBaseDir(), "data");
+export const getMemoryDir = () => resolve(getDataDir(), "memory");
+export const getDreamsDir = () => resolve(getDataDir(), "dreams");
+export const getNightmaresDir = () => resolve(getDataDir(), "nightmares");
+
+// Memory
+export const getDeepMemoryDb = () => resolve(getMemoryDir(), "deep.db");
+export const getStateFile = () => resolve(getMemoryDir(), "state.json");
+export const getSchedulerStateFile = () => resolve(getDataDir(), "scheduler-state.json");
+
+// Export constants for backward compatibility and internal use
+// These will be evaluated at module load time, but getters are preferred for tests.
+export const BASE_DIR = getBaseDir();
+export const DATA_DIR = getDataDir();
+export const MEMORY_DIR = getMemoryDir();
+export const DREAMS_DIR = getDreamsDir();
+export const NIGHTMARES_DIR = getNightmaresDir();
+export const DEEP_MEMORY_DB = getDeepMemoryDb();
+export const STATE_FILE = getStateFile();
+export const SCHEDULER_STATE_FILE = getSchedulerStateFile();
 
 /** Stable fallback path for credentials when DATA_DIR is unset/volatile. */
-export const STABLE_CONFIG_DIR = resolve(homedir(), ".config", "openclawdreams");
-export const STABLE_CREDENTIALS_FILE = resolve(STABLE_CONFIG_DIR, "credentials.json");
+export const getStableConfigDir = () => resolve(homedir(), ".config", "openclawdreams");
+export const getStableCredentialsFile = () =>
+  resolve(getStableConfigDir(), "credentials.json");
 
 /** Primary credentials file path. Resolves to STABLE_CREDENTIALS_FILE if DATA_DIR is default/unset. */
-export const CREDENTIALS_FILE = process.env.OPENCLAWDREAMS_DATA_DIR
-  ? resolve(DATA_DIR, "credentials.json")
-  : STABLE_CREDENTIALS_FILE;
+export const getCredentialsFile = () =>
+  process.env.OPENCLAWDREAMS_DATA_DIR
+    ? resolve(getDataDir(), "credentials.json")
+    : getStableCredentialsFile();
+
+export const STABLE_CONFIG_DIR = getStableConfigDir();
+export const STABLE_CREDENTIALS_FILE = getStableCredentialsFile();
+export const CREDENTIALS_FILE = getCredentialsFile();
 
 // Ensure directories exist
-for (const dir of [DATA_DIR, MEMORY_DIR, DREAMS_DIR, NIGHTMARES_DIR]) {
-  mkdirSync(dir, { recursive: true });
+export function ensureDirectoriesExist(): void {
+  for (const dir of [getDataDir(), getMemoryDir(), getDreamsDir(), getNightmaresDir()]) {
+    mkdirSync(dir, { recursive: true });
+  }
 }
+
+// Call immediately to ensure directories exist before any code tries to write files
+ensureDirectoriesExist();
 
 // Agent
 export const AGENT_NAME = process.env.AGENT_NAME ?? "ElectricSheep";
@@ -104,12 +130,8 @@ export const NOTIFICATION_CHANNEL = ""; // overridden by getter; prefer getNotif
 /** @deprecated Use getNotifyOperatorOnDream() */
 export const NOTIFY_OPERATOR_ON_DREAM = true; // overridden by getter; prefer getNotifyOperatorOnDream()
 
-// Memory
-export const DEEP_MEMORY_DB = resolve(MEMORY_DIR, "deep.db");
-export const STATE_FILE = resolve(MEMORY_DIR, "state.json");
-export const SCHEDULER_STATE_FILE = resolve(DATA_DIR, "scheduler-state.json");
+// Token budget - $20/day using Opus 4.5 output rate ($25/1M) ≈ 800,000 tokens
 
-// Token budget — $20/day using Opus 4.5 output rate ($25/1M) ≈ 800,000 tokens
 // Input tokens are $5/1M but we count all tokens against the output rate for simplicity.
 // Set to 0 to disable the daily budget limit.
 export const MAX_DAILY_TOKENS = parseInt(process.env.MAX_DAILY_TOKENS ?? "800000", 10);

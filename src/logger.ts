@@ -1,6 +1,6 @@
 import { createLogger, format, transports } from "winston";
 import "winston-daily-rotate-file";
-import { DATA_DIR } from "./config.js";
+import { getDataDir } from "./config.js";
 
 const logger = createLogger({
   level: "info",
@@ -13,7 +13,7 @@ const logger = createLogger({
   ),
   transports: [
     new transports.DailyRotateFile({
-      dirname: DATA_DIR,
+      dirname: getDataDir(),
       filename: "openclawdreams-%DATE%.log",
       datePattern: "YYYY-MM-DD",
       zippedArchive: true,
