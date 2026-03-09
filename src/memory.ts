@@ -104,10 +104,29 @@ function getDb(): Database.Database {
       registered_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
     )
   `);
+
+  // Migrate: add new columns if they don't exist yet
+  const existingCols = (db.pragma('table_info(dream_remembrances)') as Array<{ name: string }>)
+    .map(c => c.name);
+
+  if (!existingCols.includes('is_nightmare')) {
+    db.exec('ALTER TABLE dream_remembrances ADD COLUMN is_nightmare INTEGER NOT NULL DEFAULT 0');
+  }
+  if (!existingCols.includes('is_meta_synthesis')) {
+    db.exec('ALTER TABLE dream_remembrances ADD COLUMN is_meta_synthesis INTEGER NOT NULL DEFAULT 0');
+  }
+  if (!existingCols.includes('source_filenames')) {
+    db.exec('ALTER TABLE dream_remembrances ADD COLUMN source_filenames TEXT');
+  }
+  if (!existingCols.includes('deep_memory_id')) {
+    db.exec('ALTER TABLE dream_remembrances ADD COLUMN deep_memory_id INTEGER');
+  }
+
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_deep_dreamed
     ON deep_memories(dreamed, timestamp)
   `);
+
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_deep_category
     ON deep_memories(category)
@@ -135,17 +154,52 @@ export function closeDb(): void {
 export function storeDeepMemory(
   content: Record<string, unknown>,
   category: string = "interaction"
-): void {
+): number | bigint {
   const db = getDb();
   const cipher = getCipher();
   const raw = JSON.stringify(content);
   const encrypted = cipher.encrypt(raw);
   const contentHash = createHash("sha256").update(raw).digest("hex").slice(0, 16);
 
-  db.prepare(
+  const result = db.prepare(
     `INSERT INTO deep_memories (timestamp, category, encrypted_blob, content_hash)
      VALUES (?, ?, ?, ?)`
   ).run(new Date().toISOString(), category, encrypted, contentHash);
+  
+  return result.lastInsertRowid;
+}
+
+export function getDeepMemoryById(id: number | bigint): DecryptedMemory | null {
+  const db = getDb();
+  const cipher = getCipher();
+  const row = db
+    .prepare(
+      `SELECT id, timestamp, category, encrypted_blob
+       FROM deep_memories WHERE id = ?`
+    )
+    .get(id) as { id: number; timestamp: string; category: string; encrypted_blob: string } | undefined;
+
+  if (!row) return null;
+
+  try {
+    const decrypted = JSON.parse(cipher.decrypt(row.encrypted_blob));
+    return {
+      id: row.id,
+      timestamp: row.timestamp,
+      category: row.category,
+      content: normalizeMemoryEntry(decrypted, row.timestamp),
+    };
+  } catch {
+    return {
+      id: row.id,
+      timestamp: row.timestamp,
+      category: "corrupted",
+      content: {
+        text_summary: "This memory could not be recovered.",
+        timestamp: Date.parse(row.timestamp) || Date.now(),
+      },
+    };
+  }
 }
 
 export function retrieveUndreamedMemories(): DecryptedMemory[] {
@@ -154,7 +208,7 @@ export function retrieveUndreamedMemories(): DecryptedMemory[] {
   const rows = db
     .prepare(
       `SELECT id, timestamp, category, encrypted_blob
-       FROM deep_memories WHERE dreamed = 0 ORDER BY timestamp`
+       FROM deep_memories WHERE dreamed = 0 AND category NOT IN ('dream', 'nightmare') ORDER BY timestamp`
     )
     .all() as Array<{
     id: number;
@@ -201,11 +255,13 @@ export function markAsDreamed(memoryIds: number[]): void {
 
 export function deepMemoryStats(): DeepMemoryStats {
   const db = getDb();
+  // Exclude 'dream' and 'nightmare' from the general 'total_memories' and 'undreamed' count
+  // to avoid skewing the main memory metrics, but we still return their categories in the map.
   const total = (
-    db.prepare("SELECT COUNT(*) as c FROM deep_memories").get() as { c: number }
+    db.prepare("SELECT COUNT(*) as c FROM deep_memories WHERE category NOT IN ('dream', 'nightmare')").get() as { c: number }
   ).c;
   const undreamed = (
-    db.prepare("SELECT COUNT(*) as c FROM deep_memories WHERE dreamed = 0").get() as {
+    db.prepare("SELECT COUNT(*) as c FROM deep_memories WHERE dreamed = 0 AND category NOT IN ('dream', 'nightmare')").get() as {
       c: number;
     }
   ).c;
@@ -251,6 +307,9 @@ export function getRecentDeepMemories(
     const placeholders = options.categories.map(() => "?").join(",");
     conditions.push(`category IN (${placeholders})`);
     params.push(...options.categories);
+  } else {
+    // If no specific categories requested, exclude dreams/nightmares by default
+    conditions.push(`category NOT IN ('dream', 'nightmare')`);
   }
 
   if (options?.undreamedOnly) {
@@ -354,12 +413,27 @@ export function formatDeepMemoryContext(
 // ─── Dream Remembrance System ───────────────────────────────────────────────
 
 /** Register a new dream. INSERT OR IGNORE (idempotent). */
-export function registerDream(filename: string, title: string, dreamDate: string): void {
+export function registerDream(
+  filename: string,
+  title: string,
+  dreamDate: string,
+  options?: {
+    isNightmare?: boolean;
+    isMetaSynthesis?: boolean;
+    sourceFilenames?: string[];
+    deepMemoryId?: number | bigint;
+  }
+): void {
   const db = getDb();
+  const isNightmare = options?.isNightmare ? 1 : 0;
+  const isMetaSynthesis = options?.isMetaSynthesis ? 1 : 0;
+  const sourceFilenames = options?.sourceFilenames ? JSON.stringify(options.sourceFilenames) : null;
+  const deepMemoryId = options?.deepMemoryId ?? null;
+
   db.prepare(
-    `INSERT OR IGNORE INTO dream_remembrances (filename, title, dream_date)
-     VALUES (?, ?, ?)`
-  ).run(filename, title, dreamDate);
+    `INSERT OR IGNORE INTO dream_remembrances (filename, title, dream_date, is_nightmare, is_meta_synthesis, source_filenames, deep_memory_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).run(filename, title, dreamDate, isNightmare, isMetaSynthesis, sourceFilenames, deepMemoryId);
 }
 
 /** Increment remember_count for a dream that was selected. */
@@ -373,13 +447,13 @@ export function incrementRememberCount(filename: string): void {
 /**
  * Weighted random selection: score = 1/(count+1) * max(1, age_days).
  * Fetch all rows from SQLite, compute scores in JS, do weighted pick.
- * Returns filename or null if table is empty.
+ * Returns filename and deep_memory_id, or null if table is empty.
  */
-export function selectDreamToRemember(today: string): string | null {
+export function selectDreamToRemember(today: string): { filename: string; deep_memory_id: number | null } | null {
   const db = getDb();
   const rows = db
-    .prepare("SELECT filename, dream_date, remember_count FROM dream_remembrances")
-    .all() as Array<{ filename: string; dream_date: string; remember_count: number }>;
+    .prepare("SELECT filename, dream_date, remember_count, deep_memory_id FROM dream_remembrances")
+    .all() as Array<{ filename: string; dream_date: string; remember_count: number; deep_memory_id: number | null }>;
 
   if (rows.length === 0) return null;
 
@@ -391,7 +465,7 @@ export function selectDreamToRemember(today: string): string | null {
       Math.ceil((todayMs - dreamDateMs) / (1000 * 60 * 60 * 24))
     );
     const score = (1 / (row.remember_count + 1)) * ageDays;
-    return { filename: row.filename, score };
+    return { ...row, score };
   });
 
   const totalScore = scoredRows.reduce((sum, row) => sum + row.score, 0);
@@ -399,10 +473,11 @@ export function selectDreamToRemember(today: string): string | null {
 
   for (const row of scoredRows) {
     random -= row.score;
-    if (random <= 0) return row.filename;
+    if (random <= 0) return { filename: row.filename, deep_memory_id: row.deep_memory_id };
   }
 
-  return scoredRows[scoredRows.length - 1].filename;
+  const last = scoredRows[scoredRows.length - 1];
+  return { filename: last.filename, deep_memory_id: last.deep_memory_id };
 }
 
 /** For inspection/testing. */
@@ -411,19 +486,28 @@ export function getDreamRemembrances(): Array<{
   title: string;
   dream_date: string;
   remember_count: number;
+  is_nightmare: number;
+  is_meta_synthesis: number;
+  source_filenames: string | null;
+  deep_memory_id: number | null;
 }> {
   const db = getDb();
   return db
     .prepare(
-      "SELECT filename, title, dream_date, remember_count FROM dream_remembrances ORDER BY dream_date DESC"
+      "SELECT filename, title, dream_date, remember_count, is_nightmare, is_meta_synthesis, source_filenames, deep_memory_id FROM dream_remembrances ORDER BY dream_date DESC"
     )
     .all() as Array<{
     filename: string;
     title: string;
     dream_date: string;
     remember_count: number;
+    is_nightmare: number;
+    is_meta_synthesis: number;
+    source_filenames: string | null;
+    deep_memory_id: number | null;
   }>;
 }
+
 
 // ─── Store Helper ───────────────────────────────────────────────────────────
 
