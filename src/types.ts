@@ -87,6 +87,8 @@ export interface AgentState {
   dreams_backfilled?: boolean;
   last_reflection_topics?: string[];
   meta_loop_depth?: number;
+  entropy_last_overlap?: number;
+  entropy_reprompt_count?: number;
   [key: string]: unknown;
 }
 
@@ -244,4 +246,5 @@ export interface ElectricSheepConfig {
   notifyOperatorOnDream: boolean;
   requireApprovalBeforePost: boolean;
   dreamSubmolt: string;
+  entropyOverlapThreshold: number;
 }

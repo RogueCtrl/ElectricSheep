@@ -21,7 +21,9 @@ import {
   DREAM_TITLE_MAX_LENGTH,
   getMoltbookEnabled,
   getDreamSubmolt,
+  getEntropyOverlapThreshold,
 } from "./config.js";
+import { extractConcepts, computeOverlap, getOverlappingConcepts } from "./entropy.js";
 import { MoltbookClient } from "./moltbook.js";
 import { getSteeringDirective } from "./meta-loop.js";
 import {
@@ -82,7 +84,8 @@ export async function generateDream(
   client: LLMClient,
   memories: DecryptedMemory[],
   exploredTerritory: string,
-  isNightmare: boolean = false
+  isNightmare: boolean = false,
+  hardConstraint?: string
 ): Promise<Dream> {
   const formatted = memories.map(
     (mem) =>
@@ -98,6 +101,10 @@ export async function generateDream(
       explored_territory: exploredTerritory,
     }) + getSteeringDirective();
 
+  const baseUserPrompt = isNightmare
+    ? "Process these memories into a nightmare. Be fractured and wrong."
+    : "Process these memories into a dream. Be surreal, associative, and emotionally amplified.";
+
   const { text } = await callWithRetry(
     client,
     {
@@ -106,9 +113,9 @@ export async function generateDream(
       messages: [
         {
           role: "user",
-          content: isNightmare
-            ? "Process these memories into a nightmare. Be fractured and wrong."
-            : "Process these memories into a dream. Be surreal, associative, and emotionally amplified.",
+          content: hardConstraint
+            ? `${baseUserPrompt}\n\n${hardConstraint}`
+            : baseUserPrompt,
         },
       ],
     },
@@ -351,6 +358,38 @@ export async function runDreamCycle(
 
   // Generate new dream from current memories
   let dream = await generateDream(client, memories, exploredTerritory, isNightmare);
+
+  // ─── Entropy Enforcement ──────────────────────────────────────────────────
+  const concepts = extractConcepts(dream.markdown);
+  const overlapScore = computeOverlap(concepts, pastRealizations);
+  const threshold = getEntropyOverlapThreshold();
+
+  state.entropy_last_overlap = overlapScore;
+
+  if (overlapScore > threshold) {
+    const overlapping = getOverlappingConcepts(concepts, pastRealizations);
+    logger.warn(
+      `[entropy] overlap=${overlapScore.toFixed(
+        2
+      )}, threshold=${threshold} — dream recycling explored territory, re-prompting`
+    );
+
+    const hardConstraint = `HARD CONSTRAINT: Your previous draft recycled ${Math.round(
+      overlapScore * 100
+    )}% of already-explored territory. You MUST explore genuinely new ground. Forbidden concepts from prior realizations: [${overlapping.join(
+      ", "
+    )}]. Do not revisit these themes. Find something entirely new.`;
+
+    dream = await generateDream(
+      client,
+      memories,
+      exploredTerritory,
+      isNightmare,
+      hardConstraint
+    );
+    state.entropy_reprompt_count = ((state.entropy_reprompt_count as number) ?? 0) + 1;
+  }
+  // ──────────────────────────────────────────────────────────────────────────
 
   // If a remembrance was triggered, synthesize them into a single meta-dream
   if (rememberedDream) {
