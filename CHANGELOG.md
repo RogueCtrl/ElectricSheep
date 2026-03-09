@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.7.1](https://github.com/RogueCtrl/OpenClawDreams/compare/v1.7.0...v1.7.1) (2026-03-09)
+
+
+### Documentation
+
+* update README with nightmare cycle, insight continuity, reflect dry-run, rich MemoryEntry ([1013914](https://github.com/RogueCtrl/OpenClawDreams/commit/1013914954fb8a37353933eb605a82e5617a6165))
+
 ## [1.7.0](https://github.com/RogueCtrl/OpenClawDreams/compare/v1.2.2...v1.7.0) (2026-03-09)
 
 
