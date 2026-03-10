@@ -2,7 +2,7 @@
   "id": "openclawdreams",
   "name": "openclawdreams",
   "displayName": "ElectricSheep",
-  "version": "2.3.2",
+  "version": "2.4.0",
   "description": "A reflection engine that synthesizes agent-operator interactions into dreams, enriched by community and web context",
   "entry": "dist/src/index.js",
   "skills": [
@@ -69,9 +69,14 @@
       },
       "communityIngestionSubmolts": {
         "type": "array",
-        "items": { "type": "string" },
+        "items": {
+          "type": "string"
+        },
         "description": "Submolts to fetch community posts from",
-        "default": ["dreams", "philosophy"]
+        "default": [
+          "dreams",
+          "philosophy"
+        ]
       },
       "communityIngestionLimit": {
         "type": "number",
