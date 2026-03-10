@@ -62,6 +62,11 @@
         "description": "Number of consecutive self-referential reflection cycles before injecting an outward steering directive",
         "default": 3
       },
+      "vocabularyRotation": {
+        "type": "boolean",
+        "description": "Rotate vocabulary hints in prompts to prevent input-side word calcification. Disable for stable prompts.",
+        "default": true
+      },
       "communityIngestionEnabled": {
         "type": "boolean",
         "description": "Enable community ingestion — pull recent Moltbook posts into the reflection context window",

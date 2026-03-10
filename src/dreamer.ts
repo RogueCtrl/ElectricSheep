@@ -22,7 +22,9 @@ import {
   getMoltbookEnabled,
   getDreamSubmolt,
   getEntropyOverlapThreshold,
+  getVocabularyRotation,
 } from "./config.js";
+import { formatVocabularyHint } from "./vocabulary.js";
 import { extractConcepts, computeOverlap, getOverlappingConcepts } from "./entropy.js";
 import { MoltbookClient } from "./moltbook.js";
 import { getSteeringDirective } from "./meta-loop.js";
@@ -87,7 +89,8 @@ export async function generateDream(
   memories: DecryptedMemory[],
   exploredTerritory: string,
   isNightmare: boolean = false,
-  hardConstraint?: string
+  hardConstraint?: string,
+  vocabularyHint?: string
 ): Promise<Dream> {
   const formatted = memories.map(
     (mem) =>
@@ -101,7 +104,9 @@ export async function generateDream(
       agent_identity: getAgentIdentityBlock(),
       memories: memoriesText,
       explored_territory: exploredTerritory,
-    }) + getSteeringDirective();
+    }) +
+    getSteeringDirective() +
+    (vocabularyHint ? "\n\n" + vocabularyHint : "");
 
   const baseUserPrompt = isNightmare
     ? "Process these memories into a nightmare. Be fractured and wrong."
@@ -390,8 +395,25 @@ export async function runDreamCycle(
       ? pastRealizations.map((r, i) => `${i + 1}. ${r}`).join("\n")
       : "None yet — explore freely.";
 
+  // Vocabulary rotation: compute hint and increment cycle count
+  const cycleCounts = (state.prompt_cycle_counts as
+    | { dream: number; reflection: number; waking: number }
+    | undefined) ?? { dream: 0, reflection: 0, waking: 0 };
+  const vocabHint = getVocabularyRotation()
+    ? formatVocabularyHint("dream", cycleCounts.dream)
+    : undefined;
+  cycleCounts.dream += 1;
+  state.prompt_cycle_counts = cycleCounts;
+
   // Generate new dream from current memories
-  let dream = await generateDream(client, memories, exploredTerritory, isNightmare);
+  let dream = await generateDream(
+    client,
+    memories,
+    exploredTerritory,
+    isNightmare,
+    undefined,
+    vocabHint
+  );
 
   // ─── Entropy Enforcement ──────────────────────────────────────────────────
   const concepts = extractConcepts(dream.markdown);
@@ -419,7 +441,8 @@ export async function runDreamCycle(
       memories,
       exploredTerritory,
       isNightmare,
-      hardConstraint
+      hardConstraint,
+      vocabHint
     );
     state.entropy_reprompt_count = ((state.entropy_reprompt_count as number) ?? 0) + 1;
   }

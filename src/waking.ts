@@ -5,7 +5,12 @@
  * and synthesizes insights for storage in memory.
  */
 
-import { MAX_TOKENS_SUMMARY, CONTENT_PREVIEW_LENGTH } from "./config.js";
+import {
+  MAX_TOKENS_SUMMARY,
+  CONTENT_PREVIEW_LENGTH,
+  getVocabularyRotation,
+} from "./config.js";
+import { formatVocabularyHint } from "./vocabulary.js";
 import { deepMemoryStats, storeDeepMemory } from "./memory.js";
 import { SUMMARIZER_PROMPT, renderTemplate } from "./persona.js";
 import { loadState, saveState } from "./state.js";
@@ -133,8 +138,21 @@ export async function runReflectionCycle(
 
   logger.info(`Extracted ${context.topics.length} topics: ${context.topics.join("; ")}`);
 
+  // Vocabulary rotation for waking prompts
+  let vocabHint: string | undefined;
+  if (getVocabularyRotation()) {
+    const wakingState = loadState();
+    const cycleCounts = (wakingState.prompt_cycle_counts as
+      | { dream: number; reflection: number; waking: number }
+      | undefined) ?? { dream: 0, reflection: 0, waking: 0 };
+    vocabHint = formatVocabularyHint("waking", cycleCounts.waking);
+    cycleCounts.waking += 1;
+    wakingState.prompt_cycle_counts = cycleCounts;
+    saveState(wakingState);
+  }
+
   // Generate synthesis
-  const synthesis = await synthesizeContext(client, context);
+  const synthesis = await synthesizeContext(client, context, vocabHint);
 
   if (!synthesis) {
     logger.warn("Synthesis generation failed or returned empty");

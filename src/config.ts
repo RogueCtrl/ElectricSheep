@@ -89,6 +89,8 @@ let _workspaceDiffEnabled =
   (process.env.WORKSPACE_DIFF_ENABLED ?? "true").toLowerCase() !== "false";
 let _metaLoopThreshold = parseInt(process.env.META_LOOP_THRESHOLD ?? "3", 10);
 let _entropyOverlapThreshold = parseFloat(process.env.ENTROPY_OVERLAP_THRESHOLD ?? "0.5");
+let _vocabularyRotation =
+  (process.env.VOCABULARY_ROTATION ?? "true").toLowerCase() !== "false";
 let _communityIngestionEnabled =
   (process.env.COMMUNITY_INGESTION_ENABLED ?? "false").toLowerCase() === "true";
 let _communityIngestionSubmolts = (
@@ -118,6 +120,8 @@ export function applyPluginConfig(cfg: Record<string, unknown>): void {
     _metaLoopThreshold = cfg.metaLoopThreshold;
   if (typeof cfg.entropyOverlapThreshold === "number")
     _entropyOverlapThreshold = cfg.entropyOverlapThreshold;
+  if (typeof cfg.vocabularyRotation === "boolean")
+    _vocabularyRotation = cfg.vocabularyRotation;
   if (typeof cfg.communityIngestionEnabled === "boolean")
     _communityIngestionEnabled = cfg.communityIngestionEnabled;
   if (Array.isArray(cfg.communityIngestionSubmolts))
@@ -135,6 +139,7 @@ export const getDreamSubmolt = (): string => _dreamSubmolt;
 export const getWorkspaceDiffEnabled = (): boolean => _workspaceDiffEnabled;
 export const getMetaLoopThreshold = (): number => _metaLoopThreshold;
 export const getEntropyOverlapThreshold = (): number => _entropyOverlapThreshold;
+export const getVocabularyRotation = (): boolean => _vocabularyRotation;
 export const getCommunityIngestionEnabled = (): boolean => _communityIngestionEnabled;
 export const getCommunityIngestionSubmolts = (): string[] => _communityIngestionSubmolts;
 export const getCommunityIngestionLimit = (): number => _communityIngestionLimit;

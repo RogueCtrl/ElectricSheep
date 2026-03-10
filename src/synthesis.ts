@@ -133,7 +133,8 @@ export function formatSynthesisContext(ctx: SynthesisContext): string {
  */
 export async function synthesizeContext(
   client: LLMClient,
-  context: SynthesisContext
+  context: SynthesisContext,
+  vocabularyHint?: string
 ): Promise<string> {
   if (context.topics.length === 0) {
     logger.info("No topics to synthesize");
@@ -142,9 +143,10 @@ export async function synthesizeContext(
 
   const formattedContext = formatSynthesisContext(context);
 
-  const system = renderTemplate(SYNTHESIS_PROMPT, {
-    agent_identity: getAgentIdentityBlock(),
-  });
+  const system =
+    renderTemplate(SYNTHESIS_PROMPT, {
+      agent_identity: getAgentIdentityBlock(),
+    }) + (vocabularyHint ? "\n\n" + vocabularyHint : "");
 
   try {
     const { text } = await callWithRetry(

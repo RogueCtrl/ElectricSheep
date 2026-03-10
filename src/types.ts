@@ -89,6 +89,7 @@ export interface AgentState {
   meta_loop_depth?: number;
   entropy_last_overlap?: number;
   entropy_reprompt_count?: number;
+  prompt_cycle_counts?: { dream: number; reflection: number; waking: number };
   [key: string]: unknown;
 }
 

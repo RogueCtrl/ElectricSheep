@@ -20,7 +20,9 @@ import { getAgentIdentityBlock } from "./identity.js";
 import { formatDeepMemoryContext } from "./memory.js";
 import { getSteeringDirective } from "./meta-loop.js";
 import { callWithRetry, WAKING_RETRY_OPTS } from "./llm.js";
-import { MAX_TOKENS_REFLECTION } from "./config.js";
+import { MAX_TOKENS_REFLECTION, getVocabularyRotation } from "./config.js";
+import { formatVocabularyHint } from "./vocabulary.js";
+import { loadState, saveState } from "./state.js";
 import logger from "./logger.js";
 import type { LLMClient, Dream } from "./types.js";
 
@@ -82,7 +84,8 @@ async function reflectOnDream(
   client: LLMClient,
   dream: Dream,
   subjects: string[],
-  exploredTerritory: string = "None yet — explore freely."
+  exploredTerritory: string = "None yet — explore freely.",
+  vocabularyHint?: string
 ): Promise<string> {
   const system =
     renderTemplate(DREAM_REFLECT_PROMPT, {
@@ -90,7 +93,9 @@ async function reflectOnDream(
       recent_context: formatDeepMemoryContext(),
       subjects: subjects.map((s, i) => `${i + 1}. ${s}`).join("\n"),
       explored_territory: exploredTerritory,
-    }) + getSteeringDirective();
+    }) +
+    getSteeringDirective() +
+    (vocabularyHint ? "\n\n" + vocabularyHint : "");
 
   const { text } = await callWithRetry(
     client,
@@ -130,13 +135,32 @@ export async function reflectOnDreamJournal(
   try {
     logger.info("Starting dream reflection pipeline");
 
+    // Vocabulary rotation for reflection prompts
+    let vocabHint: string | undefined;
+    if (getVocabularyRotation()) {
+      const state = loadState();
+      const cycleCounts = (state.prompt_cycle_counts as
+        | { dream: number; reflection: number; waking: number }
+        | undefined) ?? { dream: 0, reflection: 0, waking: 0 };
+      vocabHint = formatVocabularyHint("reflection", cycleCounts.reflection);
+      cycleCounts.reflection += 1;
+      state.prompt_cycle_counts = cycleCounts;
+      saveState(state);
+    }
+
     const subjects = await decomposeThemes(client, dream);
     if (subjects.length === 0) {
       logger.warn("Dream decomposition returned no themes, skipping reflection");
       return null;
     }
 
-    const synthesis = await reflectOnDream(client, dream, subjects, exploredTerritory);
+    const synthesis = await reflectOnDream(
+      client,
+      dream,
+      subjects,
+      exploredTerritory,
+      vocabHint
+    );
     if (!synthesis) {
       logger.warn("Dream reflection returned empty synthesis");
       return null;
