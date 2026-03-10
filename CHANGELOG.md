@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.3.2](https://github.com/RogueCtrl/OpenClawDreams/compare/v2.3.0...v2.3.2) (2026-03-10)
+
+
+### Bug Fixes
+
+* add files whitelist to package.json — reduce publish from 3501 files/12.8MB to 123 files/430KB ([d176130](https://github.com/RogueCtrl/OpenClawDreams/commit/d176130e44cf9e5afb6f1f2ac32ba6eb56cc8ecc))
+
 ## [2.3.0](https://github.com/RogueCtrl/OpenClawDreams/compare/v2.2.0...v2.3.0) (2026-03-09)
 
 
