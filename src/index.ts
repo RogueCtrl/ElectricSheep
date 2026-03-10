@@ -525,6 +525,23 @@ export function register(api: OpenClawAPI): void {
     },
     8: async () => {
       await runReflectionCycle(client, api);
+
+      // Weekly rhythm report — Monday mornings only
+      if (new Date().getDay() === 1) {
+        try {
+          const { generateRhythmReport, formatReportNotification } =
+            await import("./rhythm.js");
+          const report = generateRhythmReport(undefined, 7);
+          const message = formatReportNotification(report);
+          api.runtime.system.enqueueSystemEvent(
+            `📊 Weekly Cognitive Rhythm Report\n\n${message}`,
+            { sessionKey: "openclawdreams" }
+          );
+          logger.info("[ElectricSheep] Weekly rhythm report enqueued as system event");
+        } catch (err) {
+          logger.warn(`[ElectricSheep] Failed to enqueue rhythm report: ${err}`);
+        }
+      }
     },
     12: async () => {
       await runReflectionCycle(client, api);

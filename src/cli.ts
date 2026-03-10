@@ -598,11 +598,6 @@ export function registerCommands(parent: Command): void {
     console.log(chalk.cyan.bold(`\n${label} Cognitive Rhythm Report\n`));
     console.log(message);
 
-    // Notifications are delivered via OpenClaw system events at runtime
-    console.log(
-      chalk.dim(`\nNote: Runtime notifications require OpenClaw plugin context.`)
-    );
-
     console.log(chalk.green.bold("\nReport complete.\n"));
   };
 
