@@ -510,6 +510,74 @@ export function registerCommands(parent: Command): void {
       }
     });
   parent
+    .command("lineage [filename]")
+    .description("Show dream lineage and thematic kinship")
+    .action(async (filename?: string) => {
+      const { getAllDreamLineage, getDreamLineageByFilename } =
+        await import("./memory.js");
+
+      if (filename) {
+        const row = getDreamLineageByFilename(filename);
+        if (!row) {
+          console.log(chalk.red(`No lineage found for: ${filename}`));
+          return;
+        }
+        const concepts: string[] = row.dominant_concepts
+          ? JSON.parse(row.dominant_concepts)
+          : [];
+        const kin: string[] = row.thematic_kin ? JSON.parse(row.thematic_kin) : [];
+        const parents: number[] = row.parent_memory_ids
+          ? JSON.parse(row.parent_memory_ids)
+          : [];
+
+        // Compute overlap for display
+        const { findThematicKin } = await import("./memory.js");
+        const kinWithOverlap = findThematicKin(concepts, filename, 0.3);
+        const overlapMap = new Map(kinWithOverlap.map((k) => [k.filename, k.overlap]));
+
+        console.log(chalk.cyan.bold(`\nDream: ${row.dream_filename}`));
+        console.log(`${chalk.bold("Date:")} ${row.created_at.slice(0, 10)}`);
+        console.log(
+          `${chalk.bold("Dominant concepts:")} ${concepts.join(", ") || "none"}`
+        );
+
+        if (kin.length > 0) {
+          console.log(chalk.bold(`Thematic kin (${kin.length}):`));
+          for (const k of kin) {
+            const overlap = overlapMap.get(k);
+            const overlapStr =
+              overlap !== undefined ? ` (overlap: ${overlap.toFixed(2)})` : "";
+            console.log(`  - ${k}${overlapStr}`);
+          }
+        } else {
+          console.log(chalk.dim("No thematic kin"));
+        }
+
+        console.log(
+          `${chalk.bold("Parent memories:")} ${parents.length} deep memory entries`
+        );
+      } else {
+        const rows = getAllDreamLineage();
+        if (rows.length === 0) {
+          console.log(chalk.dim("No dream lineage recorded yet."));
+          return;
+        }
+
+        console.log(chalk.cyan.bold(`\nDream Lineage (${rows.length} dreams)\n`));
+        for (const row of rows) {
+          const kin: string[] = row.thematic_kin ? JSON.parse(row.thematic_kin) : [];
+          const concepts: string[] = row.dominant_concepts
+            ? JSON.parse(row.dominant_concepts)
+            : [];
+          const date = row.created_at.slice(0, 10);
+          console.log(
+            `  ${chalk.dim(date)}  ${row.dream_filename}  ${chalk.cyan(`kin:${kin.length}`)}  ${chalk.magenta(`concepts:${concepts.length}`)}`
+          );
+        }
+      }
+    });
+
+  parent
     .command("report")
     .description("Generate and send a weekly cognitive rhythm report")
     .option("--dry-run", "Print JSON to stdout without sending notification")

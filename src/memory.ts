@@ -126,6 +126,18 @@ function getDb(): Database.Database {
     db.exec("ALTER TABLE dream_remembrances ADD COLUMN deep_memory_id INTEGER");
   }
 
+  // Dream lineage table for tracking dream genealogy
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS dream_lineage (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      dream_filename TEXT NOT NULL,
+      parent_memory_ids TEXT,
+      thematic_kin TEXT,
+      dominant_concepts TEXT,
+      created_at TEXT NOT NULL
+    )
+  `);
+
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_deep_dreamed
     ON deep_memories(dreamed, timestamp)
@@ -542,6 +554,88 @@ export function getDreamRemembrances(): Array<{
     source_filenames: string | null;
     deep_memory_id: number | null;
   }>;
+}
+
+// ─── Dream Lineage ──────────────────────────────────────────────────────────
+
+export interface DreamLineageRow {
+  id: number;
+  dream_filename: string;
+  parent_memory_ids: string | null;
+  thematic_kin: string | null;
+  dominant_concepts: string | null;
+  created_at: string;
+}
+
+export function insertDreamLineage(
+  dreamFilename: string,
+  parentMemoryIds: number[],
+  thematicKin: string[],
+  dominantConcepts: string[]
+): void {
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO dream_lineage (dream_filename, parent_memory_ids, thematic_kin, dominant_concepts, created_at)
+     VALUES (?, ?, ?, ?, ?)`
+  ).run(
+    dreamFilename,
+    JSON.stringify(parentMemoryIds),
+    JSON.stringify(thematicKin),
+    JSON.stringify(dominantConcepts),
+    new Date().toISOString()
+  );
+}
+
+export function getAllDreamLineage(): DreamLineageRow[] {
+  const db = getDb();
+  return db
+    .prepare("SELECT * FROM dream_lineage ORDER BY created_at DESC")
+    .all() as DreamLineageRow[];
+}
+
+export function getDreamLineageByFilename(filename: string): DreamLineageRow | null {
+  const db = getDb();
+  return (
+    (db.prepare("SELECT * FROM dream_lineage WHERE dream_filename = ?").get(filename) as
+      | DreamLineageRow
+      | undefined) ?? null
+  );
+}
+
+/**
+ * Find thematic kin for a dream by computing concept overlap with all prior dreams.
+ * Returns filenames of dreams with overlap >= threshold (default 0.3).
+ */
+export function findThematicKin(
+  currentConcepts: string[],
+  currentFilename: string,
+  threshold: number = 0.3
+): Array<{ filename: string; overlap: number }> {
+  const rows = getAllDreamLineage();
+  const kin: Array<{ filename: string; overlap: number }> = [];
+
+  for (const row of rows) {
+    if (row.dream_filename === currentFilename) continue;
+    const priorConcepts: string[] = row.dominant_concepts
+      ? JSON.parse(row.dominant_concepts)
+      : [];
+    if (priorConcepts.length === 0 || currentConcepts.length === 0) continue;
+
+    const priorSet = new Set(priorConcepts);
+    const currentSet = new Set(currentConcepts);
+    let intersection = 0;
+    for (const c of currentSet) {
+      if (priorSet.has(c)) intersection++;
+    }
+    const union = new Set([...currentSet, ...priorSet]).size;
+    const overlap = union === 0 ? 0 : intersection / union;
+
+    if (overlap >= threshold) {
+      kin.push({ filename: row.dream_filename, overlap });
+    }
+  }
+
+  return kin.sort((a, b) => b.overlap - a.overlap);
 }
 
 // ─── Store Helper ───────────────────────────────────────────────────────────

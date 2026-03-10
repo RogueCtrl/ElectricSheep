@@ -36,6 +36,8 @@ import {
   selectDreamToRemember,
   storeDeepMemory,
   getDeepMemoryById,
+  insertDreamLineage,
+  findThematicKin,
 } from "./memory.js";
 import { ensureBackfilled } from "./backfill.js";
 import {
@@ -232,6 +234,35 @@ export function deriveSlug(markdown: string): string {
     .slice(0, DREAM_TITLE_MAX_LENGTH)
     .replace(/[\s/]/g, "_");
   return slug;
+}
+
+/**
+ * Prepend a YAML front-matter header to a dream markdown file.
+ * Does nothing if the file already has a YAML header.
+ */
+export function prependYamlHeader(
+  filepath: string,
+  meta: {
+    dream_date: string;
+    parent_memories: number[];
+    thematic_kin: string[];
+    dominant_concepts: string[];
+  }
+): void {
+  const content = readFileSync(filepath, "utf-8");
+  if (content.startsWith("---\n")) return; // already has header
+
+  const header = [
+    "---",
+    `dream_date: ${meta.dream_date}`,
+    `parent_memories: [${meta.parent_memories.join(", ")}]`,
+    `thematic_kin: [${meta.thematic_kin.map((k) => `"${k}"`).join(", ")}]`,
+    `dominant_concepts: [${meta.dominant_concepts.join(", ")}]`,
+    "---",
+    "",
+  ].join("\n");
+
+  writeFileSync(filepath, header + content);
 }
 
 export function saveNarrativeLocally(dream: Dream, dir: string, dateStr: string): string {
@@ -441,6 +472,22 @@ export async function runDreamCycle(
   });
 
   pruneOldDreams(getDreamsDir(), savedFilename);
+
+  // ─── Lineage Tracking ───────────────────────────────────────────────────
+  const dreamConcepts = extractConcepts(dream.markdown).slice(0, 10);
+  const parentMemoryIds = memories.map((m) => m.id);
+  const thematicKin = findThematicKin(dreamConcepts, savedFilename);
+  const kinFilenames = thematicKin.map((k) => k.filename);
+
+  insertDreamLineage(savedFilename, parentMemoryIds, kinFilenames, dreamConcepts);
+
+  prependYamlHeader(filepath, {
+    dream_date: dateStr,
+    parent_memories: parentMemoryIds,
+    thematic_kin: kinFilenames,
+    dominant_concepts: dreamConcepts,
+  });
+  // ──────────────────────────────────────────────────────────────────────────
 
   // Separate LLM call to distill one insight for working memory
   let insight: string | null = null;
