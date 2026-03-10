@@ -92,6 +92,13 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           BRANCH="release/v${VERSION}"
+
+          # Clean up stale release branch if it exists on remote
+          if git ls-remote --heads origin "refs/heads/$BRANCH" | grep -q "$BRANCH"; then
+            echo "Stale branch $BRANCH exists on remote, deleting..."
+            git push origin --delete "$BRANCH"
+          fi
+
           git checkout -b "$BRANCH"
           git push origin "$BRANCH" "v${VERSION}"
 
