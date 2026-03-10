@@ -103,13 +103,13 @@ function computeInsightDensity(contents: string[]): number {
   return Math.round((total / contents.length) * 100) / 100;
 }
 
-export function generateRhythmReport(dataDir?: string): RhythmReport {
+export function generateRhythmReport(dataDir?: string, days: number = 7): RhythmReport {
   const now = new Date();
-  const weekAgo = new Date(now);
-  weekAgo.setDate(weekAgo.getDate() - 7);
+  const periodAgo = new Date(now);
+  periodAgo.setDate(periodAgo.getDate() - days);
 
   const periodEnd = now.toISOString().slice(0, 10);
-  const periodStart = weekAgo.toISOString().slice(0, 10);
+  const periodStart = periodAgo.toISOString().slice(0, 10);
 
   const dreamsDir = dataDir ? resolve(dataDir, "data", "dreams") : getDreamsDir();
   const nightmaresDir = dataDir
@@ -137,8 +137,9 @@ export function generateRhythmReport(dataDir?: string): RhythmReport {
 
   const themeStr =
     dominantThemes.length > 0 ? dominantThemes.join(", ") : "none detected";
+  const periodLabel = days === 1 ? "day" : `${days} days`;
   const rawSummary =
-    `Over the past week, ${dreamFiles.length} dream(s) and ${nightmareFiles.length} nightmare(s) were recorded. ` +
+    `Over the past ${periodLabel}, ${dreamFiles.length} dream(s) and ${nightmareFiles.length} nightmare(s) were recorded. ` +
     `Dominant themes included ${themeStr}. ` +
     `Tone trajectory: ${toneTrajectory}.`;
 
