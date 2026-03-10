@@ -220,12 +220,15 @@ export async function groundDream(
  * Derive a short filesystem-safe name from the first line of the dream markdown.
  */
 export function deriveSlug(markdown: string): string {
-  const firstLine = markdown.split("\n")[0] ?? "";
-  const cleaned = firstLine
-    .replace(/^#+\s*/, "")
-    .replace(/\*\*/g, "")
-    .trim();
-  const slug = (cleaned || "dream")
+  const lines = markdown.split("\n");
+  const headingLine = lines.find((line) => /^#+\s+/.test(line));
+  const raw = headingLine
+    ? headingLine
+        .replace(/^#+\s*/, "")
+        .replace(/\*\*/g, "")
+        .trim()
+    : "";
+  const slug = (raw || `dream-${new Date().toISOString().slice(0, 10)}`)
     .slice(0, DREAM_TITLE_MAX_LENGTH)
     .replace(/[\s/]/g, "_");
   return slug;

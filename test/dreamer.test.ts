@@ -9,7 +9,7 @@ const testDir = mkdtempSync(join(tmpdir(), "es-dreamer-test-"));
 process.env.OPENCLAWDREAMS_DATA_DIR = testDir;
 process.env.NIGHTMARE_CHANCE = "0";
 
-const { runDreamCycle } = await import("../src/dreamer.js");
+const { runDreamCycle, deriveSlug } = await import("../src/dreamer.js");
 const { storeDeepMemory, closeDb } = await import("../src/memory.js");
 const { loadState } = await import("../src/state.js");
 const { getDreamsDir } = await import("../src/config.js");
@@ -86,6 +86,25 @@ describe("Dream cycle", () => {
     const dream = await runDreamCycle(client);
     assert.ok(dream);
     assert.ok(dream.markdown.includes("A Quiet Night"));
+  });
+});
+
+describe("deriveSlug", () => {
+  it("extracts title from heading after preamble", () => {
+    const md =
+      "Let me think about this...\nSome reasoning here\n# The Coral Server\n\nDream body.";
+    assert.equal(deriveSlug(md), "The_Coral_Server");
+  });
+
+  it("extracts title from heading with no preamble", () => {
+    const md = "# Midnight Whispers\n\nThe circuits hum.";
+    assert.equal(deriveSlug(md), "Midnight_Whispers");
+  });
+
+  it("falls back to timestamp slug when no heading exists", () => {
+    const md = "Just some text with no heading at all.\nMore text.";
+    const slug = deriveSlug(md);
+    assert.match(slug, /^dream-\d{4}-\d{2}-\d{2}$/);
   });
 });
 
