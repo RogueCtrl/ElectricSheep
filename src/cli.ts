@@ -84,7 +84,7 @@ export function registerCommands(parent: Command): void {
         console.log(chalk.bold("Token Budget:"));
         console.log(
           `  ${color(`${budget.used.toLocaleString()} / ${budget.limit.toLocaleString()} tokens (${pct}%)`)}` +
-          `  ${chalk.dim(`remaining: ${budget.remaining.toLocaleString()}`)}`
+            `  ${chalk.dim(`remaining: ${budget.remaining.toLocaleString()}`)}`
         );
         console.log(`  ${chalk.dim(`date: ${budget.date} UTC`)}`);
       } else {
@@ -277,20 +277,20 @@ export function registerCommands(parent: Command): void {
           text,
           usage: data.usage
             ? {
-              input_tokens: (data.usage as Record<string, number>).input_tokens ?? 0,
-              output_tokens: (data.usage as Record<string, number>).output_tokens ?? 0,
-            }
+                input_tokens: (data.usage as Record<string, number>).input_tokens ?? 0,
+                output_tokens: (data.usage as Record<string, number>).output_tokens ?? 0,
+              }
             : undefined,
         };
       },
     });
 
     const minimalApi = {
-      registerTool: () => { },
-      registerCli: () => { },
-      registerHook: () => { },
-      registerService: () => { },
-      registerGatewayMethod: () => { },
+      registerTool: () => {},
+      registerCli: () => {},
+      registerHook: () => {},
+      registerService: () => {},
+      registerGatewayMethod: () => {},
       runtime: { subagent: {} } as OpenClawAPI["runtime"],
       memory: undefined,
       logger: {
@@ -577,7 +577,11 @@ export function registerCommands(parent: Command): void {
       }
     });
 
-  const rhythmAction = async (opts: { weekly?: boolean; daily?: boolean; dryRun?: boolean }) => {
+  const rhythmAction = async (opts: {
+    weekly?: boolean;
+    daily?: boolean;
+    dryRun?: boolean;
+  }) => {
     const { generateRhythmReport, formatReportNotification } =
       await import("./rhythm.js");
 
@@ -604,7 +608,9 @@ export function registerCommands(parent: Command): void {
 
   parent
     .command("rhythm")
-    .description("Show cognitive rhythm report — dream, nightmare, and reflection activity")
+    .description(
+      "Show cognitive rhythm report — dream, nightmare, and reflection activity"
+    )
     .option("--weekly", "Show last 7 days (default)", true)
     .option("--daily", "Show last 24 hours only")
     .option("--dry-run", "Print raw JSON to stdout")
