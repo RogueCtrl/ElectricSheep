@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.4.1](https://github.com/RogueCtrl/OpenClawDreams/compare/v2.3.2...v2.4.1) (2026-03-10)
+
+
+### Features
+
+* community ingestion — Moltbook read pipeline with external context injection ([#88](https://github.com/RogueCtrl/OpenClawDreams/issues/88)) ([2048305](https://github.com/RogueCtrl/OpenClawDreams/commit/2048305fce064eafa1bf23f055eec61172ade141))
+* dream genealogy — lineage tracking, thematic kin, YAML headers, lineage CLI ([#89](https://github.com/RogueCtrl/OpenClawDreams/issues/89)) ([582c173](https://github.com/RogueCtrl/OpenClawDreams/commit/582c1739918a121215e281fcbd741f0e605230e2))
+* v2.4.0 — dream genealogy, community ingestion, system event notifications, title extraction fix ([13c80bc](https://github.com/RogueCtrl/OpenClawDreams/commit/13c80bc71d847bc90a6476b79eb55ecafa332bb4))
+
+
+### Bug Fixes
+
+* add rhythm CLI command with --weekly/--daily options ([#99](https://github.com/RogueCtrl/OpenClawDreams/issues/99)) ([0477e51](https://github.com/RogueCtrl/OpenClawDreams/commit/0477e51910b5bba273e3cdef7f253cba0f518a31))
+* **ci:** clean up stale release branches before pushing ([4b9843e](https://github.com/RogueCtrl/OpenClawDreams/commit/4b9843efcaa40fd7f56ce2cf3fe44385b6737c69))
+* extract dream title from first markdown heading, not first line ([#92](https://github.com/RogueCtrl/OpenClawDreams/issues/92)) ([dc9cf33](https://github.com/RogueCtrl/OpenClawDreams/commit/dc9cf331907d4cd3075991f58c0ebbeb4d5a195f)), closes [#91](https://github.com/RogueCtrl/OpenClawDreams/issues/91)
+* use OpenClaw system events for dream notifications ([#94](https://github.com/RogueCtrl/OpenClawDreams/issues/94)) ([28cfe73](https://github.com/RogueCtrl/OpenClawDreams/commit/28cfe73ba2a71d4ce26d740678fdcaa66371ec98)), closes [#91](https://github.com/RogueCtrl/OpenClawDreams/issues/91) [#93](https://github.com/RogueCtrl/OpenClawDreams/issues/93)
+
 ## [2.4.0](https://github.com/RogueCtrl/OpenClawDreams/compare/v2.3.2...v2.4.0) (2026-03-10)
 
 
