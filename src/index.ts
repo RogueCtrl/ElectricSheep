@@ -298,6 +298,17 @@ export function register(api: OpenClawAPI): void {
     }
   });
 
+  api.registerGatewayMethod("openclawdreams.wake", async ({ respond }) => {
+    try {
+      api.runtime.system.requestHeartbeatNow({
+        reason: "openclawdreams:manual-wake",
+      });
+      respond(true, { message: "Heartbeat wake requested." }, undefined);
+    } catch (err) {
+      respond(false, undefined, { code: 500, message: String(err) });
+    }
+  });
+
   // --- Tools ---
 
   api.registerTool({
@@ -525,6 +536,37 @@ export function register(api: OpenClawAPI): void {
     },
     8: async () => {
       await runReflectionCycle(client, api);
+
+      // Morning dream notification — check if a dream was generated overnight
+      try {
+        const { notifyOperatorOfDream } = await import("./notify.js");
+        const state = loadState();
+        const lastDream = state.last_dream ? new Date(state.last_dream as string) : null;
+        const now = new Date();
+        // Notify if last dream was today (i.e. from the 2am cycle earlier this morning)
+        if (
+          lastDream &&
+          lastDream.toLocaleDateString("en-CA") === now.toLocaleDateString("en-CA")
+        ) {
+          const dream = loadLatestDream();
+          if (dream) {
+            const slug = deriveSlug(dream.markdown);
+            const insight = (state.waking_realization as string) ?? null;
+            const notified = await notifyOperatorOfDream(
+              client,
+              api,
+              dream,
+              slug,
+              insight
+            );
+            if (notified) {
+              logger.info("[ElectricSheep] Morning dream notification sent");
+            }
+          }
+        }
+      } catch (err) {
+        logger.warn(`[ElectricSheep] Failed to send morning dream notification: ${err}`);
+      }
 
       // Weekly rhythm report — Monday mornings only
       if (new Date().getDay() === 1) {

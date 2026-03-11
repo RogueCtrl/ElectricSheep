@@ -618,6 +618,27 @@ export function registerCommands(parent: Command): void {
     .option("--daily", "Show last 24 hours only")
     .option("--dry-run", "Print raw JSON to stdout")
     .action(rhythmAction);
+
+  parent
+    .command("wake")
+    .description(
+      "Send a heartbeat wake to the OpenClaw gateway to deliver pending notifications"
+    )
+    .option("--text <text>", "Custom event text", "openclawdreams: manual wake requested")
+    .action(async (opts: { text: string }) => {
+      const { execSync } = await import("node:child_process");
+      try {
+        execSync(`openclaw system event --text "${opts.text}" --mode now`, {
+          stdio: "inherit",
+          timeout: 30_000,
+        });
+        console.log(chalk.green.bold("\nHeartbeat wake sent.\n"));
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(chalk.red(`\nFailed to send heartbeat wake: ${msg}\n`));
+        process.exit(1);
+      }
+    });
 } // end registerCommands
 
 // Standalone bin entry point

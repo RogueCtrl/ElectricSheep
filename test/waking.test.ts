@@ -40,6 +40,7 @@ function mockOpenClawAPI(): OpenClawAPI {
       },
       system: {
         enqueueSystemEvent: () => {},
+        requestHeartbeatNow: () => {},
       },
     },
   };
@@ -66,6 +67,7 @@ function mockOpenClawAPIWithMemory(): OpenClawAPI & {
       },
       system: {
         enqueueSystemEvent: () => {},
+        requestHeartbeatNow: () => {},
       },
     },
     memory: {

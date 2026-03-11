@@ -235,6 +235,7 @@ export async function checkAndEngage(client: LLMClient): Promise<void> {
       },
       system: {
         enqueueSystemEvent: () => {},
+        requestHeartbeatNow: () => {},
       },
     },
   };

@@ -55,7 +55,6 @@ import { loadState, saveState } from "./state.js";
 import { callWithRetry, DREAM_RETRY_OPTS } from "./llm.js";
 import { reflectOnDreamJournal } from "./reflection.js";
 import { applyFilter } from "./filter.js";
-import { notifyOperatorOfDream } from "./notify.js";
 import logger from "./logger.js";
 import type { LLMClient, OpenClawAPI, Dream, DecryptedMemory } from "./types.js";
 
@@ -545,16 +544,8 @@ export async function runDreamCycle(
       isNightmare ? "nightmare" : "dream"
     );
 
-    // Notify operator about the dream
-    try {
-      const slug = deriveSlug(dream.markdown);
-      const notified = await notifyOperatorOfDream(client, api, dream, slug, insight);
-      if (notified) {
-        logger.info("Operator notified about dream");
-      }
-    } catch (e) {
-      logger.warn(`Failed to notify operator: ${e}`);
-    }
+    // Dream notification is NOT sent here — it fires at the 8am wake slot
+    // so the operator gets a morning message instead of a 2am ping.
   }
 
   const memoryIds = memories.map((m) => m.id);

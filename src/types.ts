@@ -204,6 +204,12 @@ export interface OpenClawAPI {
         text: string,
         options?: { sessionKey?: string; contextKey?: string }
       ): void;
+      requestHeartbeatNow(opts?: {
+        reason?: string;
+        coalesceMs?: number;
+        agentId?: string;
+        sessionKey?: string;
+      }): void;
     };
   };
   memory?: OpenClawMemoryAPI;
