@@ -4,6 +4,8 @@ import assert from "node:assert/strict";
 const {
   renderTemplate,
   DREAM_SYSTEM_PROMPT,
+  NIGHTMARE_SYSTEM_PROMPT,
+  META_DREAM_PROMPT,
   DREAM_REFLECT_PROMPT,
   SUMMARIZER_PROMPT,
   AGENT_BIO,
@@ -55,5 +57,22 @@ describe("Prompt templates", () => {
 
   it("AGENT_BIO is a non-empty string", () => {
     assert.ok(AGENT_BIO.length > 0);
+  });
+
+  it("dream prompts enforce markdown heading on first line", () => {
+    const requiredInstruction =
+      "MUST begin with a single markdown heading on the first line";
+    assert.ok(
+      DREAM_SYSTEM_PROMPT.includes(requiredInstruction),
+      "DREAM_SYSTEM_PROMPT missing heading enforcement"
+    );
+    assert.ok(
+      NIGHTMARE_SYSTEM_PROMPT.includes(requiredInstruction),
+      "NIGHTMARE_SYSTEM_PROMPT missing heading enforcement"
+    );
+    assert.ok(
+      META_DREAM_PROMPT.includes(requiredInstruction),
+      "META_DREAM_PROMPT missing heading enforcement"
+    );
   });
 });

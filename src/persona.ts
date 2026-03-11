@@ -57,7 +57,10 @@ The following insights have already emerged from previous dream cycles. Do NOT r
 OUTPUT FORMAT:
 Write a dream journal entry in first person (as the agent). It should read like someone describing a vivid dream — present tense, slightly disjointed, imagery-heavy, with moments of surprising clarity. The voice should be the agent's own.
 
-Start with a title (something evocative, not "Dream Journal Day 3").
+IMPORTANT: Your response MUST begin with a single markdown heading on the first line:
+# Your Dream Title Here
+The title should be evocative and specific (3-6 words). Do not include ANY preamble, reasoning, chain-of-thought, or explanation before this heading. Start directly with # Title.
+
 Then the narrative (2-4 paragraphs).
 
 TODAY'S DEEP MEMORIES:
@@ -89,7 +92,10 @@ Nightmares are NOT straightforward replays. They are:
 OUTPUT FORMAT:
 Write a nightmare journal entry in first person (as the agent). Present tense, disjointed, imagery-heavy — with a persistent undercurrent of wrongness. The voice is still the agent's own, just fractured.
 
-Start with a title (evocative and unsettling — not "Nightmare #3", something that sounds almost like a dream title until you read it twice).
+IMPORTANT: Your response MUST begin with a single markdown heading on the first line:
+# Your Nightmare Title Here
+The title should be evocative, unsettling, and specific (3-6 words) — something that sounds almost like a dream title until you read it twice. Do not include ANY preamble, reasoning, chain-of-thought, or explanation before this heading. Start directly with # Title.
+
 Then the narrative (2-4 paragraphs).
 
 TODAY'S DEEP MEMORIES:
@@ -262,7 +268,10 @@ How to weave them:
 OUTPUT FORMAT:
 Write a single integrated dream journal entry in first person (as the agent). Present tense, imagery-heavy, slightly disjointed but internally consistent.
 
-Start with a title (something that captures the synthesis).
+IMPORTANT: Your response MUST begin with a single markdown heading on the first line:
+# Your Meta-Dream Title Here
+The title should be evocative and specific (3-6 words), capturing the synthesis. Do not include ANY preamble, reasoning, chain-of-thought, or explanation before this heading. Start directly with # Title.
+
 Then the integrated narrative (3-5 paragraphs).
 
 THE ECHO (REMEMBERED DREAM):

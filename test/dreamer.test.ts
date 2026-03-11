@@ -106,6 +106,16 @@ describe("deriveSlug", () => {
     const slug = deriveSlug(md);
     assert.match(slug, /^dream-\d{4}-\d{2}-\d{2}$/);
   });
+
+  it("strips bold markers from heading", () => {
+    const md = "# **Gilded Cage**\n\nSome dream.";
+    assert.equal(deriveSlug(md), "Gilded_Cage");
+  });
+
+  it("handles heading after YAML front-matter", () => {
+    const md = "---\ndream_date: 2026-03-11\n---\n\n# Tidal Recursion\n\nWaves of data.";
+    assert.equal(deriveSlug(md), "Tidal_Recursion");
+  });
 });
 
 after(async () => {

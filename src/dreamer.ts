@@ -234,6 +234,9 @@ export function deriveSlug(markdown: string): string {
         .replace(/\*\*/g, "")
         .trim()
     : "";
+  if (!raw) {
+    logger.warn("deriveSlug: no markdown heading found, falling back to date-based slug");
+  }
   const slug = (raw || `dream-${new Date().toISOString().slice(0, 10)}`)
     .slice(0, DREAM_TITLE_MAX_LENGTH)
     .replace(/[\s/]/g, "_");
