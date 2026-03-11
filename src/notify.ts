@@ -1,8 +1,9 @@
 /**
  * Operator notification module.
  *
- * Sends notifications to the operator via OpenClaw system events
- * when dreams are generated.
+ * Sends dream notifications via OpenClaw system events with cron-prefix
+ * context keys to bypass quiet hours, then requests an immediate heartbeat
+ * so the gateway delivers even at 2am.
  */
 
 import { getNotifyOperatorOnDream } from "./config.js";
@@ -11,9 +12,6 @@ import { DREAM_NOTIFICATION_PROMPT, renderTemplate } from "./persona.js";
 import { getAgentIdentityBlock } from "./identity.js";
 import logger from "./logger.js";
 import type { LLMClient, OpenClawAPI, Dream } from "./types.js";
-
-/** Session key used for system events originating from OpenClawDreams. */
-const SYSTEM_EVENT_SESSION_KEY = "openclawdreams";
 
 /**
  * Generate a conversational message to notify the operator about a dream.
@@ -60,7 +58,25 @@ async function generateDreamNotification(
 }
 
 /**
- * Notify the operator about a dream via OpenClaw system events.
+ * Resolve the default agent session key from OpenClaw runtime config.
+ */
+function resolveSessionKey(api: OpenClawAPI): string {
+  try {
+    const cfg = api.runtime.config.loadConfig();
+    const agentId = cfg.agents?.list?.find((a) => a.default)?.id || "default";
+    return `${agentId}:main`;
+  } catch {
+    return "default:main";
+  }
+}
+
+/**
+ * Notify the operator about a dream.
+ *
+ * Delivery strategy:
+ * 1. Generate a conversational notification message via LLM
+ * 2. Enqueue as a system event with "cron:" context key prefix (bypasses quiet hours)
+ * 3. Request an immediate heartbeat to wake the gateway for delivery
  *
  * Returns true if notification was enqueued successfully, false otherwise.
  */
@@ -79,15 +95,24 @@ export async function notifyOperatorOfDream(
   // Generate the notification message
   const message = await generateDreamNotification(client, dream);
 
+  const sessionKey = resolveSessionKey(api);
+
   try {
     api.runtime.system.enqueueSystemEvent(message, {
-      sessionKey: SYSTEM_EVENT_SESSION_KEY,
+      sessionKey,
+      contextKey: "cron:openclawdreams",
     });
+
+    api.runtime.system.requestHeartbeatNow({
+      sessionKey,
+      reason: "cron",
+    });
+
     logger.info(`Enqueued dream notification as system event: ${title}`);
     return true;
   } catch (error) {
     logger.warn(
-      `Failed to enqueue system event, logging as fallback: ${error}\n` +
+      `Failed to enqueue system event: ${error}\n` +
         `Title: ${title}\nInsight: ${insight || "No insight"}\nMessage: ${message}`
     );
     return false;

@@ -228,6 +228,7 @@ export async function checkAndEngage(client: LLMClient): Promise<void> {
     registerService: (_def: unknown) => {},
     registerGatewayMethod: (_m: string, _h: unknown) => {},
     runtime: {
+      config: { loadConfig: () => ({}) },
       subagent: {
         run: async () => ({ runId: "mock" }),
         waitForRun: async () => ({ status: "ok" }),

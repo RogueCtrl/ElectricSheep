@@ -182,6 +182,13 @@ export interface OpenClawAPI {
     error?: (msg: string) => void;
   };
   runtime: {
+    config: {
+      loadConfig(): {
+        agents?: {
+          list?: Array<{ id: string; default?: boolean }>;
+        };
+      };
+    };
     subagent: {
       run(params: {
         idempotencyKey: string;
