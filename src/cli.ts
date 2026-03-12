@@ -322,7 +322,9 @@ export function registerCommands(parent: Command): void {
           )
         );
       } else {
-        console.log(chalk.cyan.bold(`\nTriggering reflection cycle (mode: ${mode})...\n`));
+        console.log(
+          chalk.cyan.bold(`\nTriggering reflection cycle (mode: ${mode})...\n`)
+        );
       }
       const { runReflectionCycle } = await import("./waking.js");
       const { client, api } = await createDirectClient();
