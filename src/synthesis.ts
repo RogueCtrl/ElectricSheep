@@ -10,7 +10,7 @@ import { searchWebForTopics, formatWebContext } from "./web-search.js";
 import { searchMoltbookForTopics, formatMoltbookContext } from "./moltbook-search.js";
 import { formatDeepMemoryContext } from "./memory.js";
 import { callWithRetry, WAKING_RETRY_OPTS } from "./llm.js";
-import { SYNTHESIS_PROMPT, renderTemplate } from "./persona.js";
+import { SYNTHESIS_PROMPT, SEEDING_PROMPT, renderTemplate } from "./persona.js";
 import { getAgentIdentityBlock } from "./identity.js";
 import {
   MAX_TOKENS_SYNTHESIS,
@@ -19,7 +19,12 @@ import {
 } from "./config.js";
 import logger from "./logger.js";
 import { fetchCommunityPosts, formatCommunityContext } from "./ingestion.js";
-import type { LLMClient, OpenClawAPI, SynthesisContext } from "./types.js";
+import type {
+  LLMClient,
+  OpenClawAPI,
+  ReflectionMode,
+  SynthesisContext,
+} from "./types.js";
 
 /**
  * Gather context from all available sources based on operator conversations.
@@ -134,7 +139,8 @@ export function formatSynthesisContext(ctx: SynthesisContext): string {
 export async function synthesizeContext(
   client: LLMClient,
   context: SynthesisContext,
-  vocabularyHint?: string
+  vocabularyHint?: string,
+  mode: ReflectionMode = "synthesis"
 ): Promise<string> {
   if (context.topics.length === 0) {
     logger.info("No topics to synthesize");
@@ -143,8 +149,9 @@ export async function synthesizeContext(
 
   const formattedContext = formatSynthesisContext(context);
 
+  const promptTemplate = mode === "seeding" ? SEEDING_PROMPT : SYNTHESIS_PROMPT;
   const system =
-    renderTemplate(SYNTHESIS_PROMPT, {
+    renderTemplate(promptTemplate, {
       agent_identity: getAgentIdentityBlock(),
     }) + (vocabularyHint ? "\n\n" + vocabularyHint : "");
 
@@ -160,8 +167,9 @@ export async function synthesizeContext(
             content:
               `Here is the context from my recent work and searches:\n\n` +
               `${formattedContext}\n\n` +
-              `Synthesize this into a coherent understanding. What patterns emerge? ` +
-              `How does my work with my operator connect to what the community and world are saying?`,
+              (mode === "seeding"
+                ? `Review this context for open threads and unresolved tensions. What remains uncertain? What doesn't quite fit?`
+                : `Synthesize this into a coherent understanding. What patterns emerge? How does my work with my operator connect to what the community and world are saying?`),
           },
         ],
       },

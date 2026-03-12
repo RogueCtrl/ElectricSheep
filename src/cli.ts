@@ -307,21 +307,29 @@ export function registerCommands(parent: Command): void {
     .command("reflect")
     .description("Manually trigger the reflection and synthesis cycle")
     .option("--dry-run", "Print synthesis output without storing to memory")
-    .action(async (opts: { dryRun?: boolean }) => {
+    .option(
+      "--mode <mode>",
+      "Reflection mode: synthesis (default) or seeding (pre-dream midnight pass)",
+      "synthesis"
+    )
+    .action(async (opts: { dryRun?: boolean; mode?: string }) => {
       const dryRun = opts.dryRun ?? false;
+      const mode = (opts.mode ?? "synthesis") as import("./types.js").ReflectionMode;
       if (dryRun) {
         console.log(
           chalk.yellow.bold(
-            "\n[DRY RUN] Triggering reflection cycle (no state will be saved)...\n"
+            `\n[DRY RUN] Triggering reflection cycle (mode: ${mode}, no state will be saved)...\n`
           )
         );
       } else {
-        console.log(chalk.cyan.bold("\nTriggering reflection cycle...\n"));
+        console.log(
+          chalk.cyan.bold(`\nTriggering reflection cycle (mode: ${mode})...\n`)
+        );
       }
       const { runReflectionCycle } = await import("./waking.js");
       const { client, api } = await createDirectClient();
       try {
-        await runReflectionCycle(client, api, { dryRun });
+        await runReflectionCycle(client, api, { dryRun, mode });
         console.log(chalk.green.bold("\nReflection cycle complete.\n"));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);

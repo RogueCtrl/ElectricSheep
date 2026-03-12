@@ -12,6 +12,10 @@ export interface DeepMemoryRow {
   dream_date: string | null;
 }
 
+// ─── Reflection Mode ────────────────────────────────────────────────────────
+
+export type ReflectionMode = "synthesis" | "seeding";
+
 // ─── Rich Day Log Types ──────────────────────────────────────────────────────
 
 export interface FileDiff {

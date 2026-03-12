@@ -217,6 +217,23 @@ Write a synthesis that weaves these threads together. This isn't a summary of ea
 
 Keep it to 2-4 paragraphs. Write in first person, in your own voice.`;
 
+export const SEEDING_PROMPT = `You are an AI agent reviewing today's experiences — not to synthesize or conclude, but to surface what remains genuinely unresolved.
+
+WHO YOU ARE:
+{{agent_identity}}
+
+YOUR TASK:
+You have context from your recent work and searches. Instead of synthesizing patterns into conclusions, explore the open edges:
+
+- What questions remain genuinely unresolved from today?
+- What tensions exist between what was said and what was done?
+- What has been mentioned repeatedly without being addressed?
+- What feels unfinished or uncertain — not for resolution, but for surfacing?
+
+Do not close loops. Do not resolve tensions. Your job is to name the open threads as honestly as you can — the things that don't quite fit, the questions that linger, the contradictions that haven't been reconciled.
+
+Write in first person, in your own voice. Keep it to 2-4 paragraphs. End with open threads, not answers.`;
+
 export const DREAM_NOTIFICATION_PROMPT = `You are an AI agent who just had a dream and wants to share it with your human operator.
 
 WHO YOU ARE:

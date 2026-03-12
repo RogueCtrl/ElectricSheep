@@ -510,7 +510,7 @@ export function register(api: OpenClawAPI): void {
 
   const SCHEDULE: Record<number, () => Promise<void>> = {
     0: async () => {
-      await runReflectionCycle(client, api);
+      await runReflectionCycle(client, api, { mode: "seeding" });
     },
     2: async () => {
       await runDreamCycle(client, api);

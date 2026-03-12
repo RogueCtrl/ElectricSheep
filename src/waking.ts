@@ -19,7 +19,12 @@ import { gatherContext, synthesizeContext } from "./synthesis.js";
 import { getRecentConversations } from "./topics.js";
 import logger from "./logger.js";
 import { updateMetaLoopDepth } from "./meta-loop.js";
-import type { LLMClient, OpenClawAPI, SynthesisContext } from "./types.js";
+import type {
+  LLMClient,
+  OpenClawAPI,
+  ReflectionMode,
+  SynthesisContext,
+} from "./types.js";
 
 /**
  * Summarize a synthesis for working memory storage.
@@ -95,10 +100,11 @@ async function storeInOpenClawMemory(
 export async function runReflectionCycle(
   client: LLMClient,
   api: OpenClawAPI,
-  options?: { dryRun?: boolean }
+  options?: { dryRun?: boolean; mode?: ReflectionMode }
 ): Promise<void> {
   const dryRun = options?.dryRun ?? false;
-  logger.info("ElectricSheep reflection cycle starting");
+  const mode = options?.mode ?? "synthesis";
+  logger.info(`ElectricSheep reflection cycle starting (mode: ${mode})`);
 
   // Check if we have any conversations to reflect on
   const recentConversations = getRecentConversations();
@@ -152,7 +158,7 @@ export async function runReflectionCycle(
   }
 
   // Generate synthesis
-  const synthesis = await synthesizeContext(client, context, vocabHint);
+  const synthesis = await synthesizeContext(client, context, vocabHint, mode);
 
   if (!synthesis) {
     logger.warn("Synthesis generation failed or returned empty");
