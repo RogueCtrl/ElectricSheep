@@ -2,7 +2,7 @@
   "id": "openclawdreams",
   "name": "openclawdreams",
   "displayName": "ElectricSheep",
-  "version": "2.7.2",
+  "version": "2.7.3",
   "description": "A reflection engine that synthesizes agent-operator interactions into dreams, enriched by community and web context",
   "entry": "dist/src/index.js",
   "skills": [
