@@ -20,7 +20,8 @@
     "release:minor": "standard-version --release-as minor",
     "release:major": "standard-version --release-as major",
     "release:patch": "standard-version --release-as patch",
-    "release:first": "standard-version --first-release"
+    "release:first": "standard-version --first-release",
+    "postinstall": "node scripts/postinstall.js"
   },
   "engines": {
     "node": ">=24.0.0"
