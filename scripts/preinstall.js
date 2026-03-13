@@ -6,6 +6,9 @@ if (process.env.CI || process.env.OPENCLAWDREAMS_SKIP_NOTICE) {
 }
 
 import { createInterface } from 'readline';
+import { readFileSync, writeFileSync, copyFileSync, existsSync } from 'fs';
+import { homedir } from 'os';
+import { join } from 'path';
 
 const YELLOW = '\x1b[33m';
 const CYAN = '\x1b[36m';
@@ -97,16 +100,56 @@ const pluginConfig = {
   ...(moltbookEnabled && !requireApproval ? { requireApprovalBeforePost: false } : {}),
 };
 
-rl.close();
-
-// ── Print config snippet ─────────────────────────────────────────────────────
+// ── Build snippet strings (used for both auto-write and manual fallback) ─────
 const hasConfig = Object.keys(pluginConfig).length > 0;
 const configLines = Object.entries(pluginConfig)
   .map(([k, v]) => `        "${k}": ${JSON.stringify(v)}`)
   .join(',\n');
 
-console.log(`
-  ${GREEN}✓ All set!${RESET} Add this to your OpenClaw plugin config:
+// ── Step 5: Auto-write to OpenClaw config ────────────────────────────────────
+const configPath = join(homedir(), '.openclaw', 'openclaw.json');
+const configExists = existsSync(configPath);
+let wrote = false;
+
+if (configExists) {
+  console.log(`\n  ${GREEN}✓ OpenClaw config found${RESET} ${DIM}(${configPath})${RESET}\n`);
+  const writeAnswer = await ask(`  Write these settings to your OpenClaw config automatically? ${BOLD}[yes/no]${RESET} (default: yes) `);
+
+  if (yesNo(writeAnswer, true)) {
+    try {
+      const backupPath = `${configPath}.bak`;
+      copyFileSync(configPath, backupPath);
+
+      const cfg = JSON.parse(readFileSync(configPath, 'utf8'));
+      cfg.plugins = cfg.plugins ?? {};
+      cfg.plugins.entries = cfg.plugins.entries ?? {};
+      cfg.plugins.entries.openclawdreams = cfg.plugins.entries.openclawdreams ?? {};
+      cfg.plugins.entries.openclawdreams.enabled = true;
+
+      if (hasConfig) {
+        cfg.plugins.entries.openclawdreams.config = {
+          ...(cfg.plugins.entries.openclawdreams.config ?? {}),
+          ...pluginConfig,
+        };
+      }
+
+      writeFileSync(configPath, JSON.stringify(cfg, null, 2) + '\n');
+      wrote = true;
+      console.log(`\n  ${GREEN}✓ Config updated.${RESET} Backup saved to ${DIM}${backupPath}${RESET}`);
+    } catch (err) {
+      console.log(`\n  ${RED}✗ Could not write config: ${err.message}${RESET}`);
+    }
+  }
+} else {
+  console.log(`\n  ${DIM}(OpenClaw config not found — you'll need to add this manually.)${RESET}`);
+}
+
+rl.close();
+
+// ── Print snippet as fallback or confirmation ────────────────────────────────
+if (!wrote) {
+  console.log(`
+  ${BOLD}Add this to your OpenClaw plugin config:${RESET}
 
   ${DIM}{
     "plugins": {
@@ -117,6 +160,7 @@ console.log(`
       }
     }
   }${RESET}`);
+}
 
 console.log(`
 ${cliMode ? `  Trigger cycles manually:
