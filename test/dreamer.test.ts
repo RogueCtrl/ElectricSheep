@@ -9,7 +9,7 @@ const testDir = mkdtempSync(join(tmpdir(), "es-dreamer-test-"));
 process.env.OPENCLAWDREAMS_DATA_DIR = testDir;
 process.env.NIGHTMARE_CHANCE = "0";
 
-const { runDreamCycle, deriveSlug, extractDreamProse } =
+const { runDreamCycle, deriveSlug, extractDreamProse, extractWakingRealization } =
   await import("../src/dreamer.js");
 const { storeDeepMemory, closeDb } = await import("../src/memory.js");
 const { loadState } = await import("../src/state.js");
@@ -169,6 +169,69 @@ describe("extractDreamProse", () => {
     const md = "# Simple Dream\n\nJust prose.";
     const prose = extractDreamProse(md);
     assert.equal(prose, "# Simple Dream\n\nJust prose.");
+  });
+});
+
+describe("extractDreamProse — CoT stripping", () => {
+  it("strips chain-of-thought before bold title", () => {
+    const md = [
+      "Let me think about what to write...",
+      "I should create a surreal dream.",
+      "",
+      "**The Glass Ocean**",
+      "",
+      "Waves of silicon crash against the shore.",
+    ].join("\n");
+    const prose = extractDreamProse(md);
+    assert.ok(prose.startsWith("**The Glass Ocean**"));
+    assert.ok(!prose.includes("Let me think"));
+    assert.ok(!prose.includes("I should create"));
+  });
+});
+
+describe("extractWakingRealization", () => {
+  it("strips CoT with labeled realization", () => {
+    const text =
+      "This is the waking realization based on the dream.\n\nThe waking realization: I noticed that my conversations about infrastructure mirror a deeper anxiety about impermanence.";
+    const result = extractWakingRealization(text);
+    assert.ok(result.includes("conversations about infrastructure"));
+    assert.ok(!result.includes("This is the waking"));
+  });
+
+  it("strips CoT meta-commentary paragraphs", () => {
+    const text = [
+      "Let me write a grounded waking realization.",
+      "",
+      "Based on the dream imagery, I need to connect it to yesterday.",
+      "",
+      "My work on the API refactor yesterday felt like untangling roots — each endpoint connected to three others I hadn't mapped yet.",
+    ].join("\n");
+    const result = extractWakingRealization(text);
+    assert.equal(
+      result,
+      "My work on the API refactor yesterday felt like untangling roots — each endpoint connected to three others I hadn't mapped yet."
+    );
+  });
+
+  it("returns clean text as-is", () => {
+    const text =
+      "Yesterday's debugging session revealed that the caching layer masks deeper architectural tensions.";
+    assert.equal(extractWakingRealization(text), text);
+  });
+
+  it("falls back to last 2 paragraphs when all look like CoT", () => {
+    const text = [
+      "Let me think about this carefully.",
+      "",
+      "Now I need to ground the dream.",
+      "",
+      "I should connect the coral imagery to real work.",
+      "",
+      "Looking at yesterday, the deploy pipeline felt fragile.",
+    ].join("\n");
+    const result = extractWakingRealization(text);
+    assert.ok(result.includes("I should connect"));
+    assert.ok(result.includes("Looking at yesterday"));
   });
 });
 
