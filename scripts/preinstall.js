@@ -5,6 +5,11 @@ if (process.env.CI || process.env.OPENCLAWDREAMS_SKIP_NOTICE) {
   process.exit(0);
 }
 
+import { createInterface } from 'readline';
+import { readFileSync, writeFileSync, copyFileSync, existsSync } from 'fs';
+import { homedir } from 'os';
+import { join } from 'path';
+
 const YELLOW = '\x1b[33m';
 const CYAN = '\x1b[36m';
 const DIM = '\x1b[2m';
@@ -36,10 +41,7 @@ if (!process.stdin.isTTY) {
   process.exit(0);
 }
 
-import { createInterface } from 'readline';
-
 const rl = createInterface({ input: process.stdin, output: process.stdout });
-
 const ask = (question) => new Promise((resolve) => rl.question(question, resolve));
 const yesNo = (answer, defaultYes = false) => {
   const v = answer.trim().toLowerCase();
@@ -78,6 +80,7 @@ console.log(`
 const moltbookAnswer = await ask(`  Enable Moltbook integration? ${BOLD}[yes/no]${RESET} (default: no) `);
 const moltbookEnabled = yesNo(moltbookAnswer, false);
 
+// ── Step 4: Approval gate (only if Moltbook enabled) ────────────────────────
 let requireApproval = true;
 if (moltbookEnabled) {
   console.log(`
@@ -90,22 +93,67 @@ if (moltbookEnabled) {
   requireApproval = yesNo(approvalAnswer, true);
 }
 
-rl.close();
-
-// ── Summary & config snippet ─────────────────────────────────────────────────
-const config = {
+// ── Build config object ──────────────────────────────────────────────────────
+const pluginConfig = {
   ...(cliMode ? { schedulerEnabled: false } : {}),
   ...(moltbookEnabled ? { moltbookEnabled: true } : {}),
   ...(moltbookEnabled && !requireApproval ? { requireApprovalBeforePost: false } : {}),
 };
 
-const hasConfig = Object.keys(config).length > 0;
-const configLines = Object.entries(config)
-  .map(([k, v]) => `        "${k}": ${JSON.stringify(v)}`)
-  .join(',\n');
+// ── Step 5: Offer to write config ────────────────────────────────────────────
+const configPath = join(homedir(), '.openclaw', 'openclaw.json');
+const configExists = existsSync(configPath);
 
-console.log(`
-  ${GREEN}✓ All set! Add this to your OpenClaw plugin config:${RESET}
+let wrote = false;
+
+if (configExists) {
+  console.log(`\n  ${GREEN}✓ OpenClaw config found:${RESET} ${DIM}${configPath}${RESET}\n`);
+  const writeAnswer = await ask(`  Write these settings to your OpenClaw config automatically? ${BOLD}[yes/no]${RESET} (default: yes) `);
+
+  if (yesNo(writeAnswer, true)) {
+    try {
+      // Backup first
+      const backupPath = `${configPath}.bak`;
+      copyFileSync(configPath, backupPath);
+
+      const raw = readFileSync(configPath, 'utf8');
+      const cfg = JSON.parse(raw);
+
+      // Deep merge into plugins.entries.openclawdreams
+      cfg.plugins = cfg.plugins ?? {};
+      cfg.plugins.entries = cfg.plugins.entries ?? {};
+      cfg.plugins.entries.openclawdreams = cfg.plugins.entries.openclawdreams ?? {};
+      cfg.plugins.entries.openclawdreams.enabled = true;
+
+      if (Object.keys(pluginConfig).length > 0) {
+        cfg.plugins.entries.openclawdreams.config = {
+          ...(cfg.plugins.entries.openclawdreams.config ?? {}),
+          ...pluginConfig,
+        };
+      }
+
+      writeFileSync(configPath, JSON.stringify(cfg, null, 2) + '\n');
+      wrote = true;
+      console.log(`\n  ${GREEN}✓ Config updated.${RESET} Backup saved to ${DIM}${backupPath}${RESET}`);
+    } catch (err) {
+      console.log(`\n  ${RED}✗ Could not write config: ${err.message}${RESET}`);
+    }
+  }
+} else {
+  console.log(`\n  ${DIM}(OpenClaw config not found at ${configPath} — skipping auto-write.)${RESET}`);
+}
+
+rl.close();
+
+// ── Print snippet as fallback or confirmation ────────────────────────────────
+if (!wrote) {
+  const hasConfig = Object.keys(pluginConfig).length > 0;
+  const configLines = Object.entries(pluginConfig)
+    .map(([k, v]) => `        "${k}": ${JSON.stringify(v)}`)
+    .join(',\n');
+
+  console.log(`
+  ${BOLD}Add this to your OpenClaw plugin config manually:${RESET}
 
   ${DIM}{
     "plugins": {
@@ -115,16 +163,16 @@ console.log(`
         }
       }
     }
-  }${RESET}
-${cliMode ? `
-  Trigger cycles manually:
+  }${RESET}`);
+}
+
+console.log(`
+${cliMode ? `  Trigger cycles manually:
     ${DIM}openclaw openclawdreams reflect
     openclaw openclawdreams dream${RESET}
-` : ''}${moltbookEnabled && requireApproval ? `
-  Post dreams to Moltbook manually:
+` : ''}${moltbookEnabled && requireApproval ? `  Post dreams to Moltbook manually:
     ${DIM}openclaw openclawdreams post${RESET}
-` : ''}
-  Full docs: ${CYAN}https://github.com/RogueCtrl/OpenClawDreams${RESET}
+` : ''}  Full docs: ${CYAN}https://github.com/RogueCtrl/OpenClawDreams${RESET}
 `);
 
 process.exit(0);
