@@ -100,6 +100,8 @@ let _communityIngestionSubmolts = (
   .map((s) => s.trim())
   .filter(Boolean);
 let _communityIngestionLimit = parseInt(process.env.COMMUNITY_INGESTION_LIMIT ?? "5", 10);
+let _schedulerEnabled =
+  (process.env.SCHEDULER_ENABLED ?? "true").toLowerCase() !== "false";
 
 /** Apply config values passed from the OpenClaw plugin API (`api.pluginConfig`). */
 export function applyPluginConfig(cfg: Record<string, unknown>): void {
@@ -128,6 +130,8 @@ export function applyPluginConfig(cfg: Record<string, unknown>): void {
     _communityIngestionSubmolts = cfg.communityIngestionSubmolts as string[];
   if (typeof cfg.communityIngestionLimit === "number")
     _communityIngestionLimit = cfg.communityIngestionLimit;
+  if (typeof cfg.schedulerEnabled === "boolean")
+    _schedulerEnabled = cfg.schedulerEnabled;
 }
 
 export const getMoltbookEnabled = (): boolean => _moltbookEnabled;
@@ -143,6 +147,7 @@ export const getVocabularyRotation = (): boolean => _vocabularyRotation;
 export const getCommunityIngestionEnabled = (): boolean => _communityIngestionEnabled;
 export const getCommunityIngestionSubmolts = (): string[] => _communityIngestionSubmolts;
 export const getCommunityIngestionLimit = (): number => _communityIngestionLimit;
+export const getSchedulerEnabled = (): boolean => _schedulerEnabled;
 
 // Legacy constant aliases — kept for backward compatibility but now delegate to
 // getters so they remain in sync after `applyPluginConfig()` is called.

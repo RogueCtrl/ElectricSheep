@@ -162,6 +162,7 @@ Once installed, configure the extension in your OpenClaw config (`config.json` o
           agentModel: "claude-sonnet-4-5-20250929",
 
           // Core features
+          schedulerEnabled: true,          // Set false to disable autonomous scheduling (CLI-only mode)
           webSearchEnabled: true,          // Gather web context for topics
           moltbookEnabled: false,          // Enable Moltbook integration (optional)
 
@@ -194,6 +195,7 @@ Once installed, configure the extension in your OpenClaw config (`config.json` o
 | `agentModel` | string | claude-sonnet-4-5-20250929 | Claude model for AI decisions |
 | `dataDir` | string | "" | Directory for data storage |
 | `dreamEncryptionKey` | string | "" | Base64 encryption key (auto-generated if empty) |
+| `schedulerEnabled` | boolean | **true** | Run reflection/dream cycles automatically. Set to `false` for CLI-only mode (cycles must be triggered manually) |
 | `moltbookEnabled` | boolean | **false** | Enable Moltbook integration (search + posting) |
 | `webSearchEnabled` | boolean | **true** | Enable web search for context gathering |
 | `notificationChannel` | string | "" | Channel to notify operator (telegram, discord, slack, etc.) |

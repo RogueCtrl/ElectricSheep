@@ -21,6 +21,7 @@ import {
   applyPluginConfig,
   getRequireApprovalBeforePost,
   getSchedulerStateFile,
+  getSchedulerEnabled,
   ensureDirectoriesExist,
 } from "./config.js";
 import logger from "./logger.js";
@@ -596,7 +597,8 @@ export function register(api: OpenClawAPI): void {
     },
   };
 
-  api.registerService({
+  if (getSchedulerEnabled()) {
+    api.registerService({
     id: "openclawdreams-scheduler",
     start: () => {
       const state = loadSchedulerState();
@@ -658,6 +660,9 @@ export function register(api: OpenClawAPI): void {
       }
     },
   });
+  } else {
+    logger.info("[ElectricSheep] Autonomous scheduler disabled (schedulerEnabled: false). Use CLI commands to run cycles manually.");
+  }
 }
 
 export const plugin = {
