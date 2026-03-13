@@ -599,69 +599,71 @@ export function register(api: OpenClawAPI): void {
 
   if (getSchedulerEnabled()) {
     api.registerService({
-    id: "openclawdreams-scheduler",
-    start: () => {
-      const state = loadSchedulerState();
-      _schedulerTimer = setInterval(() => {
-        void (async () => {
-          const now = new Date();
-          // Use local date string (YYYY-MM-DD) for tracking "already ran today"
-          const todayStr = now.toLocaleDateString("en-CA");
+      id: "openclawdreams-scheduler",
+      start: () => {
+        const state = loadSchedulerState();
+        _schedulerTimer = setInterval(() => {
+          void (async () => {
+            const now = new Date();
+            // Use local date string (YYYY-MM-DD) for tracking "already ran today"
+            const todayStr = now.toLocaleDateString("en-CA");
 
-          for (const hourStr of Object.keys(SCHEDULE)) {
-            const scheduledHour = parseInt(hourStr, 10);
+            for (const hourStr of Object.keys(SCHEDULE)) {
+              const scheduledHour = parseInt(hourStr, 10);
 
-            // Skip if already ran today for this hour
-            if (state.last_ran[scheduledHour] === todayStr) {
-              continue;
-            }
+              // Skip if already ran today for this hour
+              if (state.last_ran[scheduledHour] === todayStr) {
+                continue;
+              }
 
-            // Target time for today in local time
-            const target = new Date(
-              now.getFullYear(),
-              now.getMonth(),
-              now.getDate(),
-              scheduledHour,
-              0,
-              0
-            );
+              // Target time for today in local time
+              const target = new Date(
+                now.getFullYear(),
+                now.getMonth(),
+                now.getDate(),
+                scheduledHour,
+                0,
+                0
+              );
 
-            const diffMs = now.getTime() - target.getTime();
-            const ninetyMinutesMs = 90 * 60 * 1000;
+              const diffMs = now.getTime() - target.getTime();
+              const ninetyMinutesMs = 90 * 60 * 1000;
 
-            // Catch-up logic: run if target has passed AND it's within the window (90m)
-            // This safely handles DST jumps (e.g. 1:59 -> 3:00) where the 2am hour is skipped.
-            if (diffMs >= 0 && diffMs <= ninetyMinutesMs) {
-              state.last_ran[scheduledHour] = todayStr;
-              saveSchedulerState(state);
+              // Catch-up logic: run if target has passed AND it's within the window (90m)
+              // This safely handles DST jumps (e.g. 1:59 -> 3:00) where the 2am hour is skipped.
+              if (diffMs >= 0 && diffMs <= ninetyMinutesMs) {
+                state.last_ran[scheduledHour] = todayStr;
+                saveSchedulerState(state);
 
-              try {
-                const lateMins = Math.round(diffMs / 60000);
-                logger.info(
-                  `[ElectricSheep] Running job hour=${scheduledHour}${
-                    lateMins > 1 ? ` (catch-up: ${lateMins}m late)` : ""
-                  }`
-                );
-                await SCHEDULE[scheduledHour]();
-              } catch (err) {
-                api.logger?.warn?.(
-                  `[ElectricSheep] scheduled job hour=${scheduledHour} failed: ${err}`
-                );
+                try {
+                  const lateMins = Math.round(diffMs / 60000);
+                  logger.info(
+                    `[ElectricSheep] Running job hour=${scheduledHour}${
+                      lateMins > 1 ? ` (catch-up: ${lateMins}m late)` : ""
+                    }`
+                  );
+                  await SCHEDULE[scheduledHour]();
+                } catch (err) {
+                  api.logger?.warn?.(
+                    `[ElectricSheep] scheduled job hour=${scheduledHour} failed: ${err}`
+                  );
+                }
               }
             }
-          }
-        })();
-      }, 60_000); // poll every minute
-    },
-    stop: () => {
-      if (_schedulerTimer !== null) {
-        clearInterval(_schedulerTimer);
-        _schedulerTimer = null;
-      }
-    },
-  });
+          })();
+        }, 60_000); // poll every minute
+      },
+      stop: () => {
+        if (_schedulerTimer !== null) {
+          clearInterval(_schedulerTimer);
+          _schedulerTimer = null;
+        }
+      },
+    });
   } else {
-    logger.info("[ElectricSheep] Autonomous scheduler disabled (schedulerEnabled: false). Use CLI commands to run cycles manually.");
+    logger.info(
+      "[ElectricSheep] Autonomous scheduler disabled (schedulerEnabled: false). Use CLI commands to run cycles manually."
+    );
   }
 }
 

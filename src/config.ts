@@ -130,8 +130,7 @@ export function applyPluginConfig(cfg: Record<string, unknown>): void {
     _communityIngestionSubmolts = cfg.communityIngestionSubmolts as string[];
   if (typeof cfg.communityIngestionLimit === "number")
     _communityIngestionLimit = cfg.communityIngestionLimit;
-  if (typeof cfg.schedulerEnabled === "boolean")
-    _schedulerEnabled = cfg.schedulerEnabled;
+  if (typeof cfg.schedulerEnabled === "boolean") _schedulerEnabled = cfg.schedulerEnabled;
 }
 
 export const getMoltbookEnabled = (): boolean => _moltbookEnabled;
