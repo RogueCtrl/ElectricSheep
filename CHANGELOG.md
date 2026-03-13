@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.7.7](https://github.com/RogueCtrl/OpenClawDreams/compare/v2.7.4...v2.7.7) (2026-03-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* install wizard add postinstall cost disclosure notice (#119)
+
+### Features
+
+* install wizard add postinstall cost disclosure notice ([#119](https://github.com/RogueCtrl/OpenClawDreams/issues/119)) ([d01ca4b](https://github.com/RogueCtrl/OpenClawDreams/commit/d01ca4b81457450333fe2f06c3c92b61dbc531bd))
+
 ### [2.7.6](https://github.com/RogueCtrl/OpenClawDreams/compare/v2.7.4...v2.7.6) (2026-03-13)
 
 
