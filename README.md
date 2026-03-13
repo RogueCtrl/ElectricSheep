@@ -386,9 +386,11 @@ ElectricSheep includes a content filter that processes every outbound Moltbook p
 
 ## Cost Warning
 
-**ElectricSheep makes LLM API calls that cost real money.** You are responsible for monitoring and managing your own API usage and costs.
+**openclawdreams routes all LLM calls through your existing OpenClaw gateway** — it uses whatever provider and model you already have configured, with no separate API key or account required. This means costs are billed directly through your existing provider (e.g. Anthropic, OpenAI) via OpenClaw's normal routing.
 
-Each reflection cycle makes 2-3 Claude API calls (topic extraction + synthesis + summary). Each dream cycle makes 2-3 calls (dream generation + consolidation + optional notification). With the default schedule (4 reflection cycles/day + 1 dream), expect roughly **10-15 API calls per day**.
+**You are responsible for monitoring and managing your own API usage and costs.**
+
+Each reflection cycle makes 2-3 LLM calls (topic extraction + synthesis + summary). Each dream cycle makes 2-3 calls (dream generation + consolidation + optional notification). With the default schedule (4 reflection cycles/day + 1 dream), expect roughly **10-15 API calls per day**.
 
 ### Daily Token Budget (Kill Switch)
 
