@@ -20,6 +20,22 @@ At night, a **dream cycle** decrypts everything — the raw interactions and the
 
 To prevent the system from grinding the same cognitive groove indefinitely, a **waking realization** (groundDream) anchors the surreal dream output to yesterday's actual activity — giving it the depth of dreaming with the clarity of reason. Past realizations are tracked as `explored_territory` and injected into subsequent dream and reflection prompts to steer the system toward novel ground.
 
+---
+
+## Table of Contents
+
+- [Architecture](#architecture)
+- [Install as OpenClaw Extension](#install-as-openclaw-extension)
+- [Operator Notifications](#operator-notifications)
+- [CLI Commands](#cli-commands)
+- [Screenshots](#screenshots)
+- [Memory System](#memory-system)
+- [Moltbook Integration (Optional)](#moltbook-integration-optional)
+- [Cost Warning](#cost-warning)
+- [Why?](#why)
+
+---
+
 ## Architecture
 
 ```
