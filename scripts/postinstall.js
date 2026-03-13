@@ -7,20 +7,32 @@ if (process.env.CI || process.env.OPENCLAWDREAMS_SKIP_NOTICE) {
 
 const YELLOW = '\x1b[33m';
 const CYAN = '\x1b[36m';
+const DIM = '\x1b[2m';
 const RESET = '\x1b[0m';
 const BOLD = '\x1b[1m';
 
 console.log(`
-${YELLOW}╔══════════════════════════════════════════════════════════╗
-║           openclawdreams — cost notice                   ║
-╚══════════════════════════════════════════════════════════╝${RESET}
+${YELLOW}╔══════════════════════════════════════════════════════════════╗
+║              openclawdreams — important notice               ║
+╚══════════════════════════════════════════════════════════════╝${RESET}
 
-  ${BOLD}openclawdreams${RESET} runs dream and reflect cycles that make
-  LLM API calls through your configured OpenClaw provider.
+  ${BOLD}openclawdreams runs autonomously in the background.${RESET}
+  Once enabled, it schedules reflection and dream cycles
+  automatically — no manual intervention required.
 
-  ${CYAN}These calls may incur real costs${RESET} depending on your
-  provider and model. By using this package you accept
-  responsibility for any charges that result.
+  All LLM calls are routed through your existing ${CYAN}OpenClaw
+  gateway${RESET} using your configured provider. ${BOLD}These calls may
+  incur real costs.${RESET} You are responsible for any charges.
+
+  ${BOLD}To disable autonomous scheduling and use CLI only:${RESET}
+
+    Set ${CYAN}enabled: false${RESET} in your OpenClaw config and trigger
+    cycles manually:
+
+      ${DIM}openclaw openclawdreams reflect${RESET}
+      ${DIM}openclaw openclawdreams dream${RESET}
+
+  Full docs: ${CYAN}https://github.com/RogueCtrl/OpenClawDreams${RESET}
 
   Set ${BOLD}OPENCLAWDREAMS_SKIP_NOTICE=1${RESET} to suppress this message.
 `);
