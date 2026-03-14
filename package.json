@@ -1,6 +1,6 @@
 {
   "name": "openclawdreams",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "A reflection engine that synthesizes agent-operator interactions into dreams",
   "type": "module",
   "main": "dist/index.js",
